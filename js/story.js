@@ -2,19 +2,20 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=3';
-import { sfx, playMusic, stopMusic } from './audio.js?v=3';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=3';
-import { L } from './i18n.js?v=3';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=3';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=3';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=3';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=3';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=3';
-import * as FIELD from './field.js?v=3';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=3';
-import { placeName } from './maps.js?v=3';
-import { portrait } from './doll.js?v=3';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=4';
+import { sfx, playMusic, stopMusic } from './audio.js?v=4';
+import { UI, menu, say, ask, notice, wait } from './ui.js?v=4';
+import { L } from './i18n.js?v=4';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=4';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=4';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=4';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=4';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=4';
+import * as FIELD from './field.js?v=4';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=4';
+import { placeName } from './maps.js?v=4';
+import { portrait } from './doll.js?v=4';
+import { KITS } from './bosses.js?v=4';
 
 export const STORY = {};
 const G = () => window.G;
@@ -100,6 +101,8 @@ export function encounterArmy(info) {
   // the sect's agents turn up everywhere
   const sectPool = FACTION_FOR.sect || (FACTION_FOR.sect = GEN_LIST.filter((g) => g.faction === 'sect' && !g.famous));
   const avg = (lo + hi) / 2;
+  // a region's armies are fixed in strength (never scaled to the player): later lands field fuller, fiercer armies
+  const ch = R[4] || 1, troopMul = 1.5 + 0.04 * ch, atkMul = 1.12 + 0.015 * ch;
   const n = avg < 4 ? 1 + (Math.random() < 0.5 ? 1 : 0) : avg < 10 ? 2 + (Math.random() < 0.5 ? 1 : 0) : avg < 22 ? 2 + Math.floor(Math.random() * 3) : 3 + Math.floor(Math.random() * 3);
   const foes = [], used = new Set();
   for (let i = 0; i < n; i++) {
@@ -107,7 +110,13 @@ export function encounterArmy(info) {
     let g = src[Math.floor(Math.random() * src.length)], t = 0;
     while (used.has(g.id) && t++ < 10) g = src[Math.floor(Math.random() * src.length)];
     used.add(g.id);
-    foes.push({ id: g.id, lv: lo + Math.floor(Math.random() * (hi - lo + 1)), mul: 1.3 });
+    foes.push({ id: g.id, lv: lo + Math.floor(Math.random() * (hi - lo + 1)), mul: troopMul, atkMul });
+  }
+  // from the second chapter's lands on, an army often brings a strategist who casts ploys
+  if (ch >= 2 && foes.length >= 2 && Math.random() < 0.6) {
+    const clever = (src) => src.filter((g) => g.int >= 70 && !used.has(g.id));
+    const c = clever(pool).length ? clever(pool) : clever(sectPool);
+    if (c.length) foes[foes.length - 1].id = c[Math.floor(Math.random() * c.length)].id;
   }
   if (info.naval) for (const f of foes) f.lv = Math.max(f.lv, lo);
   return { foes, form: ['fangyuan', 'yulin', 'heyi', 'changshe', 'fengshi'][Math.floor(Math.random() * (avg > 20 ? 5 : 3))] };
@@ -125,32 +134,32 @@ export const BOSSES = {
   pirates: { foes: [{ id: 'g400', lv: 37, mul: 2.4, boss: true }, { id: 'g401', lv: 35 }, { id: 'g402', lv: 35 }, { id: 'g403', lv: 35 }], terrain: 'river', naval: true, music: 'boss' },
   prologue: { foes: [{ id: 'g300', lv: 4, mul: 0.9 }, { id: 'g301', lv: 4, mul: 0.9 }, { id: 'g302', lv: 3, mul: 0.9 }], terrain: 'castle', music: 'battle', canRun: false, mayLose: false },
   beach: { foes: [{ id: 'g010', lv: 2 }, { id: 'g011', lv: 2 }], terrain: 'grass', music: 'battle' },
-  yanbaihu: { foes: [{ id: 'yanbaihu', lv: 8, mul: 3.4, boss: true }, { id: 'g012', lv: 7 }, { id: 'g303', lv: 7 }], terrain: 'castle', foeForm: 'yulin' },
-  zulang: { foes: [{ id: 'zulang', lv: 9, mul: 3.0, boss: true }, { id: 'g013', lv: 7 }, { id: 'g014', lv: 7 }], terrain: 'cave' },
-  liuxun: { foes: [{ id: 'liuxun', lv: 13, mul: 3.6, boss: true }, { id: 'g304', lv: 12 }, { id: 'g060', lv: 12 }, { id: 'g061', lv: 11 }], terrain: 'castle', foeForm: 'heyi' },
+  yanbaihu: { foes: [{ id: 'yanbaihu', lv: 8, mul: 3.8, boss: true }, { id: 'g012', lv: 7 }, { id: 'g303', lv: 7 }], terrain: 'castle', foeForm: 'yulin', lvgap: 1.15 },
+  zulang: { foes: [{ id: 'zulang', lv: 9, mul: 3.0, boss: true }, { id: 'g013', lv: 7 }, { id: 'g014', lv: 7 }], terrain: 'cave', foeForm: 'yulin' },
+  liuxun: { foes: [{ id: 'liuxun', lv: 13, mul: 3.0, boss: true }, { id: 'g304', lv: 12 }, { id: 'g060', lv: 12 }, { id: 'g061', lv: 11 }], terrain: 'castle', foeForm: 'changshe' },
   qua: { foes: [{ id: 'g036', lv: 14, mul: 3.4 }, { id: 'g037', lv: 14 }, { id: 'g038', lv: 13 }], terrain: 'grass' },
   moling: { foes: [{ id: 'g039', lv: 16, mul: 3.4 }, { id: 'g040', lv: 15 }, { id: 'g041', lv: 15 }, { id: 'g305', lv: 15 }], terrain: 'castle' },
-  sunhao: { foes: [{ id: 'sunhao', lv: 17, mul: 2.2, boss: true }, { id: 'yanwu', lv: 18, mul: 1.8, boss: true }, { id: 'g042', lv: 15 }, { id: 'g306', lv: 15 }], terrain: 'castle', foeForm: 'fengshi', music: 'boss' },
-  xisai: { foes: [{ id: 'chenjiu', lv: 21, mul: 3.2, boss: true }, { id: 'g070', lv: 19 }, { id: 'g071', lv: 19 }, { id: 'g072', lv: 19 }], terrain: 'river', naval: true },
-  huangzu: { foes: [{ id: 'huangzu', lv: 24, mul: 3.8, boss: true }, { id: 'g073', lv: 22 }, { id: 'g074', lv: 22 }, { id: 'g307', lv: 22 }], terrain: 'castle', foeForm: 'heyi' },
+  sunhao: { foes: [{ id: 'sunhao', lv: 17, mul: 2.2, boss: true }, { id: 'yanwu', lv: 18, mul: 1.8, boss: true, atkMul: 1.4 }, { id: 'g042', lv: 15 }, { id: 'g306', lv: 15 }], terrain: 'castle', foeForm: 'fengshi', music: 'boss' },
+  xisai: { foes: [{ id: 'chenjiu', lv: 21, mul: 4.5, boss: true }, { id: 'g070', lv: 19 }, { id: 'g071', lv: 19 }, { id: 'g072', lv: 19 }], terrain: 'river', naval: true, foeForm: 'changshe' },
+  huangzu: { foes: [{ id: 'huangzu', lv: 24, mul: 4.4, boss: true }, { id: 'g073', lv: 22 }, { id: 'g074', lv: 22 }, { id: 'g307', lv: 22 }], terrain: 'castle', foeForm: 'fangyuan', lvgap: 1.2 },
   changsha: { foes: [{ id: 'g090', lv: 24, mul: 3.6 }, { id: 'g091', lv: 23 }, { id: 'g092', lv: 23 }, { id: 'g093', lv: 23 }], terrain: 'castle' },
-  caimao: { foes: [{ id: 'caimao', lv: 29, mul: 2.8, boss: true }, { id: 'chaoyin', lv: 30, mul: 2.2, boss: true }, { id: 'zhangyun', lv: 27 }, { id: 'g094', lv: 27 }], terrain: 'castle', foeForm: 'yulin', music: 'boss' },
+  caimao: { foes: [{ id: 'caimao', lv: 29, mul: 2.8, boss: true }, { id: 'chaoyin', lv: 30, mul: 2.2, boss: true, atkMul: 1.4 }, { id: 'zhangyun', lv: 27 }, { id: 'g094', lv: 27 }], terrain: 'castle', foeForm: 'yulin', music: 'boss' },
   fleet1: { foes: [{ id: 'yuejin', lv: 32, mul: 3.0 }, { id: 'g110', lv: 30 }, { id: 'g111', lv: 30 }, { id: 'g112', lv: 30 }], terrain: 'river', naval: true },
-  fleet2: { foes: [{ id: 'yujin', lv: 35, mul: 3.8, boss: true }, { id: 'chaoyin', lv: 35, mul: 2.4, boss: true }, { id: 'g113', lv: 33 }, { id: 'g308', lv: 33 }], terrain: 'river', naval: true, music: 'boss' },
-  yuanshu: { foes: [{ id: 'yuanshu', lv: 37, mul: 3.6, boss: true }, { id: 'jiling', lv: 37, mul: 2.6, boss: true }, { id: 'g130', lv: 35 }, { id: 'g131', lv: 35 }], terrain: 'castle' },
-  guandu: { foes: [{ id: 'yanliang', lv: 40, mul: 2.0, boss: true }, { id: 'wenchou', lv: 40, mul: 2.0, boss: true }, { id: 'g132', lv: 38 }, { id: 'g133', lv: 38 }, { id: 'g134', lv: 38 }], terrain: 'grass', foeForm: 'tuzhen', music: 'boss' },
-  yuanshao: { foes: [{ id: 'yuanshao', lv: 43, mul: 2.4, boss: true }, { id: 'shuangjing', lv: 44, mul: 1.9, boss: true }, { id: 'shenpei', lv: 42 }, { id: 'g135', lv: 42 }], terrain: 'castle', foeForm: 'yanyue', music: 'boss' },
-  hulao: { foes: [{ id: 'huaxiong', lv: 44, mul: 4.4, boss: true }, { id: 'g150', lv: 43 }, { id: 'g151', lv: 43 }], terrain: 'castle' },
-  tongguan: { foes: [{ id: 'lijue', lv: 46, mul: 3.0, boss: true }, { id: 'guosi', lv: 46, mul: 3.0, boss: true }, { id: 'g152', lv: 44 }], terrain: 'mountain' },
+  fleet2: { foes: [{ id: 'yujin', lv: 35, mul: 3.8, boss: true }, { id: 'chaoyin', lv: 35, mul: 2.4, boss: true, atkMul: 1.4 }, { id: 'g113', lv: 33 }, { id: 'g308', lv: 33 }], terrain: 'river', naval: true, foeForm: 'shuijun', music: 'boss' },
+  yuanshu: { foes: [{ id: 'yuanshu', lv: 37, mul: 4.2, boss: true }, { id: 'jiling', lv: 37, mul: 3.6, boss: true, atkMul: 1.9 }, { id: 'g130', lv: 36 }, { id: 'g131', lv: 36 }], terrain: 'castle', foeForm: 'yulin', lvgap: 1.35 },
+  guandu: { foes: [{ id: 'yanliang', lv: 40, mul: 2.0, boss: true, atkMul: 1.5 }, { id: 'wenchou', lv: 40, mul: 2.0, boss: true, atkMul: 1.5 }, { id: 'g132', lv: 38 }, { id: 'g133', lv: 38 }, { id: 'g134', lv: 38 }], terrain: 'grass', foeForm: 'tuzhen', music: 'boss' },
+  yuanshao: { foes: [{ id: 'yuanshao', lv: 43, mul: 1.7, boss: true }, { id: 'shuangjing', lv: 44, mul: 1.6, boss: true, atkMul: 1.3 }, { id: 'shenpei', lv: 42 }, { id: 'g135', lv: 42 }], terrain: 'castle', foeForm: 'changshe', music: 'boss' },
+  hulao: { foes: [{ id: 'huaxiong', lv: 44, mul: 4.4, boss: true }, { id: 'g150', lv: 43 }, { id: 'g151', lv: 43 }, { id: 'g155', lv: 43 }], terrain: 'castle', foeForm: 'fangyuan' },
+  tongguan: { foes: [{ id: 'lijue', lv: 46, mul: 3.0, boss: true, atkMul: 1.5 }, { id: 'guosi', lv: 46, mul: 3.0, boss: true, atkMul: 1.5 }, { id: 'g152', lv: 44 }], terrain: 'mountain', foeForm: 'fengshi' },
   dongzhuo: { foes: [{ id: 'dongzhuo', lv: 50, mul: 4.4, boss: true }, { id: 'liru', lv: 48, mul: 1.6 }, { id: 'zhangxiu', lv: 48 }, { id: 'g153', lv: 47 }], terrain: 'castle', foeForm: 'fangyuan', music: 'boss' },
   jianye2: { foes: [{ id: 'g310', lv: 51, mul: 4.0 }, { id: 'g311', lv: 51 }, { id: 'g312', lv: 51 }, { id: 'g313', lv: 51 }], terrain: 'castle' },
-  jiyuan: { foes: [{ id: 'jiyuan', lv: 54, mul: 3, boss: true }, { id: 'mingzhao', lv: 54, mul: 2.4, boss: true }, { id: 'g314', lv: 52 }, { id: 'g315', lv: 52 }], terrain: 'sect', music: 'sectboss' },
-  zhangren: { foes: [{ id: 'zhangren', lv: 55, mul: 3.8, boss: true }, { id: 'g170', lv: 53 }, { id: 'g171', lv: 53 }, { id: 'g172', lv: 53 }], terrain: 'mountain' },
-  yanwu: { foes: [{ id: 'yanwu', lv: 57, mul: 4.4, boss: true }, { id: 'g316', lv: 55 }, { id: 'g317', lv: 55 }, { id: 'g318', lv: 55 }], terrain: 'sect', music: 'sectboss' },
-  lotus1: { foes: [{ id: 'shuangjing', lv: 58, mul: 4.4, boss: true }, { id: 'g319', lv: 56 }, { id: 'g320', lv: 56 }], terrain: 'sect', music: 'sectboss' },
-  lotus2: { foes: [{ id: 'mingzhao', lv: 59, mul: 4.6, boss: true }, { id: 'g321', lv: 57 }, { id: 'g322', lv: 57 }], terrain: 'sect', music: 'sectboss' },
-  yuji1: { foes: [{ id: 'yuji', lv: 62, mul: 3.2, boss: true }, { id: 'g323', lv: 58 }, { id: 'g324', lv: 58 }], terrain: 'sect', music: 'finalboss', canRun: false },
-  yuji2: { foes: [{ id: 'yuji', lv: 64, mul: 4.6, boss: true, atkMul: 1.25 }], terrain: 'sect', music: 'finalboss', canRun: false, intro: ['黑蓮聖主現出了真身！', 'The Lord of the Black Lotus shows his true form!'] },
+  jiyuan: { foes: [{ id: 'jiyuan', lv: 54, mul: 3, boss: true }, { id: 'mingzhao', lv: 54, mul: 2.4, boss: true, atkMul: 1.4 }, { id: 'g314', lv: 52 }, { id: 'g315', lv: 52 }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
+  zhangren: { foes: [{ id: 'zhangren', lv: 55, mul: 3.8, boss: true }, { id: 'g170', lv: 53 }, { id: 'g171', lv: 53 }, { id: 'g172', lv: 53 }], terrain: 'mountain', foeForm: 'yanxing' },
+  yanwu: { foes: [{ id: 'yanwu', lv: 57, mul: 4.2, boss: true }, { id: 'g316', lv: 55 }, { id: 'g317', lv: 55 }, { id: 'g318', lv: 55 }], terrain: 'sect', foeForm: 'yulin', music: 'sectboss' },
+  lotus1: { foes: [{ id: 'shuangjing', lv: 58, mul: 3.2, boss: true }, { id: 'g319', lv: 56 }, { id: 'g320', lv: 56 }], terrain: 'sect', foeForm: 'changshe', music: 'sectboss' },
+  lotus2: { foes: [{ id: 'mingzhao', lv: 59, mul: 4.6, boss: true }, { id: 'g321', lv: 57 }, { id: 'g322', lv: 57 }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
+  yuji1: { foes: [{ id: 'yuji', lv: 62, mul: 3.2, boss: true }, { id: 'g323', lv: 58 }, { id: 'g324', lv: 58 }], terrain: 'sect', foeForm: 'fangyuan', music: 'finalboss', canRun: false },
+  yuji2: { foes: [{ id: 'yuji', lv: 64, mul: 3.0, boss: true }], terrain: 'sect', foeForm: 'yanyue', music: 'finalboss', canRun: false, intro: ['黑蓮聖主現出了真身！', 'The Lord of the Black Lotus shows his true form!'] },
 };
 // some of the generated generals are written into the story as the sect's and the rebels' officers;
 // make sure the ids used above belong to the right side (they are reassigned at start)
@@ -167,9 +176,26 @@ function officers(bossId, b) {
   const any = pool.length ? pool : GEN_LIST.filter((g) => !g.famous && g.faction === 'sect');
   return b.foes.map((f) => (/^g\d+$/.test(f.id) ? { ...f, id: any[parseInt(f.id.slice(1), 10) % any.length].id } : { ...f }));
 }
+// the boss's mechanics (bosses.js), with stand-in officers resolved the same way
+function kitOf(id) {
+  const k = KITS[id];
+  if (!k) return null;
+  const kit = JSON.parse(JSON.stringify(k));
+  for (const ph of kit.phases || []) if (ph.foes) ph.foes = officers(id, { foes: ph.foes });
+  return kit;
+}
+// an adviser's hint before a leader's fight: the first of the named speakers who is in the army
+async function advise(id) {
+  const k = KITS[id];
+  if (!k || !k.adv) return;
+  const [who, zh, en] = k.adv;
+  const sp = who.find((w) => has(w) || (w === 'zhuzhi' && S.flags.metZhuzhi)) || (has('erin') ? 'erin' : null);
+  if (sp) await T(sp, zh, en);
+}
 async function fight(id, extra = {}) {
   const b = BOSSES[id];
-  const cfg = { ...b, foes: officers(id, b), boss: b.foes.some((f) => f.boss), intro: b.intro ? L(b.intro[0], b.intro[1]) : undefined, capture: false, ...extra };
+  await advise(id);
+  const cfg = { ...b, foes: officers(id, b), boss: b.foes.some((f) => f.boss), intro: b.intro ? L(b.intro[0], b.intro[1]) : undefined, capture: false, kit: kitOf(id), bossId: id, ...extra };
   for (const f of cfg.foes) S.met[f.id] = Math.max(S.met[f.id] || 0, 1);
   sfx('encounter');
   const r = await battle(cfg);
@@ -685,6 +711,7 @@ export async function onEnterPlace(id) {
     const c = await choose('sunquan', '……', '...', [['你走吧。離開江東，永遠別回來。', 'Go. Leave Jiangdong and never come back.'], ['把他關起來。', 'Lock him up.']]);
     await T('sunhao', c === 0 ? '……仲謀，你比伯符更像個主公。' : '……是我自作自受。', c === 0 ? '...Zhongmou, you are more of a lord than Bofu ever was.' : '...I brought this on myself.');
     S.flags.won_sunhao = 1; S.flags.beaten_sun_hao = 1; S.flags.homeBase = 'jianye';
+    if (!S.forms.includes('fengshi')) { S.forms.push('fengshi'); sfx('level'); await N('孫暠留下了「鋒矢陣圖」，習得了鋒矢陣！（需要武力80以上的主將）', 'Sun Hao leaves behind the Arrowhead Manual: you learn the Arrowhead formation! (It needs a leader with STR 80+)'); }
     await fade(() => toMap('jianye/hall'));
     playMusic('hymn');
     await N('建業城頭，重新升起了孫字大旗。', 'Over the walls of Jianye, the Sun banner flies once more.');
@@ -751,6 +778,7 @@ export async function onEnterPlace(id) {
     const r = await fight('yuanshu');
     if (r !== 'win') return 'stay';
     await N('袁術的「仲家」覆滅了。', 'Yuan Shu\'s "Zhong dynasty" is no more.');
+    if (!S.forms.includes('changshe')) { S.forms.push('changshe'); sfx('level'); await N('在袁術的宮中找到了「長蛇陣圖」，習得了長蛇陣！', 'In Yuan Shu\'s palace you find the Long Snake Manual and learn the Long Snake formation!'); }
     S.flags.won_yuanshu = 1;
     return;
   }
@@ -1027,7 +1055,7 @@ async function shrine(place) {
     give(gift); sfx('chest'); return N(`得到了「${it.zh}」！`, `Received ${it.en}!`);
   }
   const c = await ask(L('老僧', 'Old Monk'), L('要在佛前祈福嗎？全軍會恢復一些精神。（免費）', 'Will you pray before the Buddha? Your army will recover a little. (Free)'), [L('祈福', 'Pray'), L('不用了', 'No thanks')], { back: 1 });
-  if (c === 0) { healAll(0.3); sfx('heal'); await N('一股暖意流過全軍。', 'A warmth flows through the army.'); }
+  if (c === 0) { healAll(0.15); sfx('heal'); await N('一股暖意流過全軍。', 'A warmth flows through the army.'); }
 }
 export async function warpHome() {
   const id = S.lastTown || 'haiyan';

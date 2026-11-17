@@ -1,17 +1,18 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=3';
-import { input } from './input.js?v=3';
-import { sfx, setMusic, music } from './audio.js?v=3';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=3';
-import { L, LANG, setLang } from './i18n.js?v=3';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=3';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor } from './data.js?v=3';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=3';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=3';
-import { PLACES, REGIONS, WW, WH } from './world.js?v=3';
-import { overviewMap } from './worldgfx.js?v=3';
-import { F, tileX, tileY } from './field.js?v=3';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=4';
+import { input } from './input.js?v=4';
+import { sfx, setMusic, music } from './audio.js?v=4';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=4';
+import { L, LANG, setLang } from './i18n.js?v=4';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=4';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS } from './data.js?v=4';
+import { icon, ICON_COL } from './icons.js?v=4';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=4';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=4';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=4';
+import { overviewMap } from './worldgfx.js?v=4';
+import { F, tileX, tileY } from './field.js?v=4';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
@@ -21,8 +22,8 @@ export async function openMenu() {
   const close = gold();
   let last = 0;
   for (;;) {
-    const opts = [L('武將', 'Generals'), L('裝備', 'Equip'), L('策略', 'Tactics'), L('陣形', 'Formation'), L('道具', 'Items'), L('武將錄', 'Who\'s Who'), L('地圖', 'Map'), L('記錄', 'Save'), L('設定', 'Settings')];
-    const dis = [false, false, false, false, false, false, F.mode !== 'world', !(F.mode === 'world' || S.flags.canSave), false];
+    const opts = [L('武將', 'Generals'), L('裝備', 'Equip'), L('策略', 'Tactics'), L('陣形', 'Formation'), L('道具', 'Items'), L('武將錄', 'Who\'s Who'), L('兵法', 'Art of War'), L('地圖', 'Map'), L('記錄', 'Save'), L('設定', 'Settings')];
+    const dis = [false, false, false, false, false, false, false, F.mode !== 'world', !(F.mode === 'world' || S.flags.canSave), false];
     const c = await menu(opts.map((s, i) => ({ label: s, disabled: dis[i] })), { x: 6, y: 4, w: 100, start: last });
     if (c < 0) break;
     last = c;
@@ -32,9 +33,10 @@ export async function openMenu() {
     if (c === 3) await formationMenu();
     if (c === 4) await itemsMenu();
     if (c === 5) await encyclopedia();
-    if (c === 6) { close(); await fullMap(); return; }
-    if (c === 7) await saveMenu();
-    if (c === 8) await settings();
+    if (c === 6) await helpPage();
+    if (c === 7) { close(); await fullMap(); return; }
+    if (c === 8) await saveMenu();
+    if (c === 9) await settings();
   }
   close();
 }
@@ -178,7 +180,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=3'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=4'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -197,7 +199,9 @@ function drawForm(id, x, y) {
   // the diagram: the enemy is to the left
   const gx = x + 30, gy = y + 30, cw = 32, chh = 30;
   ctx.fillStyle = '#20181c'; ctx.fillRect(gx - 4, gy - 4, 5 * cw + 8, 3 * chh + 8);
-  for (let c = 0; c < 5; c++) for (let r = 0; r < 3; r++) { ctx.fillStyle = (c + r) % 2 ? '#2a2026' : '#30262c'; ctx.fillRect(gx + c * cw, gy + r * chh, cw, chh); }
+  for (let c = 0; c < 5; c++) for (let r = 0; r < 3; r++) { ctx.fillStyle = c >= 2 ? ((c + r) % 2 ? '#22283e' : '#2a3046') : ((c + r) % 2 ? '#2a2026' : '#30262c'); ctx.fillRect(gx + c * cw, gy + r * chh, cw, chh); }
+  // the back rows (columns three and deeper) are hard to reach with blades
+  text(L('藍底＝後排', 'blue = back'), x + 210, y + 8, '#a0b8e0', { align: 'right' });
   text(L('敵', 'Foe'), gx - 22, gy + chh + 8, '#ff9080');
   text('←', gx - 22, gy + chh + 20, '#ff9080');
   f.pos.forEach(([c, r], i) => {
@@ -211,14 +215,89 @@ function drawForm(id, x, y) {
   const lines = wrap(L(f.desc[0], f.desc[1]), 200);
   lines.slice(0, 3).forEach((l, i) => text(l, x + 10, y + 148 + i * 14, '#d0d0e0'));
   if (f.cond) text((formOk(id) ? '✓ ' : '✗ ') + condText(id), x + 10, y + 188 - 4, formOk(id) ? '#80ffa0' : '#ff8080');
+  // which formation this one beats, and which beats it
+  const b = BEATS[id], by = beatenBy(id);
+  windowBox(x, y + 202, 220, 34);
+  if (b || by) {
+    text(L('克制', 'Beats'), x + 10, y + 207, '#80ff90'); text(b ? formName(b) : '—', x + 46, y + 207, '#e0ffe0');
+    text(L('被克', 'Loses to'), x + 10, y + 220, '#ff9080'); text(by ? formName(by) : '—', x + (L('a', 'aa') === 'a' ? 46 : 64), y + 220, '#ffe0e0');
+  } else text(L('不在相剋之列：水戰時最強。', 'Outside the circle: strongest at sea.'), x + 10, y + 213, '#c0d8f0');
 }
 async function formationMenu() {
   const list = S.forms;
   let cur = Math.max(0, list.indexOf(S.formation));
-  const c = await menu(list.map((id) => ({ label: formName(id) + (S.formation === id ? '　◆' : ''), color: formOk(id) ? undefined : '#a08888' })), { x: 6, y: 4, w: 140, start: cur, maxRows: 12, onMove: (i) => { cur = i; }, drawExtra: () => drawForm(list[cur], 150, 4) });
+  const c = await menu(list.map((id) => ({ label: formName(id) + (S.formation === id ? '　◆' : ''), color: formOk(id) ? undefined : '#a08888' })), { x: 6, y: 4, w: 140, start: cur, maxRows: 12, onMove: (i) => { cur = i; }, drawExtra: () => drawForm(list[cur], 150, 2) });
   if (c < 0) return;
   if (!formOk(list[c])) { sfx('buzz'); await notice(L('條件不足，無法布陣。', 'The conditions are not met.'), 70); return; }
   S.formation = list[c]; sfx('ok');
+}
+
+
+// ---------- the art of war: how battles work ----------
+const HELP = [
+  { t: ['兵種相剋', 'The Unit Triangle'], draw: 'tri', s: ['騎兵克步兵、步兵克弓兵、弓兵克騎兵：克制時傷害×1.3，被克制時×0.8。\n水軍在水戰中克制所有兵種，在陸上攻擊較弱（×0.85）。\n選目標時，敵軍腳邊的綠色▲表示我方克制，紅色▼表示被克制；傷害數字旁也會顯示「克制!」。', 'Horse beat foot, foot beat bow, bow beat horse: x1.3 damage when you have the edge, x0.8 when they do.\nNavy beats everything on the water but hits weaker on land (x0.85).\nWhen choosing a target, a green arrow by an enemy\'s feet means you have the edge, a red one that they do.'] },
+  { t: ['陣形相剋', 'Formations'], draw: 'forms', s: ['每個陣形克制一個、被一個克制。陣形克制時，我軍傷害+15%，開戰士氣+10；被克制則傷害減少、士氣下降。\n敵軍的陣形顯示在畫面上方。戰鬥中可以下令「變陣」（用掉一名武將的行動）。有些首領打到一半會變陣，記得跟著變。', 'Each formation beats one and loses to another. When yours beats theirs you deal 15% more and start with more morale; when theirs beats yours, the opposite.\nThe enemy\'s formation shows at the top. In battle you can order a change of formation (it takes one general\'s turn). Some leaders change formation halfway: change with them.'] },
+  { t: ['前排與後排', 'Front and Back Rows'], s: ['陣形圖第三列以後是後排。只要前排還有人，刀槍打到後排的傷害只剩六成；弓弩、策略與首領的狙擊不受影響。\n把軍師與弓兵放在後排。軍師必須出戰，才能把策略與智力借給全軍；軍師敗走，就只剩每人自己會的策略。\n敵人也會盯上我軍的軍師與傷兵。', 'Columns three and deeper of the formation grid are the back rows. While anyone stands in front, blades do only 60% to the back; bows, tactics and a leader\'s marked shots are not affected.\nKeep the strategist and archers at the back. The strategist must be in the line to lend tactics and INT to everyone; if the strategist is routed, each general has only their own tactics.\nEnemies go for your strategist and your wounded too.'] },
+  { t: ['士氣', 'Morale'], s: ['雙方各有一條士氣（畫面上方）。擊倒敵將、會心一擊、克制、鼓舞、打斷敵人的大招都會提升士氣；我將倒下、計策失敗、中伏、硬吃大招會讓士氣下降。\n士氣滿時傷害+20%，見底時−20%。野戰中士氣崩潰的敵軍會逃走；首領戰中，所有首領倒下，殘兵就會潰散。', 'Each side has a morale bar (at the top). Felling a general, critical hits, good matchups, Rally and breaking off a big move raise it; losing a general, failed ploys, ambushes and taking a big move head-on lower it.\nFull morale deals 20% more damage, empty 20% less. A field army whose morale breaks runs away; in a leader\'s battle, when every leader falls the rest scatter.'] },
+  { t: ['策略', 'Tactics'], s: ['策略值在戰鬥中不會自己恢復，只能靠策略丹、神機丹。每個策略都有成功率（顯示在選單與瞄準時）：取決於施計者（或軍師）與目標的智力。\n火計雨天差、風天強、林中強；水計在江河與雨天強；落石在山地強、水上幾乎無用；雷擊雨天強。首領較能抵抗混亂、昏睡等狀態，有些首領完全免疫。', 'Strategy points do not come back by themselves in battle, only from Strategy and Sage Pills. Every tactic has a chance to work (shown in the menu and when aiming): the caster\'s (or strategist\'s) INT against the target\'s.\nFire is weak in rain, strong in wind and forests; water is strong on rivers and in rain; Rockfall is strong in the mountains and nearly useless at sea; thunder is strong in rain. Leaders resist statuses, and some are immune.'] },
+  { t: ['狀態', 'Statuses'], draw: 'status', s: ['', ''] },
+  { t: ['首領戰', 'Leaders'], s: ['首領會在畫面上方預告大招，蓄力一回合才出手（頭旁有「!」）。對策一定存在：\n‧ 防禦：受到的大招傷害只剩35%。\n‧ 被盯上（準星）的人防禦，或讓會盾牆／護衛的武將防禦替他擋；挑撥也能把攻擊引到坦克身上。\n‧ 混亂、昏睡、困陣、封策能打斷蓄力；有些招式怕水、怕火、怕雨。\n首領兵力降到六成、三成時會改變戰法。偵察能看清首領的弱點與招式；出戰前也聽聽軍師怎麼說。', 'Leaders announce their big moves at the top of the screen and take a turn to charge them ("!" by the head). There is always an answer:\n- Defend: a big move does only 35%.\n- The marked general (crosshair) defends, or a Shield Wall or Guardian general defends and takes it; Provoke draws it onto a tank.\n- Confusion, sleep, traps and Seal Ploys break off a charge; some moves fear water, fire or rain.\nAt 60% and 30% troops a leader changes how it fights. Scout to learn its weak point and moves, and listen to your advisers before the battle.'] },
+];
+export async function helpPage(inBattle = false) {
+  let pg = 0;
+  return new Promise((res) => {
+    const w = {
+      update() {
+        if (input.repeat('right') || input.repeat('down')) { pg = (pg + 1) % HELP.length; sfx('cursor'); }
+        if (input.repeat('left') || input.repeat('up')) { pg = (pg + HELP.length - 1) % HELP.length; sfx('cursor'); }
+        if (input.pressed('b') || input.pressed('a') || input.pressed('menu')) { if (input.pressed('a') && pg < HELP.length - 1) { pg++; sfx('cursor'); return; } sfx('cancel'); removeRaw(w); res(); }
+      },
+      draw() {
+        const h = HELP[pg];
+        windowBox(6, 4, W - 34, H - 8);
+        text(L(h.t[0], h.t[1]), 18, 12, '#f8e070');
+        text(`${pg + 1}/${HELP.length}  ${L('←→翻頁', '←→ pages')}`, W - 40, 12, '#a0a8c0', { align: 'right' });
+        let y = 30;
+        if (h.draw === 'tri') {
+          // horse -> foot -> bow -> horse, each arrow pointing at the one it beats
+          const P = { cav: [60, 44], inf: [200, 44], arc: [130, 80] };
+          const arrow = (a, b) => {
+            const [x1, y1] = P[a], [x2, y2] = P[b], dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
+            const sx = x1 + ux * 30, sy = y1 + 6 + uy * 12, ex = x2 - ux * 30, ey = y2 + 6 - uy * 12;
+            ctx.strokeStyle = '#80ff90'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+            ctx.fillStyle = '#80ff90'; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 6 - uy * 4, ey - uy * 6 + ux * 4); ctx.lineTo(ex - ux * 6 + uy * 4, ey - uy * 6 - ux * 4); ctx.fill();
+          };
+          arrow('cav', 'inf'); arrow('inf', 'arc'); arrow('arc', 'cav');
+          for (const u of ['cav', 'inf', 'arc']) { const [x, yy] = P[u]; icon(u, x - 18, yy + 3); text(unitName(u), x - 6, yy, ICON_COL[u]); }
+          text(L('×1.3', 'x1.3'), 130, 30, '#80ff90', { align: 'center' });
+          icon('nav', 280, 47); text(L('水軍：水上克制一切', 'Navy: beats all on water'), 292, 44, ICON_COL.nav);
+          y = 96;
+        }
+        if (h.draw === 'forms') {
+          const cyc = [['fengshi', 'fangyuan', 'heyi'], ['yulin', 'changshe', 'yanxing'], ['tuzhen', 'yanyue', 'bagua']];
+          cyc.forEach((c, i) => { text(c.map((f) => FORMS[f][L('zh', 'en') === 'zh' ? 'zh' : 'en']).join(' → ') + ' → ' + FORMS[c[0]][L('zh', 'en') === 'zh' ? 'zh' : 'en'], 24, 30 + i * 14, '#e0e8ff'); });
+          text(L('（箭頭指向被克制的陣形）', '(each beats the next)'), 24, 72, '#a0a8c0');
+          y = 92;
+        }
+        if (h.draw === 'status') {
+          const keys = Object.keys(STATUS);
+          keys.forEach((k, i) => {
+            const st = STATUS[k], col = i % 2, row = Math.floor(i / 2), x = 18 + col * 222, yy = 30 + row * 40;
+            icon(k === 'defdown' ? 'down' : k, x, yy + 3, ICON_COL[k] || st[2]);
+            text(L(st[0], st[1]), x + 12, yy, st[2]);
+            for (const [j, ln] of wrap(L(st[3], st[4]), 196).slice(0, 2).entries()) text(ln, x + 12, yy + 13 + j * 12, '#d0d0e0');
+          });
+          const yy = 30 + Math.ceil(keys.length / 2) * 40;
+          icon('up', 18, yy + 3, ICON_COL.atkup); icon('up', 28, yy + 3, ICON_COL.defup); icon('up', 38, yy + 3, ICON_COL.spdup);
+          text(L('攻／防／速上升　數字＝剩餘回合', 'ATK / DEF / SPD up   number = turns left'), 52, yy, '#ffe080');
+          return;
+        }
+        for (const ln of wrap(L(h.s[0], h.s[1]), W - 64)) { if (y > H - 22) break; text(ln, 20, y, '#e8e8f0'); y += 14; }
+        void inBattle;
+      },
+    };
+    pushRaw(w);
+  });
 }
 
 // ---------- items ----------
@@ -234,7 +313,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=3'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=4'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -266,6 +345,7 @@ export function itemDesc(id) {
   if (it.heal) p.push(it.target === 'all' ? L(`恢復全軍兵力${Math.round(it.heal * 100)}%`, `Restores ${Math.round(it.heal * 100)}% troops to all`) : L(`恢復兵力${Math.round(it.heal * 100)}%`, `Restores ${Math.round(it.heal * 100)}% troops`));
   if (it.revive) p.push(L('讓敗走的武將歸隊', 'Brings a routed general back'));
   if (it.tp) p.push(L('恢復策略值', 'Restores strategy points'));
+  if (it.cure) p.push(L('戰鬥中：解除一名武將的混亂、恐懼、昏睡、封策與詛咒', 'In battle: lifts confusion, fear, sleep, sealed ploys and curses from one general'));
   if (it.fire) p.push(L('戰鬥中：火燒全部敵軍', 'In battle: burns all enemies'));
   if (it.escape) p.push(L('戰鬥中：撤退', 'In battle: escape'));
   if (it.repel) p.push(L('一段時間內少遇敵', 'Fewer battles for a while'));

@@ -1,15 +1,15 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=3';
-import { sfx } from './audio.js?v=3';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=3';
-import { L } from './i18n.js?v=3';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=3';
-import { ITEMS, itemName, unitName } from './data.js?v=3';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=3';
-import { PLACES, REGIONS } from './world.js?v=3';
-import { itemDesc, drawStatus } from './menu.js?v=3';
-import { hash } from './gfx.js?v=3';
+import { W, H, text, windowBox } from './gfx.js?v=4';
+import { sfx } from './audio.js?v=4';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=4';
+import { L } from './i18n.js?v=4';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=4';
+import { ITEMS, itemName, unitName } from './data.js?v=4';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=4';
+import { PLACES, REGIONS } from './world.js?v=4';
+import { itemDesc, drawStatus } from './menu.js?v=4';
+import { hash } from './gfx.js?v=4';
 
 // what each shop sells, by how far into the story the place's region opens
 const STOCK = {
@@ -33,12 +33,12 @@ const STOCK = {
   ],
   item: [
     ['salve', 'wine', 'smoke', 'incense'],
-    ['salve', 'jinchuang', 'wine', 'smoke', 'incense', 'returnseal', 'tpdan'],
-    ['salve', 'jinchuang', 'wine', 'rations', 'smoke', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun'],
-    ['jinchuang', 'wine', 'rations', 'smoke', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine'],
-    ['jinchuang', 'rations', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'wristguard', 'scarf'],
-    ['jinchuang', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'silk', 'jade', 'huxin'],
-    ['jinchuang', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'silk', 'pearl', 'jade', 'huxin', 'bingfu', 'warcape'],
+    ['salve', 'jinchuang', 'wine', 'smoke', 'qingxin', 'incense', 'returnseal', 'tpdan'],
+    ['salve', 'jinchuang', 'qingxin', 'wine', 'rations', 'smoke', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun'],
+    ['jinchuang', 'qingxin', 'wine', 'rations', 'smoke', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine'],
+    ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'wristguard', 'scarf'],
+    ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'silk', 'jade', 'huxin'],
+    ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'silk', 'pearl', 'jade', 'huxin', 'bingfu', 'warcape'],
   ],
   book: [
     ['bk_fire'], ['bk_fire', 'bk_water'], ['bk_fire', 'bk_water', 'bk_heal'], ['bk_water', 'bk_heal', 'bk_wind'], ['bk_heal', 'bk_wind', 'bk_rock', 'bk_revive'], ['bk_rock', 'bk_revive', 'bk_thunder'], ['bk_thunder', 'bk_revive'],
@@ -106,7 +106,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=3');
+  const { save, slotInfo } = await import('./state.js?v=4');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;

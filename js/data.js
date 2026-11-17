@@ -1,6 +1,6 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=3';
+import { L } from './i18n.js?v=4';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -9,13 +9,14 @@ export const UNITS = {
   arc: { zh: '弓兵', en: 'Bow' },
   nav: { zh: '水軍', en: 'Navy' },
 };
-// attacker type vs defender type
+// attacker type vs defender type: horse beat foot, foot beat bow, bow beat horse (x1.3 one way, x0.8 the
+// other); navy is strong on the water and clumsy on land
 export function unitEdge(a, d, naval) {
-  if (naval) return a === 'nav' ? 1.3 : d === 'nav' ? 0.85 : a === 'cav' ? 0.8 : 1;
-  if (a === 'cav' && d === 'inf') return 1.2;
-  if (a === 'inf' && d === 'arc') return 1.2;
-  if (a === 'arc' && d === 'cav') return 1.2;
-  if (a === 'nav') return 0.92;
+  if (naval) { if (a === 'nav' && d !== 'nav') return 1.3; if (d === 'nav' && a !== 'nav') return a === 'arc' ? 1 : 0.8; return a === 'cav' ? 0.85 : 1; }
+  if (a === 'nav') return 0.85;
+  if (d === 'nav') return 1.1;
+  if ((a === 'cav' && d === 'inf') || (a === 'inf' && d === 'arc') || (a === 'arc' && d === 'cav')) return 1.3;
+  if ((d === 'cav' && a === 'inf') || (d === 'inf' && a === 'arc') || (d === 'arc' && a === 'cav')) return 0.8;
   return 1;
 }
 export const unitName = (u) => L(UNITS[u].zh, UNITS[u].en);
@@ -113,6 +114,7 @@ item('tpdan', '策略丹', 'Strategy Pill', 'supply', 300, { tp: 30 });
 item('tpbig', '神機丹', 'Sage Pill', 'supply', 1200, { tp: 999 });
 item('gunpowder', '火藥', 'Gunpowder', 'supply', 250, { fire: 1, target: 'enemies', battleOnly: true });
 item('smoke', '煙球', 'Smoke Ball', 'supply', 80, { escape: true, battleOnly: true });
+item('qingxin', '清心丹', 'Clear-Mind Pill', 'supply', 120, { cure: true, target: 'one', battleOnly: true });
 item('incense', '隱蹤香', 'Hiding Incense', 'supply', 150, { repel: 250, fieldOnly: true });
 item('returnseal', '歸城符', 'Homing Charm', 'supply', 200, { warp: true, fieldOnly: true });
 // gifts for winning a general over
@@ -176,6 +178,10 @@ tac('duyan', '毒煙', 'Poison Smoke', 8, 'eall', { st: 'poison', int: 60, lv: 1
 tac('hunluan', '混亂', 'Confusion', 5, 'e1', { st: 'confuse', int: 55, lv: 5, fx: 'spirit' });
 tac('tiaobo', '挑撥', 'Provoke', 4, 'e1', { st: 'provoke', int: 50, lv: 4, fx: 'spark' });
 tac('maifu', '埋伏', 'Ambush', 8, 'self', { st: 'ambush', int: 62, lv: 9, fx: 'leaf' });
+tac('weihe', '威嚇', 'Intimidate', 4, 'e1', { st: 'fear', int: 44, lv: 7, fx: 'spark' });
+tac('pojia', '破甲', 'Armour Break', 5, 'e1', { st: 'defdown', int: 52, lv: 8, fx: 'cutx' });
+tac('fengce', '封策', 'Seal Ploys', 5, 'e1', { st: 'silence', int: 58, lv: 9, fx: 'circle' });
+tac('mihun', '迷魂', 'Sleep Mist', 6, 'e1', { st: 'sleep', int: 62, lv: 12, fx: 'smoke' });
 tac('qimen', '奇門', 'Qimen Trap', 10, 'e1', { st: 'stun', int: 0, lv: 99, fx: 'circle' });
 tac('jinsuo', '八門金鎖', 'Eight Gates Lock', 24, 'eall', { st: 'stun', int: 0, lv: 99, fx: 'circle' });
 tac('guwu', '鼓舞', 'Rally', 6, 'aall', { buff: 'atk', int: 48, lv: 4, fx: 'boost' });
@@ -195,18 +201,20 @@ tac('heilian', '黑蓮咒', 'Black Lotus Curse', 10, 'eall', { el: 'dark', pow: 
 export const TACTICS = TAC;
 export const tacName = (id) => (TAC[id] ? L(TAC[id].zh, TAC[id].en) : id);
 export const TAC_DESC = {
-  huoji: ['放火燒一支敵軍。', 'Sets one enemy unit on fire.'], dahuo: ['火燒全部敵軍。', 'Fire on every enemy unit.'], liehuo: ['猛烈的火焰吞沒全部敵軍。', 'A roaring blaze over all enemies.'],
+  huoji: ['放火燒一支敵軍，可能使其燒傷。', 'Sets one enemy unit on fire; it may keep burning.'], dahuo: ['火燒全部敵軍。', 'Fire on every enemy unit.'], liehuo: ['猛烈的火焰吞沒全部敵軍。', 'A roaring blaze over all enemies.'],
   yehuo: ['業火焚盡一切。', 'Fire that leaves nothing.'], shuiji: ['決水淹一支敵軍。', 'Floods one enemy unit.'], dashui: ['大水沖向全部敵軍。', 'A flood over all enemies.'],
   hongshui: ['滔天洪水。', 'A towering deluge.'], luoshi: ['推落巨石砸向一支敵軍。', 'Boulders onto one enemy.'], shanbeng: ['整面山坡崩落。', 'A whole hillside comes down.'],
   leiji: ['引雷劈向一支敵軍。雨天更強。', 'Lightning on one enemy. Stronger in rain.'], tianlei: ['天雷轟擊全部敵軍。', 'Thunder on all enemies.'], duyan: ['毒煙使敵軍每回合損兵。', 'Smoke that bleeds the enemy each turn.'],
-  hunluan: ['使一支敵軍陷入混亂，亂打一通。', 'Throws one enemy into confusion.'], tiaobo: ['激怒敵將：攻擊上升但防禦大降，只會攻擊施計者。', 'Goads a foe: more attack, far less defence, and it only attacks the caster.'],
-  maifu: ['設下伏兵，下一個攻擊我軍的敵人會中伏。', 'Hidden troops strike the next enemy who attacks.'], qimen: ['以奇門之陣困住一支敵軍，使其無法行動。', 'Traps one enemy so it cannot act.'],
+  hunluan: ['使一支敵軍陷入混亂，亂打一通。能打斷蓄力。', 'Throws one enemy into confusion. Breaks off a charge.'], tiaobo: ['激怒敵將：攻擊上升但防禦大降，只會攻擊施計者。', 'Goads a foe: more attack, far less defence, and it only attacks the caster.'],
+  maifu: ['設下伏兵，下一個攻擊我軍的敵人會中伏。', 'Hidden troops strike the next enemy who attacks.'], qimen: ['以奇門之陣困住一支敵軍，使其無法行動。能打斷蓄力。', 'Traps one enemy so it cannot act. Breaks off a charge.'],
   jinsuo: ['八門金鎖困住全部敵軍。', 'Locks every enemy in place.'], guwu: ['全軍攻擊力上升。', 'Raises the attack of the whole army.'], jianshou: ['全軍防禦力上升。', 'Raises the defence of the whole army.'],
   jifeng: ['全軍速度上升。', 'Raises the speed of the whole army.'], zhiliao: ['恢復一支部隊的兵力。', 'Restores troops to one unit.'], huifu: ['恢復全軍兵力。', 'Restores troops to the whole army.'],
   dahui: ['大幅恢復全軍兵力。', 'Restores many troops to the whole army.'], fuhuo: ['讓敗走的武將重整旗鼓。', 'A routed general returns to the field.'], dunzou: ['全軍撤離戰場（首領戰無效）。地圖上使用可返回上一座城。', 'The army leaves the battle (not against leaders). On the map: back to the last city.'],
-  zhencha: ['看清敵軍的兵力與弱點，全軍會心率上升。', 'Shows enemy troops and weak points; more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱。', 'Brings rain: water and thunder grow, fire weakens.'],
-  hufeng: ['喚來東風：火計與弓箭增強。', 'Calls a wind: fire and arrows grow stronger.'], huolong: ['傑夫的火龍船，水戰中威力倍增。', "Jeff's burning rafts; far stronger on water."],
-  guanxing: ['艾琳觀星，天氣轉晴，全軍速度上升。', 'Erin reads the stars: clear sky and a faster army.'], heilian: ['黑蓮教的邪咒。', 'The Black Lotus curse.'],
+  zhencha: ['看清敵軍的兵力、弱點與首領的招式，全軍會心率上升。', 'Shows enemy troops, weak points and the leader\'s moves; more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱，能澆熄火船與業火。', 'Brings rain: water and thunder grow, fire weakens; it douses fire ships and hellfire.'],
+  hufeng: ['喚來東風：火計與弓箭增強，吹散江霧，火船也會被吹回敵陣。', 'Calls a wind: fire and arrows grow stronger, fog blows away, and fire ships turn back on the enemy.'], huolong: ['傑夫的火龍船，水戰中威力倍增。', "Jeff's burning rafts; far stronger on water."],
+  guanxing: ['艾琳觀星：天氣轉晴、霧散，全軍速度上升，並解除詛咒、混亂、恐懼與昏睡。', 'Erin reads the stars: clear sky, no fog, a faster army, and curses, confusion, fear and sleep are lifted.'],
+  weihe: ['威嚇一支敵軍使其恐懼：攻擊下降三回合。', 'Frightens one enemy: weaker attacks for three turns.'], pojia: ['破壞一支敵軍的甲冑：防禦下降三回合。', 'Breaks one enemy\'s armour: less defence for three turns.'],
+  fengce: ['封住一名敵將的計策三回合，也能打斷正在施法的敵人。', 'Seals one foe\'s ploys for three turns; also breaks off a spell being cast.'], mihun: ['使一支敵軍昏睡，受到攻擊才會醒。能打斷蓄力。', 'Puts one enemy to sleep until it is hit. Breaks off a charge.'], heilian: ['黑蓮教的邪咒。', 'The Black Lotus curse.'],
 };
 
 // ---------- formations ----------
@@ -224,6 +232,33 @@ export const FORMS = {
   tuzhen: { zh: '突騎陣', en: 'Cavalry Charge', pos: [[0, 0], [0, 1], [0, 2], [2, 0], [2, 2]], hit: [1.2, 1.2, 1.2, 0.7, 0.7], atk: 1.1, def: 0.95, spd: 1.25, tac: 1, charge: 1.4, cond: 'cav3', desc: ['騎兵一齊衝鋒，首回合攻擊大增。條件：前三位皆為騎兵。', 'All horse charge together: huge first-turn attack. Needs the first three to be cavalry.'] },
 };
 export const formName = (id) => L(FORMS[id].zh, FORMS[id].en);
+// each formation beats one other and is beaten by another: the side whose formation wins does 15% more damage
+// and starts with more morale; the Naval Line stands outside the circle
+export const BEATS = { fengshi: 'fangyuan', fangyuan: 'heyi', heyi: 'fengshi', yulin: 'changshe', changshe: 'yanxing', yanxing: 'yulin', tuzhen: 'yanyue', yanyue: 'bagua', bagua: 'tuzhen' };
+export const BEAT_WHY = {
+  fengshi: ['箭頭直刺方圓陣的正面', 'the arrowhead pierces the Square'], fangyuan: ['四面皆守，鶴翼包不住', 'no flank for the Crane\'s wings'], heyi: ['兩翼合圍衝來的箭頭', 'the wings close round the Arrowhead'],
+  yulin: ['層層魚鱗切斷長蛇', 'the scales cut the Snake apart'], changshe: ['長蛇繞過斜列的雁行', 'the Snake coils round the Geese'], yanxing: ['箭雨落進密集的魚鱗', 'arrows rain into the packed Scales'],
+  tuzhen: ['鐵騎衝破偃月的兩角', 'the horse break the Crescent\'s horns'], yanyue: ['主將當先直搗八卦中樞', 'the leader drives into the Trigrams\' heart'], bagua: ['八門困住衝鋒的騎兵', 'the gates trap the charging horse'],
+};
+export const formEdge = (a, d) => (BEATS[a] === d ? 1 : BEATS[d] === a ? -1 : 0);
+export const beatenBy = (f) => Object.keys(BEATS).find((k) => BEATS[k] === f) || null;
+// back rows: a general standing in column 2 or deeper of the formation grid
+export const rowOf = (form, slot) => { const p = (FORMS[form] || FORMS.fangyuan).pos[slot]; return p && p[0] >= 2 ? 'back' : 'front'; };
+
+// ---------- statuses ----------
+// name, colour, what it does (shown in the help page)
+export const STATUS = {
+  confuse: ['混亂', 'Confused', '#e080ff', '胡亂攻擊敵我。', 'Strikes at friend and foe alike.'],
+  stun: ['受困', 'Trapped', '#ffe060', '無法行動。', 'Cannot act.'],
+  sleep: ['昏睡', 'Asleep', '#80b0ff', '無法行動，受到攻擊才醒。', 'Cannot act until hit.'],
+  fear: ['恐懼', 'Afraid', '#c0c0c0', '攻擊下降三成。', 'Attacks 30% weaker.'],
+  burn: ['燒傷', 'Burning', '#ff9040', '每回合損失兵力。', 'Loses troops each turn.'],
+  poison: ['中毒', 'Poisoned', '#a0e060', '每回合損失兵力。', 'Loses troops each turn.'],
+  silence: ['封策', 'Sealed', '#60e0d0', '無法使用策略。', 'Cannot use tactics.'],
+  curse: ['詛咒', 'Cursed', '#c040c0', '無法恢復，每回合損兵，攻擊下降。', 'Cannot be healed, loses troops each turn, attacks weaker.'],
+  provoke: ['激怒', 'Provoked', '#ff6050', '只攻擊挑撥者，攻擊上升、防禦大降。', 'Only attacks the provoker; more attack, far less defence.'],
+  defdown: ['破甲', 'Armour broken', '#ff9070', '防禦下降。', 'Less defence.'],
+};
 
 // ---------- skills ----------
 export const SKILLS = {
