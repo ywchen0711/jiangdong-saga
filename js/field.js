@@ -249,12 +249,14 @@ export function fieldDraw() {
   if (!F.hideLeader) S.front.slice(1, 4).forEach((id, i) => {
     const t = F.trail[i]; if (!t) return;
     const g = GENERALS[id], mm = member(id); if (!mm) return;
-    // followers glide behind the leader
-    const k = F.moving ? Math.abs((F.mdir === 'l' || F.mdir === 'r' ? F.px - F.from[0] : F.py - F.from[1]) / T) : 0;
-    const nx = i === 0 ? tileX() : F.trail[i - 1][0], ny = i === 0 ? tileY() : F.trail[i - 1][1];
-    const fx = F.moving ? t[0] + ((i === 0 ? F.from[0] / T : F.trail[i - 1][0]) - t[0]) * k : t[0], fy = F.moving ? t[1] + ((i === 0 ? F.from[1] / T : F.trail[i - 1][1]) - t[1]) * k : t[1];
-    void nx; void ny;
-    list.push({ y: fy * T + 14, d: () => drawFigure(g.look, mm.equip, { shield: g.shield, quiver: g.quiver }, fx * T - camX, fy * T - camY, i === 0 ? F.trail[0][2] : F.trail[i - 1][2], !!F.moving, F.frame + i * 3) });
+    // followers glide behind the leader: trail[0] is the tile the leader is leaving, and during a step each
+    // follower walks from the tile it stood on (one further back in the trail) to the next one, at the leader's pace
+    const k = F.moving ? Math.min(1, Math.abs((F.mdir === 'l' || F.mdir === 'r' ? F.px - F.from[0] : F.py - F.from[1]) / T)) : 1;
+    const s = (F.moving && F.trail[i + 1]) || t;
+    const fx = s[0] + (t[0] - s[0]) * k, fy = s[1] + (t[1] - s[1]) * k;
+    const walking = F.moving && s !== t && (s[0] !== t[0] || s[1] !== t[1]);
+    const dir = (F.trail[i + 1] || t)[2];
+    list.push({ y: fy * T + 14, d: () => drawFigure(g.look, mm.equip, { shield: g.shield, quiver: g.quiver }, fx * T - camX, fy * T - camY, dir, walking, F.frame + i * 3) });
   });
   list.sort((a, b) => a.y - b.y);
   for (const o of list) o.d();
