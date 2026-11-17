@@ -606,7 +606,7 @@ async function pickForm() {
   let cur = Math.max(0, list.indexOf(B.form));
   const tag = (id) => { const e = formEdge(id, B.foeForm); return e > 0 ? L('克', '▲') : e < 0 ? L('被克', '▼') : ''; };
   const c = await menu(list.map((id) => ({ label: formName(id) + (B.form === id ? '◆' : ''), right: tag(id), rcolor: formEdge(id, B.foeForm) > 0 ? '#80ff90' : '#ff8080', disabled: !formOk(id) || id === B.form })), { x: 6, y: 40, w: 150, start: cur, maxRows: 9, title: L(`敵：${formName(B.foeForm)}`, `Foe: ${formName(B.foeForm)}`), onMove: (i) => { cur = i; },
-    drawExtra: () => { const id = list[cur], f = FORMS[id]; descBox(L(f.desc[0], f.desc[1]) + '\n' + formCounterText(id), 196); } });
+    drawExtra: () => { const id = list[cur], f = FORMS[id]; sideNote(L(f.desc[0], f.desc[1]) + '\n' + formCounterText(id)); } });
   return c < 0 ? null : list[c];
 }
 export function formCounterText(id) {
@@ -614,7 +614,7 @@ export function formCounterText(id) {
   if (!b && !by) return L('不在相剋之列。', 'Outside the circle of counters.');
   return L(`克制：${b ? FORMS[b].zh : '—'}　被克：${by ? FORMS[by].zh : '—'}`, `Beats: ${b ? FORMS[b].en : '-'}   Beaten by: ${by ? FORMS[by].en : '-'}`);
 }
-async function pickTarget(side, u, { all = false, down = false, tac = null } = {}) {
+async function pickTarget(side, u, { all = false, down = false, tac = null, heal: healFn = null } = {}) {
   let list = down ? B.units.filter((x) => x.side === side && x.troops <= 0 && !x.summon) : alive(side);
   if (!list.length) return null;
   if (all) return list;
@@ -626,9 +626,10 @@ async function pickTarget(side, u, { all = false, down = false, tac = null } = {
       update() {
         if (input.repeat('up') || input.repeat('left')) { i = (i + list.length - 1) % list.length; sfx('cursor'); }
         if (input.repeat('down') || input.repeat('right')) { i = (i + 1) % list.length; sfx('cursor'); }
-        if (input.pressed('a')) { sfx('ok'); UIpop(w); B.picking = null; res(list[i]); return; }
-        if (input.pressed('b')) { sfx('cancel'); UIpop(w); B.picking = null; res(null); return; }
+        if (input.pressed('a')) { sfx('ok'); UIpop(w); B.picking = null; B.preview = null; res(list[i]); return; }
+        if (input.pressed('b')) { sfx('cancel'); UIpop(w); B.picking = null; B.preview = null; res(null); return; }
         B.picking = { t: list[i], u, tac };
+        B.preview = healFn ? (x) => (x === list[i] ? healFn(x) : 0) : null;
       },
       draw() {
         const t = list[i], f = (performance.now() / 120) | 0;
@@ -646,7 +647,8 @@ function drawInfo(p) {
   const X = 8; let y = 197;
   text(fit(`${N(t)} Lv${t.lv}`, 112), X, y, foe ? '#ffb0a0' : '#c0e0ff');
   icon(t.unit, 124, y + 3); y += 14;
-  if (B.scouted || !foe) { text(fit(`${L('兵', 'T')}${t.troops} ${L('武', 'S')}${t.str} ${L('智', 'I')}${t.int}`, 146), X, y, '#e0e0e0'); y += 14; }
+  if (!foe) { text(fit(`${L('兵', 'T')} ${t.troops}/${t.max}`, 146), X, y, '#e0e0e0'); y += 14; const h = B.preview ? B.preview(t) : 0; if (h > 0) { text(fit(L(`恢復 +${h} → ${t.troops + h}`, `Heals +${h} -> ${t.troops + h}`), 146), X, y, '#90ffa8'); y += 14; } }
+  else if (B.scouted) { text(fit(`${L('兵', 'T')}${t.troops} ${L('武', 'S')}${t.str} ${L('智', 'I')}${t.int}`, 146), X, y, '#e0e0e0'); y += 14; }
   else { text(unitName(t.unit), X, y, '#b8c8e0'); y += 14; }
   if (!foe || !u) return;
   const notes = [];
@@ -664,6 +666,22 @@ function drawInfo(p) {
   }
   for (const [s1, c] of notes.slice(0, 3)) { if (y > 254) break; text(fit(s1, 146), X, y, c); y += 14; }
 }
+// how many troops a heal would bring back (shown on the army panel before choosing)
+function tacHealAmt(u, x, t) { if (x.troops <= 0) return 0; const k = (u.g.skills.includes('guanxing') ? 1.2 : 1) * (0.6 + tacPower(u) / 250); return Math.max(0, Math.min(x.max - x.troops, Math.round(x.max * t.heal * k / Math.max(1, x.hpMul || 1)))); }
+function itemHealAmt(x, it) { return x.troops <= 0 ? 0 : Math.max(0, Math.min(x.max - x.troops, Math.round(x.max * it.heal))); }
+function healAllPreview(u, t) { return t && t.heal && t.t === 'aall' ? (x) => tacHealAmt(u, x, t) : null; }
+function itemNote(it) {
+  if (it.heal) return it.target === 'all' ? L(`全軍恢復${Math.round(it.heal * 100)}%兵力。`, `Restores ${Math.round(it.heal * 100)}% troops to the whole army.`) : L(`一支部隊恢復${Math.round(it.heal * 100)}%兵力。`, `Restores ${Math.round(it.heal * 100)}% troops to one unit.`);
+  return it.desc ? L(it.desc[0], it.desc[1]) : '';
+}
+// a note in the left box of the bottom panel (descriptions while a menu is open), leaving the army panel in view
+function sideNote(s) {
+  if (!s) return;
+  ctx.fillStyle = '#10142c'; ctx.fillRect(4, 194, 152, 72);
+  const parts = String(s).split('\n'), lines = [];
+  parts.forEach((p, k) => { for (const l of wrapShort(p, 144)) lines.push([l, k > 0 ? '#ffe070' : '#f0f0f0']); });
+  lines.slice(0, 5).forEach(([l, c], i) => text(l, 8, 196 + i * 14, c));
+}
 async function pickTactic(u) {
   const list = tacticsOf(u).filter((t) => TACTICS[t]);
   const foes = alive('foe');
@@ -671,22 +689,25 @@ async function pickTactic(u) {
   const pct = (id) => { const t = TACTICS[id]; if (!(t.pow || t.st) || t.t === 'self' || t.t[0] !== 'e' || !foes.length) return ''; return Math.round(foes.reduce((s, f) => s + tacChance(u, f, t), 0) / foes.length * 100) + '%'; };
   const items = list.map((t) => ({ label: tacName(t), right: `${pct(t)} ${tacCost(t)}`.trim(), disabled: tacCost(t) > S.tp || (TACTICS[t].escape && B.cfg.boss) || (TACTICS[t].t === 'down' && !B.units.some((x) => x.side === 'ally' && x.troops <= 0 && !x.summon)) }));
   let cur = 0;
-  const c = await menu(items, { x: 6, y: 34, w: 196, title: L(`策略值 ${S.tp}/${tpMax()}　成功率 消耗`, `SP ${S.tp}/${tpMax()}  chance cost`), maxRows: 8, onMove: (i) => { cur = i; }, drawExtra: () => { const d = TAC_DESC[list[cur]]; if (d) descBox(L(d[0], d[1]), 196); } });
+  const c = await menu(items, { x: 6, y: 34, w: 196, title: L(`策略值 ${S.tp}/${tpMax()}　成功率 消耗`, `SP ${S.tp}/${tpMax()}  chance cost`), maxRows: 8, onMove: (i) => { cur = i; B.preview = healAllPreview(u, TACTICS[list[i]]); }, drawExtra: () => { const d = TAC_DESC[list[cur]]; if (d) sideNote(L(d[0], d[1])); } });
+  B.preview = null;
   if (c < 0) return null;
   const t = TACTICS[list[c]];
   let target = null;
   if (t.t === 'e1') { target = await pickTarget('foe', u, { tac: t.id }); if (!target) return null; }
-  else if (t.t === 'a1') { target = await pickTarget('ally', u); if (!target) return null; }
+  else if (t.t === 'a1') { target = await pickTarget('ally', u, { heal: t.heal ? (x) => tacHealAmt(u, x, t) : null }); if (!target) return null; }
   else if (t.t === 'down') { target = await pickTarget('ally', u, { down: true }); if (!target) return null; }
   return { kind: 'tactic', tac: t.id, target, cost: tacCost(t.id) };
 }
 async function pickItem(u) {
   const ids = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind === 'supply' && !ITEMS[k].fieldOnly);
-  const c = await menu(ids.map((k) => ({ label: itemName(k), right: S.items[k] })), { x: 6, y: 60, w: 160, title: L('道具', 'Items'), maxRows: 7 });
+  let cur = 0;
+  const c = await menu(ids.map((k) => ({ label: itemName(k), right: S.items[k] })), { x: 6, y: 34, w: 160, title: L('道具', 'Items'), maxRows: 7, onMove: (i) => { cur = i; const it = ITEMS[ids[i]]; B.preview = it && it.heal && it.target === 'all' ? (x) => itemHealAmt(x, it) : null; }, drawExtra: () => { const it = ITEMS[ids[cur]]; if (it) sideNote(itemNote(it)); } });
+  B.preview = null;
   if (c < 0) return null;
   const it = ITEMS[ids[c]];
   let target = null;
-  if (it.target === 'one') { target = await pickTarget('ally', u); if (!target) return null; }
+  if (it.target === 'one') { target = await pickTarget('ally', u, { heal: it.heal ? (x) => itemHealAmt(x, it) : null }); if (!target) return null; }
   if (it.target === 'down') { target = await pickTarget('ally', u, { down: true }); if (!target) return null; }
   return { kind: 'item', item: ids[c], target };
 }
@@ -1581,8 +1602,11 @@ export function battleDraw() {
     text(fit(genName(u.g) + (u.id === S.strategist ? L('〔師〕', '*') : ''), 66), 168, y, col);
     icon(u.unit, 236, y + 3);
     drawIconRow(statusIcons(u), 247, y + 3, 50);
-    bar(300, y + 5, 112, u.troops, u.max, u.troops / u.max > 0.25 ? '#58d070' : '#e04040');
-    text(String(u.troops), 470, y, col, { align: 'right' });
+    const r = u.troops / u.max, pv = B.preview && u.troops > 0 ? B.preview(u) : 0;
+    if (B.picking && B.picking.t === u) { ctx.strokeStyle = '#ffe070'; ctx.lineWidth = 1; ctx.strokeRect(164.5, y - 1.5, 310, 14); }
+    bar(300, y + 5, 84, u.troops, u.max, r > 0.5 ? '#58d070' : r > 0.25 ? '#e0c040' : '#e04040');
+    if (pv > 0) { ctx.fillStyle = 'rgba(150,255,170,0.75)'; ctx.fillRect(300 + Math.round(84 * r), y + 5, Math.max(1, Math.round(84 * pv / u.max)), 3); }
+    text(`${u.troops + pv}/${u.max}`, 476, y, pv > 0 ? '#90ffa8' : col, { align: 'right' });
   });
   if (B.auto) text(L('全軍突擊中（B取消）', 'Charging (B to stop)'), W / 2, 178, '#ffe070', { align: 'center' });
   if (B.fade > 0) { ctx.fillStyle = `rgba(0,0,0,${B.fade / 30})`; ctx.fillRect(0, 0, W, H); }
