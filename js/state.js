@@ -1,8 +1,8 @@
 // The game state: the army (generals, their levels, troops and gear), gold, items, flags, where you are,
 // and saving and loading. A general's numbers are worked out here from their base stats and gear.
-import { GENERALS, gearFor, genName } from './generals.js?v=1';
-import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE } from './data.js?v=1';
-import { L } from './i18n.js?v=1';
+import { GENERALS, gearFor, genName } from './generals.js?v=2';
+import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE } from './data.js?v=2';
+import { L } from './i18n.js?v=2';
 
 export const S = {};
 export function newGame() {

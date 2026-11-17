@@ -2,16 +2,16 @@
 // little crowd of soldiers that thins out as their troops (兵力, their life) fall. Each round you give every
 // general in the front line an order — attack, a tactic from the shared strategy pool, an item, defend — or
 // order the whole army to charge, or retreat; then everyone acts in order of speed.
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=1';
-import { input } from './input.js?v=1';
-import { sfx, playMusic, currentSong } from './audio.js?v=1';
-import { UI, menu, say, wait as uiWait, descBox, fit } from './ui.js?v=1';
-import { L } from './i18n.js?v=1';
-import { IMG, FX, tileset } from './assets.js?v=1';
-import { GENERALS, gearFor, genName, parseLook } from './generals.js?v=1';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName } from './data.js?v=1';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=1';
-import { battleSheet, fieldSheet } from './doll.js?v=1';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=2';
+import { input } from './input.js?v=2';
+import { sfx, playMusic, currentSong } from './audio.js?v=2';
+import { UI, menu, say, wait as uiWait, descBox, fit } from './ui.js?v=2';
+import { L } from './i18n.js?v=2';
+import { IMG, FX, tileset } from './assets.js?v=2';
+import { GENERALS, gearFor, genName, parseLook } from './generals.js?v=2';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName } from './data.js?v=2';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=2';
+import { battleSheet, fieldSheet } from './doll.js?v=2';
 
 export const B = { active: false };
 const waits = [];
@@ -22,11 +22,23 @@ let msg = '', msgT = 0;
 const say1 = (s) => { msg = s; msgT = 0; };
 
 // ---------- units ----------
-const ROW_Y = [86, 130, 174];
+// both armies stand in a column, one general per lane from top to bottom; the formation's grid decides the lane
+// order (top row first) and how far back each general stands
+const LANE_Y = [74, 101, 128, 155, 182];
 function slotXY(side, slot, form) {
-  const [col, row] = (FORMS[form] || FORMS.fangyuan).pos[slot] || [slot, 1];
-  const x = side === 'ally' ? 286 + col * 36 + (row === 1 ? 8 : 0) : 194 - col * 36 - (row === 1 ? 8 : 0);
-  return [x, ROW_Y[row]];
+  const pos = (FORMS[form] || FORMS.fangyuan).pos;
+  const order = pos.map((p, i) => i).sort((a, b) => pos[a][1] - pos[b][1] || pos[a][0] - pos[b][0]);
+  const k = order.indexOf(slot), lane = k < 0 ? Math.min(slot, 4) : k;
+  const col = (pos[slot] || [0])[0];
+  const x = side === 'ally' ? 300 + col * 16 : 180 - col * 16;
+  return [x, LANE_Y[lane]];
+}
+// spread a side's generals evenly down the field in lane order, every other lane a step forward so they overlap less
+function layoutSide(side, form) {
+  const pos = (FORMS[form] || FORMS.fangyuan).pos, key = (u) => { const p = pos[u.slot] || [0, u.slot]; return p[1] * 10 + p[0] + u.slot * 0.01; };
+  const list = B.units.filter((u) => u.side === side).sort((a, b) => key(a) - key(b)), n = list.length;
+  const gap = n > 1 ? Math.min(40, 108 / (n - 1)) : 0, top = 128 - (gap * (n - 1)) / 2;
+  list.forEach((u, i) => { u.y = Math.round(top + i * gap); u.x += (i % 2 ? 1 : -1) * 8 * (side === 'ally' ? -1 : 1); });
 }
 const SOLDIER_COL = { sun: 'red', sun_hao: 'purple', shanyue: 'forest', liu_xun: 'yellow', huang_zu: 'teal', cai_mao: 'bluegray', liu: 'green', cao: 'navy', yuan: 'yellow', dong: 'black', liu_zhang: 'orange', nanman: 'red', qiang: 'white', gongsun: 'white', shi: 'orange', pirate: 'navy', sect: 'black', free: 'gray' };
 const soldierCache = {};
@@ -145,6 +157,7 @@ export function startBattle(cfg) {
     nums.length = 0; fxs.length = 0; shots.length = 0; msg = '';
     S.front.filter((id) => member(id)).forEach((id, i) => B.units.push(makeUnit('ally', { id }, i, B.form)));
     cfg.foes.forEach((f, i) => B.units.push(makeUnit('foe', f, i, B.foeForm)));
+    layoutSide('ally', B.form); layoutSide('foe', B.foeForm);
     playMusic(cfg.music || (cfg.boss ? 'boss' : cfg.naval ? 'naval' : 'battle'));
     run().catch((e) => { console.error(e); finish('win'); });
   });
@@ -271,7 +284,7 @@ async function pickTarget(side, u, { all = false, down = false } = {}) {
     UIpush(w);
   });
 }
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=1';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=2';
 function drawInfo(t) {
   const name = genName(t.g), s = `${name}  Lv${t.lv}  ${unitName(t.unit)}`;
   windowBox(140, 4, 200, B.scouted || t.side === 'ally' ? 30 : 18);
@@ -606,7 +619,7 @@ function drawUnit(u) {
   // soldiers behind the general
   const ss = fieldSheet(u.soldier.look, u.soldier.equip);
   const nSold = u.troops <= 0 ? 0 : Math.ceil(6 * (u.troops / u.max));
-  const OFF = [[16, -10], [28, -4], [16, 6], [40, -10], [30, 10], [42, 4]];
+  const OFF = [[16, -4], [27, 3], [38, -4], [49, 3], [60, -4], [71, 3]];
   if (ss) {
     for (let i = 0; i < nSold; i++) {
       const [ox, oy] = OFF[i], sx = x + (flip ? -ox : ox), sy = y + oy;

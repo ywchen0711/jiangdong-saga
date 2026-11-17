@@ -2,19 +2,19 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=1';
-import { sfx, playMusic, stopMusic } from './audio.js?v=1';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=1';
-import { L } from './i18n.js?v=1';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=1';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=1';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=1';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=1';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=1';
-import * as FIELD from './field.js?v=1';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=1';
-import { placeName } from './maps.js?v=1';
-import { portrait } from './doll.js?v=1';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=2';
+import { sfx, playMusic, stopMusic } from './audio.js?v=2';
+import { UI, menu, say, ask, notice, wait } from './ui.js?v=2';
+import { L } from './i18n.js?v=2';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=2';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=2';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=2';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=2';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=2';
+import * as FIELD from './field.js?v=2';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=2';
+import { placeName } from './maps.js?v=2';
+import { portrait } from './doll.js?v=2';
 
 export const STORY = {};
 const G = () => window.G;

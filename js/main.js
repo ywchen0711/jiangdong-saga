@@ -1,22 +1,22 @@
 // 江東霸業傳 Saga of Jiangdong: start-up, the title screen, the main loop, and the glue between walking,
 // battles, menus and the story. window.G exposes hooks for testing.
-import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=1';
-import { input, pollInput, endInput, setupTouch } from './input.js?v=1';
-import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=1';
-import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=1';
-import { L, LANG, setLang } from './i18n.js?v=1';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=1';
-import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=1';
-import * as FIELD from './field.js?v=1';
-import { overviewMap } from './worldgfx.js?v=1';
-import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=1';
-import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=1';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=1';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=1';
-import { openMenu, fullMap } from './menu.js?v=1';
-import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=1';
-import { buildMap } from './maps.js?v=1';
-import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=1';
+import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=2';
+import { input, pollInput, endInput, setupTouch } from './input.js?v=2';
+import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=2';
+import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=2';
+import { L, LANG, setLang } from './i18n.js?v=2';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=2';
+import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=2';
+import * as FIELD from './field.js?v=2';
+import { overviewMap } from './worldgfx.js?v=2';
+import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=2';
+import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=2';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=2';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=2';
+import { openMenu, fullMap } from './menu.js?v=2';
+import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=2';
+import { buildMap } from './maps.js?v=2';
+import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=2';
 
 export const G = window.G = { mode: 'boot', S, F, B, UI, GENERALS, GEN_LIST, ITEMS, PLACES, REGIONS };
 G.uiActive = () => UI.active;
@@ -200,6 +200,7 @@ function update() {
   uiTick();
   if (scene === 'game' || scene === 'battle') {
     S.time = (S.time || 0) + 1 / 60;
+    F.ppx = F.px; F.ppy = F.py;
     if (B.active) battleUpdate(); else if (!UI.active || F.moving) fieldUpdate();
   }
   if (UI.active) UI.update();
@@ -209,7 +210,15 @@ function update() {
 function draw() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   if (scene === 'title') drawTitle();
-  else if (scene === 'game' || scene === 'battle') { if (B.active) battleDraw(); else if (STORY.drawScene && STORY.scene) STORY.drawScene(); else fieldDraw(); }
+  else if (scene === 'game' || scene === 'battle') {
+    if (B.active) battleDraw(); else if (STORY.drawScene && STORY.scene) STORY.drawScene();
+    else {
+      // on screens faster than 60 Hz draw the walker between its last two ticks so the scroll stays even
+      const px = F.px, py = F.py, a = Math.min(1, acc / (1000 / 60)) - 1;
+      if (F.ppx != null && Math.abs(px - F.ppx) <= 8 && Math.abs(py - F.ppy) <= 8) { F.px = px + (px - F.ppx) * a; F.py = py + (py - F.ppy) * a; }
+      try { fieldDraw(); } finally { F.px = px; F.py = py; }
+    }
+  }
   if (STORY.overlay) STORY.overlay();
   UI.draw();
   if (fadeA > 0) { ctx.fillStyle = `rgba(0,0,0,${fadeA})`; ctx.fillRect(0, 0, W, H); }
@@ -218,7 +227,7 @@ function draw() {
 }
 // ---------- start ----------
 setupTouch();
-import { WOBJ, tileset } from './assets.js?v=1';
+import { WOBJ, tileset } from './assets.js?v=2';
 G.WOBJ = WOBJ; G.tileset = tileset;
 requestAnimationFrame(frame);
 // tests can run the game faster than the screen refreshes (and while the page is hidden)

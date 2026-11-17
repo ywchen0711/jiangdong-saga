@@ -1,6 +1,6 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=1';
+import { L } from './i18n.js?v=2';
 
 // ---------- unit types ----------
 export const UNITS = {

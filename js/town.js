@@ -1,15 +1,15 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=1';
-import { sfx } from './audio.js?v=1';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=1';
-import { L } from './i18n.js?v=1';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=1';
-import { ITEMS, itemName, unitName } from './data.js?v=1';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=1';
-import { PLACES, REGIONS } from './world.js?v=1';
-import { itemDesc, drawStatus } from './menu.js?v=1';
-import { hash } from './gfx.js?v=1';
+import { W, H, text, windowBox } from './gfx.js?v=2';
+import { sfx } from './audio.js?v=2';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=2';
+import { L } from './i18n.js?v=2';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=2';
+import { ITEMS, itemName, unitName } from './data.js?v=2';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=2';
+import { PLACES, REGIONS } from './world.js?v=2';
+import { itemDesc, drawStatus } from './menu.js?v=2';
+import { hash } from './gfx.js?v=2';
 
 // what each shop sells, by how far into the story the place's region opens
 const STOCK = {
@@ -105,7 +105,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=1');
+  const { save, slotInfo } = await import('./state.js?v=2');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;

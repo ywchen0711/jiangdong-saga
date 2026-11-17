@@ -1,19 +1,19 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=1';
-import { input } from './input.js?v=1';
-import { sfx } from './audio.js?v=1';
-import { UI } from './ui.js?v=1';
-import { L } from './i18n.js?v=1';
-import { IMG, tileset, WOBJ } from './assets.js?v=1';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=1';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=1';
-import { renderMap, solidKind, TILES } from './tiles.js?v=1';
-import { buildMap, placeName } from './maps.js?v=1';
-import { GENERALS, parseLook } from './generals.js?v=1';
-import { fieldSheet } from './doll.js?v=1';
-import { S, member, hasSkill, troopsMax } from './state.js?v=1';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=2';
+import { input } from './input.js?v=2';
+import { sfx } from './audio.js?v=2';
+import { UI } from './ui.js?v=2';
+import { L } from './i18n.js?v=2';
+import { IMG, tileset, WOBJ } from './assets.js?v=2';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=2';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=2';
+import { renderMap, solidKind, TILES } from './tiles.js?v=2';
+import { buildMap, placeName } from './maps.js?v=2';
+import { GENERALS, parseLook } from './generals.js?v=2';
+import { fieldSheet } from './doll.js?v=2';
+import { S, member, hasSkill, troopsMax } from './state.js?v=2';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };
@@ -99,7 +99,8 @@ export function fieldUpdate() {
   if (F.bannerT > 0) F.bannerT--;
   if (F.lockMsgT > 0) F.lockMsgT--;
   if (F.mode === 'local') updateNpcs();
-  if (F.moving) { stepOn(); return; }
+  // keep walking without a pause between tiles: when a step ends and nothing happened, read the pad at once
+  if (F.moving) { stepOn(); if (F.moving || F.busy || UI.active) return; }
   if (UI.active || F.busy) return;
   const d = input.dir();
   if (input.pressed('a')) { interact(); return; }
@@ -132,7 +133,8 @@ export function fieldUpdate() {
   begin(dk);
 }
 function begin(dk) { F.moving = 1; F.mdir = dk; F.from = [F.px, F.py]; F.trail.unshift([tileX(), tileY(), dk]); if (F.trail.length > 8) F.trail.pop(); }
-function speed() { if (F.mode === 'local') return input.held('run') ? 2 : 1.34; if (S.vehicle === 'ship') return 2; if (S.vehicle === 'horse' || S.horse) return 2.67; return input.held('run') ? 2 : 1.34; }
+// whole pixels a tick that divide a tile, so every step is even
+function speed() { if (F.mode === 'local') return input.held('run') ? 4 : 2; if (S.vehicle === 'ship') return 4; if (S.vehicle === 'horse' || S.horse) return 4; return input.held('run') ? 4 : 2; }
 function stepOn() {
   const [dx, dy] = DIRV[F.mdir], sp = speed();
   F.px += dx * sp; F.py += dy * sp;
@@ -285,7 +287,7 @@ function drawWorldMode() {
   const pw = WW * T, ph = WH * T;
   camX = Math.max(0, Math.min(pw - W, F.px + 8 - W / 2)); camY = Math.max(0, Math.min(ph - H, F.py + 8 - H / 2));
   drawWorld(ctx, Math.round(camX), Math.round(camY), W, H);
-  if (!F.moving) warmWorld(camX, camY, W, H);
+  warmWorld(camX, camY, W, H);
   // Jasper's eye for hidden things: a glint where something is buried
   if (S.front.includes('jasper') && FH.secrets) for (const sc of FH.secrets()) {
     const sx = sc[0] * T - camX, sy = sc[1] * T - camY;
