@@ -1,0 +1,273 @@
+// Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
+// tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
+import { L } from './i18n.js?v=1';
+
+// ---------- unit types ----------
+export const UNITS = {
+  inf: { zh: '步兵', en: 'Foot' },
+  cav: { zh: '騎兵', en: 'Horse' },
+  arc: { zh: '弓兵', en: 'Bow' },
+  nav: { zh: '水軍', en: 'Navy' },
+};
+// attacker type vs defender type
+export function unitEdge(a, d, naval) {
+  if (naval) return a === 'nav' ? 1.3 : d === 'nav' ? 0.85 : a === 'cav' ? 0.8 : 1;
+  if (a === 'cav' && d === 'inf') return 1.2;
+  if (a === 'inf' && d === 'arc') return 1.2;
+  if (a === 'arc' && d === 'cav') return 1.2;
+  if (a === 'nav') return 0.92;
+  return 1;
+}
+export const unitName = (u) => L(UNITS[u].zh, UNITS[u].en);
+
+// ---------- items ----------
+// kind: weapon / armour / helm / horse / treasure / supply / book / gift / key
+// a weapon's cat decides how it is swung: sword, axe -> slash; spear, halberd, crossbow, staff -> thrust; bow -> shoot
+// look: what it changes on the paper doll
+const I = {};
+function item(id, zh, en, kind, price, o = {}) { I[id] = { id, zh, en, kind, price, ...o }; }
+// weapons
+item('bronzesword', '青銅劍', 'Bronze Sword', 'weapon', 60, { cat: 'sword', atk: 5, look: { weapon: 'w_sword', wmetal: 'bronze' } });
+item('ironsword', '鐵劍', 'Iron Sword', 'weapon', 180, { cat: 'sword', atk: 9, look: { weapon: 'w_sword', wmetal: 'iron' } });
+item('steelsword', '鋼劍', 'Steel Sword', 'weapon', 520, { cat: 'sword', atk: 15, look: { weapon: 'w_sword', wmetal: 'steel' } });
+item('guding', '古錠刀', 'Guding Sabre', 'weapon', 1600, { cat: 'sword', atk: 23, look: { weapon: 'w_saber', wmetal: 'steel' } });
+item('qixing', '七星寶刀', 'Seven-Star Blade', 'weapon', 4200, { cat: 'sword', atk: 34, look: { weapon: 'w_scimitar', wmetal: 'silver' } });
+item('yitian', '倚天劍', 'Heaven-Leaning Sword', 'weapon', 0, { cat: 'sword', atk: 44, look: { weapon: 'w_longsword', wmetal: 'silver' }, rare: true });
+item('qinggang', '青釭劍', 'Qinggang Sword', 'weapon', 0, { cat: 'sword', atk: 50, look: { weapon: 'w_glowsword_b' }, rare: true });
+item('bamboospear', '竹槍', 'Bamboo Spear', 'weapon', 40, { cat: 'spear', atk: 4, look: { weapon: 'w_spear', wmetal: 'bronze', wwood: 'maple' } });
+item('ironspear', '鐵槍', 'Iron Spear', 'weapon', 200, { cat: 'spear', atk: 10, look: { weapon: 'w_spear', wmetal: 'iron' } });
+item('longspear', '長槍', 'Long Spear', 'weapon', 560, { cat: 'spear', atk: 16, look: { weapon: 'w_longspear', wmetal: 'steel' } });
+item('dianggang', '點鋼槍', 'Steel-Tipped Spear', 'weapon', 1700, { cat: 'spear', atk: 25, look: { weapon: 'w_longspear', wmetal: 'silver', wwood: 'mahogany' } });
+item('trident', '三尖刀', 'Three-Point Blade', 'weapon', 2600, { cat: 'spear', atk: 30, look: { weapon: 'w_trident', wmetal: 'steel' } });
+item('longdan', '龍膽槍', 'Dragon-Heart Spear', 'weapon', 0, { cat: 'spear', atk: 46, look: { weapon: 'w_dragonspear', wmetal: 'silver' }, rare: true });
+item('hutou', '虎頭湛金槍', 'Tiger-Head Gold Spear', 'weapon', 0, { cat: 'spear', atk: 48, look: { weapon: 'w_dragonspear', wmetal: 'gold' }, rare: true });
+item('ironji', '鐵戟', 'Iron Halberd', 'weapon', 380, { cat: 'halberd', atk: 13, look: { weapon: 'w_halberd', wmetal: 'iron' } });
+item('shuangji', '雙鐵戟', 'Twin Halberds', 'weapon', 2100, { cat: 'halberd', atk: 27, look: { weapon: 'w_halberd', wmetal: 'steel', wwood: 'walnut' } });
+item('yanyue', '偃月刀', 'Crescent Glaive', 'weapon', 3800, { cat: 'halberd', atk: 36, look: { weapon: 'w_scythe', wmetal: 'steel', wwood: 'mahogany' } });
+item('qinglong', '青龍偃月刀', 'Green Dragon Glaive', 'weapon', 0, { cat: 'halberd', atk: 54, look: { weapon: 'w_scythe', wmetal: 'ceramic', wwood: 'mahogany' }, rare: true });
+item('fangtian', '方天畫戟', 'Sky Piercer', 'weapon', 0, { cat: 'halberd', atk: 58, look: { weapon: 'w_halberd', wmetal: 'gold', wwood: 'mahogany' }, rare: true });
+item('woodaxe', '柴斧', 'Woodsman Axe', 'weapon', 90, { cat: 'axe', atk: 7, look: { weapon: 'w_waraxe', wmetal: 'iron', wwood: 'maple' } });
+item('kaishan', '開山斧', 'Mountain-Splitter', 'weapon', 900, { cat: 'axe', atk: 20, look: { weapon: 'w_waraxe', wmetal: 'steel' } });
+item('xuanhua', '宣花大斧', 'Flowered Great Axe', 'weapon', 3400, { cat: 'axe', atk: 37, look: { weapon: 'w_waraxe', wmetal: 'gold' } });
+item('mace', '鐵鞭', 'Iron Whip-Mace', 'weapon', 1200, { cat: 'axe', atk: 22, look: { weapon: 'w_mace', wmetal: 'iron' } });
+item('shortbow', '短弓', 'Short Bow', 'weapon', 80, { cat: 'bow', atk: 6, look: { weapon: 'w_bow', wwood: 'maple' } });
+item('longbow', '長弓', 'Long Bow', 'weapon', 480, { cat: 'bow', atk: 14, look: { weapon: 'w_recurve', wwood: 'oak' } });
+item('irontaibow', '鐵胎弓', 'Iron-Core Bow', 'weapon', 1900, { cat: 'bow', atk: 26, look: { weapon: 'w_greatbow', wwood: 'walnut' } });
+item('yangyouji', '養由基弓', "Archer King's Bow", 'weapon', 0, { cat: 'bow', atk: 45, look: { weapon: 'w_greatbow', wwood: 'mahogany' }, rare: true });
+item('crossbow', '弩', 'Crossbow', 'weapon', 700, { cat: 'xbow', atk: 18, look: { weapon: 'w_crossbow', wmetal: 'iron' } });
+item('liannu', '諸葛連弩', 'Repeating Crossbow', 'weapon', 0, { cat: 'xbow', atk: 40, look: { weapon: 'w_crossbow', wmetal: 'brass', wwood: 'mahogany' }, rare: true, multi: true });
+item('bamboostaff', '竹杖', 'Bamboo Staff', 'weapon', 50, { cat: 'staff', atk: 3, int: 2, look: { weapon: 'w_staff', wwood: 'maple' } });
+item('fan', '羽扇', 'Feather Fan', 'weapon', 600, { cat: 'staff', atk: 8, int: 6, look: { weapon: 'w_fan' } });
+item('craneFan', '鶴羽扇', 'Crane-Feather Fan', 'weapon', 2400, { cat: 'staff', atk: 14, int: 12, look: { weapon: 'w_cranefan' } });
+item('starstaff', '星辰杖', 'Star Staff', 'weapon', 0, { cat: 'staff', atk: 20, int: 18, look: { weapon: 'w_crystal' }, rare: true });
+item('wrench', '機關鉗', 'Engineer\'s Spanner', 'weapon', 0, { cat: 'axe', atk: 10, int: 4, look: { weapon: 'w_mace', wmetal: 'brass' } });
+// armour
+item('cloth', '布衣', 'Cloth Robe', 'armour', 20, { def: 2, look: {} });
+item('daopao', '道袍', 'Scholar\'s Robe', 'armour', 300, { def: 6, int: 4, look: { robe: true } });
+item('leather', '皮甲', 'Leather Armour', 'armour', 150, { def: 6, look: { armour: 'a_leather', ametal: 'iron' } });
+item('rattan', '藤甲', 'Rattan Armour', 'armour', 900, { def: 24, weakFire: true, look: { armour: 'a_leather', acloth: 'tan', ametal: 'brass' } });
+item('chain', '鎖子甲', 'Chain Mail', 'armour', 480, { def: 12, look: { armour: 'a_chain', ametal: 'iron' } });
+item('zhajia', '札甲', 'Lamellar', 'armour', 1100, { def: 18, look: { armour: 'a_legion', ametal: 'iron', legs2: 'l_legion' } });
+item('waterarmour', '水靠', 'Sailor\'s Harness', 'armour', 1300, { def: 15, naval: true, look: { armour: 'a_leather', acloth: 'navy', ametal: 'steel' } });
+item('yulin', '魚鱗甲', 'Fish-Scale Armour', 'armour', 2400, { def: 26, look: { armour: 'a_legion', ametal: 'steel', shoulders: 'sh_legion', legs2: 'l_legion' } });
+item('mingguang', '明光鎧', 'Bright Plate', 'armour', 4800, { def: 34, look: { armour: 'a_plate', ametal: 'silver', shoulders: 'sh_pauldrons', arms: 'arm_armour' } });
+item('goldarmour', '黃金甲', 'Golden Armour', 'armour', 0, { def: 44, look: { armour: 'a_plate', ametal: 'gold', shoulders: 'sh_pauldrons', arms: 'arm_armour' }, rare: true });
+item('beastarmour', '獸面吞頭鎧', 'Beast-Face Armour', 'armour', 0, { def: 52, look: { armour: 'a_plate', ametal: 'bronze', shoulders: 'sh_legion', arms: 'arm_armour', legs2: 'l_armour' }, rare: true });
+// helmets
+item('headband', '頭巾', 'Headband', 'helm', 30, { def: 1, look: { helm: 'hb_tied', hcloth: 'yellow' } });
+item('lunjin', '綸巾', 'Scholar\'s Kerchief', 'helm', 400, { def: 2, int: 4, look: { helm: 'hb_thick', hcloth: 'navy' } });
+item('leathercap', '皮盔', 'Leather Cap', 'helm', 120, { def: 3, look: { helm: 'hm_barbarian', hmetal: 'bronze' } });
+item('ironhelm', '鐵盔', 'Iron Helm', 'helm', 380, { def: 6, look: { helm: 'hm_spangen', hmetal: 'steel' } });
+item('kettlehelm', '笠盔', 'Brimmed Helm', 'helm', 700, { def: 9, look: { helm: 'hm_morion', hmetal: 'steel' } });
+item('plumehelm', '纓盔', 'Plumed Helm', 'helm', 1400, { def: 13, look: { helm: 'hm_spangen', hmetal: 'silver', plume: 'hx_plume' } });
+item('phoenixhelm', '鳳翅盔', 'Phoenix-Wing Helm', 'helm', 2600, { def: 18, look: { helm: 'hm_legion', hmetal: 'gold', plume: 'hx_wings' } });
+item('lionhelm', '獅子盔', 'Lion Helm', 'helm', 3600, { def: 22, look: { helm: 'hm_maximus', hmetal: 'bronze' } });
+item('zijinguan', '紫金冠', 'Purple-Gold Crown', 'helm', 0, { def: 26, spd: 4, look: { helm: 'hb_crown', hmetal: 'gold', plume: 'hx_plume' }, rare: true });
+// horses
+item('nag', '駑馬', 'Nag', 'horse', 300, { spd: 3, atk: 2, horse: 'gray' });
+item('warhorse', '戰馬', 'Warhorse', 'horse', 1200, { spd: 6, atk: 5, horse: 'brown' });
+item('xiliang', '西涼馬', 'Xiliang Horse', 'horse', 3200, { spd: 10, atk: 8, horse: 'black' });
+item('dawan', '大宛馬', 'Ferghana Horse', 'horse', 6000, { spd: 13, atk: 10, horse: 'golden' });
+item('dilu', '的盧', 'Dilu', 'horse', 0, { spd: 15, atk: 10, horse: 'white', rare: true });
+item('jueying', '絕影', 'Shadowless', 'horse', 0, { spd: 17, atk: 12, horse: 'black', rare: true });
+item('chitu', '赤兔', 'Red Hare', 'horse', 0, { spd: 22, atk: 16, horse: 'red', rare: true });
+// treasures (one each)
+item('sunzi', '孫子兵法', 'The Art of War', 'treasure', 0, { int: 10, lead: 5, rare: true });
+item('bingfu', '兵符', 'Tiger Tally', 'treasure', 2000, { lead: 8 });
+item('huxin', '護心鏡', 'Heart Mirror', 'treasure', 1500, { def: 8 });
+item('qingnang', '青囊書', 'Green Satchel Book', 'treasure', 0, { int: 6, regen: 0.05, rare: true });
+item('jade', '玉珮', 'Jade Pendant', 'treasure', 800, { lead: 3, int: 3 });
+item('wristguard', '護腕', 'Wrist Guards', 'treasure', 600, { atk: 4, look: { bracers: true } });
+item('scarf', '絲巾', 'Silk Scarf', 'treasure', 300, { spd: 3, look: { scarf: true } });
+item('compass', '司南', 'South-Pointer', 'treasure', 0, { spd: 6, int: 4, rare: true });
+item('sextant', '星盤', 'Star Astrolabe', 'treasure', 0, { int: 8, naval: true, rare: true });
+item('warcape', '戰袍', 'War Cape', 'treasure', 1200, { def: 4, lead: 4, look: { cape: 'c_trim' } });
+item('dragoncape', '龍紋披風', 'Dragon Cape', 'treasure', 0, { def: 10, lead: 8, look: { cape: 'c_trim', capeCol: 'gold' }, rare: true });
+// supplies
+item('salve', '傷藥', 'Salve', 'supply', 30, { heal: 0.3, target: 'one' });
+item('jinchuang', '金創藥', 'Wound Balm', 'supply', 160, { heal: 1, target: 'one' });
+item('wine', '軍酒', 'Army Wine', 'supply', 120, { heal: 0.25, target: 'all' });
+item('rations', '兵糧', 'Rations', 'supply', 400, { heal: 1, target: 'all' });
+item('zhaohun', '招魂幡', 'Rallying Banner', 'supply', 600, { revive: 0.4, target: 'down' });
+item('tpdan', '策略丹', 'Strategy Pill', 'supply', 300, { tp: 30 });
+item('tpbig', '神機丹', 'Sage Pill', 'supply', 1200, { tp: 999 });
+item('gunpowder', '火藥', 'Gunpowder', 'supply', 250, { fire: 1, target: 'enemies', battleOnly: true });
+item('smoke', '煙球', 'Smoke Ball', 'supply', 80, { escape: true, battleOnly: true });
+item('incense', '隱蹤香', 'Hiding Incense', 'supply', 150, { repel: 250, fieldOnly: true });
+item('returnseal', '歸城符', 'Homing Charm', 'supply', 200, { warp: true, fieldOnly: true });
+// gifts for winning a general over
+item('goodwine', '杜康酒', 'Dukang Wine', 'gift', 500, { gift: 1 });
+item('oldbook', '古籍', 'Old Classic', 'gift', 800, { gift: 1.2 });
+item('silk', '蜀錦', 'Shu Brocade', 'gift', 1200, { gift: 1.5 });
+item('pearl', '南海明珠', 'South Sea Pearl', 'gift', 3000, { gift: 2.2 });
+// tactic books (learned by the one who reads it) and formation manuals (learned by the army)
+item('bk_fire', '火攻篇', 'On Fire Attacks', 'book', 900, { teach: 'dahuo' });
+item('bk_water', '水攻篇', 'On Floods', 'book', 900, { teach: 'dashui' });
+item('bk_rock', '山崩篇', 'On Landslides', 'book', 2200, { teach: 'shanbeng' });
+item('bk_thunder', '天雷篇', 'On Thunder', 'book', 4000, { teach: 'tianlei' });
+item('bk_heal', '青囊殘卷', 'Healer\'s Fragment', 'book', 1400, { teach: 'huifu' });
+item('bk_revive', '還魂術', 'Rite of Rallying', 'book', 3000, { teach: 'fuhuo' });
+item('bk_stun', '奇門遁甲', 'Qimen Dunjia', 'book', 0, { teach: 'qimen', rare: true });
+item('bk_bagua', '八門金鎖', 'Eight Gates Lock', 'book', 0, { teach: 'jinsuo', rare: true });
+item('bk_inferno', '業火篇', 'On Hellfire', 'book', 0, { teach: 'yehuo', rare: true });
+item('bk_wind', '呼風術', 'Calling the Wind', 'book', 1800, { teach: 'hufeng' });
+item('mn_yulin', '魚鱗陣圖', 'Fish-Scale Manual', 'book', 0, { form: 'yulin' });
+item('mn_heyi', '鶴翼陣圖', 'Crane-Wing Manual', 'book', 0, { form: 'heyi' });
+item('mn_fengshi', '鋒矢陣圖', 'Arrowhead Manual', 'book', 0, { form: 'fengshi' });
+item('mn_changshe', '長蛇陣圖', 'Long Snake Manual', 'book', 0, { form: 'changshe' });
+item('mn_yanxing', '雁行陣圖', 'Wild Geese Manual', 'book', 0, { form: 'yanxing' });
+item('mn_yanyue', '偃月陣圖', 'Crescent Manual', 'book', 0, { form: 'yanyue' });
+item('mn_bagua', '八卦陣圖', 'Eight Trigrams Manual', 'book', 0, { form: 'bagua' });
+item('mn_shuijun', '水軍陣圖', 'Naval Manual', 'book', 0, { form: 'shuijun' });
+item('mn_tuzhen', '突騎陣圖', 'Cavalry Charge Manual', 'book', 0, { form: 'tuzhen' });
+// key items
+item('seal', '傳國玉璽', 'Imperial Seal', 'key', 0, {});
+item('letter', '密信', 'Secret Letter', 'key', 0, {});
+item('lotus', '黑蓮令', 'Black Lotus Token', 'key', 0, {});
+item('shipwright', '船圖', 'Ship Plans', 'key', 0, {});
+item('blueprint', '火龍船圖', 'Fire-Dragon Raft Plans', 'key', 0, {});
+item('lotuskey', '四蓮鑰', 'Four Lotus Keys', 'key', 0, {});
+export const ITEMS = I;
+export const itemName = (id) => (I[id] ? L(I[id].zh, I[id].en) : id);
+export const SLOT_OF = { weapon: 'weapon', armour: 'armour', helm: 'helm', horse: 'horse', treasure: 'treasure' };
+export const SLOTS = ['weapon', 'armour', 'helm', 'horse', 'treasure'];
+export const SLOT_NAME = { weapon: ['武器', 'Weapon'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], horse: ['坐騎', 'Mount'], treasure: ['寶物', 'Treasure'] };
+// which weapons each unit type may use (strategists of any type may use staffs)
+export const CAN_USE = { inf: ['sword', 'spear', 'halberd', 'axe', 'staff'], cav: ['sword', 'spear', 'halberd', 'axe', 'staff'], arc: ['bow', 'xbow', 'sword', 'staff'], nav: ['sword', 'spear', 'halberd', 'axe', 'bow', 'xbow', 'staff'] };
+export const SWING = { sword: 'slash', axe: 'slash', spear: 'thrust', halberd: 'thrust', bow: 'shoot', xbow: 'thrust', staff: 'thrust' };
+
+// ---------- tactics ----------
+// t: e1 one foe, eall all foes, a1 one friend, aall all friends, down a fallen friend, field (escape etc.)
+// el: fire water rock thunder; pow: strength; int: INT needed to learn by levelling; lv: level needed
+const TAC = {};
+function tac(id, zh, en, cost, t, o = {}) { TAC[id] = { id, zh, en, cost, t, ...o }; }
+tac('huoji', '火計', 'Fire Ploy', 4, 'e1', { el: 'fire', pow: 1.0, int: 40, lv: 1, fx: 'flame' });
+tac('dahuo', '大火計', 'Great Fire', 12, 'eall', { el: 'fire', pow: 0.45, int: 70, lv: 14, fx: 'flame' });
+tac('liehuo', '烈火計', 'Blazing Fire', 20, 'eall', { el: 'fire', pow: 0.7, int: 85, lv: 28, fx: 'explosion' });
+tac('yehuo', '業火', 'Hellfire', 30, 'eall', { el: 'fire', pow: 1.0, int: 0, lv: 99, fx: 'explosion' });
+tac('shuiji', '水計', 'Water Ploy', 4, 'e1', { el: 'water', pow: 1.0, int: 45, lv: 3, fx: 'pillar' });
+tac('dashui', '大水計', 'Great Flood', 14, 'eall', { el: 'water', pow: 0.48, int: 72, lv: 18, fx: 'pillar' });
+tac('hongshui', '洪水', 'Deluge', 24, 'eall', { el: 'water', pow: 0.8, int: 88, lv: 34, fx: 'pillar' });
+tac('luoshi', '落石', 'Rockfall', 5, 'e1', { el: 'rock', pow: 1.15, int: 50, lv: 6, fx: 'rock' });
+tac('shanbeng', '山崩', 'Landslide', 22, 'eall', { el: 'rock', pow: 0.75, int: 0, lv: 99, fx: 'spike' });
+tac('leiji', '雷擊', 'Thunderbolt', 7, 'e1', { el: 'thunder', pow: 1.3, int: 75, lv: 12, fx: 'thunder' });
+tac('tianlei', '天雷', 'Wrath of Heaven', 28, 'eall', { el: 'thunder', pow: 0.9, int: 0, lv: 99, fx: 'thunder' });
+tac('duyan', '毒煙', 'Poison Smoke', 8, 'eall', { st: 'poison', int: 60, lv: 10, fx: 'smoke' });
+tac('hunluan', '混亂', 'Confusion', 5, 'e1', { st: 'confuse', int: 55, lv: 5, fx: 'spirit' });
+tac('tiaobo', '挑撥', 'Provoke', 4, 'e1', { st: 'provoke', int: 50, lv: 4, fx: 'spark' });
+tac('maifu', '埋伏', 'Ambush', 8, 'self', { st: 'ambush', int: 62, lv: 9, fx: 'leaf' });
+tac('qimen', '奇門', 'Qimen Trap', 10, 'e1', { st: 'stun', int: 0, lv: 99, fx: 'circle' });
+tac('jinsuo', '八門金鎖', 'Eight Gates Lock', 24, 'eall', { st: 'stun', int: 0, lv: 99, fx: 'circle' });
+tac('guwu', '鼓舞', 'Rally', 6, 'aall', { buff: 'atk', int: 48, lv: 4, fx: 'boost' });
+tac('jianshou', '堅守', 'Hold Fast', 6, 'aall', { buff: 'def', int: 46, lv: 6, fx: 'shield' });
+tac('jifeng', '疾風', 'Swift Wind', 6, 'aall', { buff: 'spd', int: 58, lv: 11, fx: 'leaf' });
+tac('zhiliao', '治療', 'Mend', 5, 'a1', { heal: 0.35, int: 40, lv: 2, fx: 'boost' });
+tac('huifu', '回復', 'Restore', 12, 'aall', { heal: 0.3, int: 70, lv: 20, fx: 'boost' });
+tac('dahui', '大回復', 'Great Restore', 22, 'aall', { heal: 0.65, int: 88, lv: 36, fx: 'boost' });
+tac('fuhuo', '復活', 'Rally the Fallen', 16, 'down', { revive: 0.35, int: 80, lv: 26, fx: 'spirit' });
+tac('dunzou', '遁走', 'Withdraw', 3, 'field', { escape: true, int: 35, lv: 1, fx: 'smoke' });
+tac('zhencha', '偵察', 'Scout', 2, 'field', { scout: true, int: 30, lv: 1, fx: 'circle' });
+tac('tianbian', '天變', 'Change of Sky', 6, 'field', { weather: 'rain', int: 74, lv: 16, fx: 'pillar' });
+tac('hufeng', '呼風', 'Call the Wind', 6, 'field', { weather: 'wind', int: 0, lv: 99, fx: 'leaf' });
+tac('huolong', '火龍船', 'Fire-Dragon Rafts', 24, 'eall', { el: 'fire', pow: 0.75, naval: 1.5, int: 0, lv: 99, fx: 'explosion', unique: 'jeff' });
+tac('guanxing', '觀星', 'Read the Stars', 8, 'field', { weather: 'clear', buff2: 'spd', int: 0, lv: 99, fx: 'spirit', unique: 'erin' });
+tac('heilian', '黑蓮咒', 'Black Lotus Curse', 10, 'eall', { el: 'dark', pow: 0.6, st: 'confuse', int: 0, lv: 99, fx: 'spirit', enemyOnly: true });
+export const TACTICS = TAC;
+export const tacName = (id) => (TAC[id] ? L(TAC[id].zh, TAC[id].en) : id);
+export const TAC_DESC = {
+  huoji: ['放火燒一支敵軍。', 'Sets one enemy unit on fire.'], dahuo: ['火燒全部敵軍。', 'Fire on every enemy unit.'], liehuo: ['猛烈的火焰吞沒全部敵軍。', 'A roaring blaze over all enemies.'],
+  yehuo: ['業火焚盡一切。', 'Fire that leaves nothing.'], shuiji: ['決水淹一支敵軍。', 'Floods one enemy unit.'], dashui: ['大水沖向全部敵軍。', 'A flood over all enemies.'],
+  hongshui: ['滔天洪水。', 'A towering deluge.'], luoshi: ['推落巨石砸向一支敵軍。', 'Boulders onto one enemy.'], shanbeng: ['整面山坡崩落。', 'A whole hillside comes down.'],
+  leiji: ['引雷劈向一支敵軍。雨天更強。', 'Lightning on one enemy. Stronger in rain.'], tianlei: ['天雷轟擊全部敵軍。', 'Thunder on all enemies.'], duyan: ['毒煙使敵軍每回合損兵。', 'Smoke that bleeds the enemy each turn.'],
+  hunluan: ['使一支敵軍陷入混亂，亂打一通。', 'Throws one enemy into confusion.'], tiaobo: ['激怒敵將：攻擊上升但防禦大降，只會攻擊施計者。', 'Goads a foe: more attack, far less defence, and it only attacks the caster.'],
+  maifu: ['設下伏兵，下一個攻擊我軍的敵人會中伏。', 'Hidden troops strike the next enemy who attacks.'], qimen: ['以奇門之陣困住一支敵軍，使其無法行動。', 'Traps one enemy so it cannot act.'],
+  jinsuo: ['八門金鎖困住全部敵軍。', 'Locks every enemy in place.'], guwu: ['全軍攻擊力上升。', 'Raises the attack of the whole army.'], jianshou: ['全軍防禦力上升。', 'Raises the defence of the whole army.'],
+  jifeng: ['全軍速度上升。', 'Raises the speed of the whole army.'], zhiliao: ['恢復一支部隊的兵力。', 'Restores troops to one unit.'], huifu: ['恢復全軍兵力。', 'Restores troops to the whole army.'],
+  dahui: ['大幅恢復全軍兵力。', 'Restores many troops to the whole army.'], fuhuo: ['讓敗走的武將重整旗鼓。', 'A routed general returns to the field.'], dunzou: ['全軍撤離戰場（首領戰無效）。地圖上使用可返回上一座城。', 'The army leaves the battle (not against leaders). On the map: back to the last city.'],
+  zhencha: ['看清敵軍的兵力與弱點，全軍會心率上升。', 'Shows enemy troops and weak points; more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱。', 'Brings rain: water and thunder grow, fire weakens.'],
+  hufeng: ['喚來東風：火計與弓箭增強。', 'Calls a wind: fire and arrows grow stronger.'], huolong: ['傑夫的火龍船，水戰中威力倍增。', "Jeff's burning rafts; far stronger on water."],
+  guanxing: ['艾琳觀星，天氣轉晴，全軍速度上升。', 'Erin reads the stars: clear sky and a faster army.'], heilian: ['黑蓮教的邪咒。', 'The Black Lotus curse.'],
+};
+
+// ---------- formations ----------
+// pos: five slots on a 5 x 3 grid (col 0 = front); hit: how likely each slot is to be attacked
+export const FORMS = {
+  fangyuan: { zh: '方圓陣', en: 'Square', pos: [[1, 1], [0, 0], [0, 2], [2, 0], [2, 2]], hit: [1, 1, 1, 1, 1], atk: 1, def: 1.1, spd: 1, tac: 1, desc: ['四面守備的基本陣形。防禦小幅上升。', 'The basic all-round formation. A little more defence.'] },
+  yulin: { zh: '魚鱗陣', en: 'Fish Scale', pos: [[0, 1], [1, 0], [1, 2], [2, 1], [3, 1]], hit: [2.2, 1.2, 1.2, 0.6, 0.4], atk: 1.15, def: 0.95, spd: 1, tac: 1, desc: ['層層推進，攻擊上升；前鋒最常受攻擊。', 'Layered advance: more attack; the vanguard takes most blows.'] },
+  heyi: { zh: '鶴翼陣', en: 'Crane Wing', pos: [[2, 1], [0, 0], [0, 2], [1, 0], [1, 2]], hit: [0.4, 1.4, 1.4, 1, 1], atk: 1.05, def: 1.05, spd: 1, tac: 1.12, desc: ['兩翼包圍，主將居中少受攻擊，計策威力上升。', 'Wings wrap the foe; the leader sits safe; tactics grow stronger.'] },
+  fengshi: { zh: '鋒矢陣', en: 'Arrowhead', pos: [[0, 1], [1, 0], [1, 2], [2, 0], [2, 2]], hit: [1.8, 1, 1, 0.8, 0.8], atk: 1.25, def: 0.85, spd: 1.1, tac: 1, cond: 'lead_str80', desc: ['以猛將為箭頭直衝敵陣。條件：主將武力80以上。', 'A fierce leader at the tip. Needs a leader with STR 80+.'] },
+  changshe: { zh: '長蛇陣', en: 'Long Snake', pos: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1]], hit: [1, 1, 1, 1, 1], atk: 1, def: 1, spd: 1.2, tac: 1, evade: 0.12, desc: ['首尾相應，速度上升，較易閃避。', 'Head and tail help each other: faster, harder to hit.'] },
+  yanxing: { zh: '雁行陣', en: 'Wild Geese', pos: [[0, 0], [1, 1], [2, 2], [1, 0], [2, 1]], hit: [1.2, 1, 0.9, 1, 0.9], atk: 1, def: 1, spd: 1.05, tac: 1, bow: 1.25, cond: 'arc2', desc: ['斜列展開，弓兵攻擊大增。條件：弓兵兩隊以上。', 'A slanting line: archers hit much harder. Needs 2+ archers.'] },
+  yanyue: { zh: '偃月陣', en: 'Crescent', pos: [[0, 1], [1, 0], [1, 2], [2, 0], [2, 2]], hit: [1.4, 1, 1, 0.8, 0.8], atk: 1.15, def: 1.1, spd: 1, tac: 1, cond: 'lead_lead85', desc: ['主將親臨陣前，攻守俱佳。條件：主將統率85以上。', 'The leader at the front: strong in attack and defence. Needs LEAD 85+.'] },
+  bagua: { zh: '八卦陣', en: 'Eight Trigrams', pos: [[1, 1], [0, 1], [1, 0], [1, 2], [2, 1]], hit: [0.6, 1.2, 1.1, 1.1, 1], atk: 1, def: 1.25, spd: 0.95, tac: 1.15, resist: 0.3, cond: 'str_int95', desc: ['變化無窮：防禦大增，計策更強，敵計易失。條件：軍師智力95以上。', 'Endless change: much defence, stronger tactics, enemy ploys fail more. Needs a strategist with INT 95+.'] },
+  shuijun: { zh: '水軍陣', en: 'Naval Line', pos: [[0, 0], [0, 2], [1, 1], [2, 0], [2, 2]], hit: [1, 1, 1, 1, 1], atk: 1, def: 1, spd: 1, tac: 1, naval: 1.25, cond: 'nav3', desc: ['戰船列陣，水戰時攻守大增。條件：水軍三隊以上。', 'Ships in line: far stronger in naval battles. Needs 3+ navy units.'] },
+  tuzhen: { zh: '突騎陣', en: 'Cavalry Charge', pos: [[0, 0], [0, 1], [0, 2], [2, 0], [2, 2]], hit: [1.2, 1.2, 1.2, 0.7, 0.7], atk: 1.1, def: 0.95, spd: 1.25, tac: 1, charge: 1.4, cond: 'cav3', desc: ['騎兵一齊衝鋒，首回合攻擊大增。條件：前三位皆為騎兵。', 'All horse charge together: huge first-turn attack. Needs the first three to be cavalry.'] },
+};
+export const formName = (id) => L(FORMS[id].zh, FORMS[id].en);
+
+// ---------- skills ----------
+export const SKILLS = {
+  lianji: ['連擊', 'Double Strike', '有機會連續攻擊兩次。', 'May strike twice.'],
+  tuji: ['突擊', 'Charge', '首回合攻擊大增。', 'Much stronger on the first turn.'],
+  tiebi: ['鐵壁', 'Iron Wall', '防禦上升。', 'More defence.'],
+  shenshe: ['神射', 'Sharpshooter', '會心率上升，無視部分防禦。', 'More critical hits; ignores some defence.'],
+  shuizhan: ['水戰', 'River Warrior', '水戰時攻守上升。', 'Stronger in naval battles.'],
+  yexi: ['夜襲', 'Night Raid', '容易先發制人。', 'More often strikes first.'],
+  jili: ['激勵', 'Inspire', '開戰時全軍攻擊上升。', 'The army attacks harder from the start.'],
+  yishu: ['醫術', 'Medicine', '每回合為全軍恢復少許兵力。', 'Restores a few troops to all each turn.'],
+  fanji: ['反計', 'Counterploy', '常能識破敵計。', 'Often sees through enemy ploys.'],
+  kanpo: ['看破', 'Clear Mind', '不受混亂與困陣。', 'Immune to confusion and traps.'],
+  weifeng: ['威風', 'Awe', '敵軍攻擊下降。', 'Enemies attack weaker.'],
+  guimou: ['鬼謀', 'Cunning', '計策威力上升。', 'Stronger tactics.'],
+  shensuan: ['神算', 'Foresight', '策略值消耗減少。', 'Tactics cost less.'],
+  huwei: ['護衛', 'Guardian', '常替受傷的同伴擋下攻擊。', 'Often covers a hurt friend.'],
+  lueduo: ['掠奪', 'Plunder', '戰後得到更多金錢。', 'More gold after battle.'],
+  yongmeng: ['勇猛', 'Valour', '攻擊上升。', 'More attack.'],
+  buqu: ['不屈', 'Unyielding', '每場戰鬥一次，致命一擊後以殘兵堅持。', 'Once a battle, survives a killing blow.'],
+  jisu: ['疾速', 'Swift', '速度上升。', 'More speed.'],
+  haoling: ['號令', 'Command', '兵力上限上升。', 'More maximum troops.'],
+  qixi: ['奇襲', 'Surprise', '不易被敵軍偷襲。', 'Enemies rarely ambush the army.'],
+  yiqi: ['一騎當千', 'Worth a Thousand', '有機會攻擊全部敵軍。', 'May strike every enemy at once.'],
+  guishen: ['鬼神', 'War God', '攻擊總是波及全部敵軍。', 'Every attack strikes all enemies.'],
+  danqi: ['單騎', 'Lone Rider', '兵力越少，攻擊越強。', 'The fewer troops, the harder it hits.'],
+  tuntian: ['屯田', 'Farming Garrison', '在地圖上行走時慢慢恢復兵力。', 'Troops recover while walking the map.'],
+  chihou: ['斥候', 'Scouts', '在地圖上較少遇敵。', 'Fewer battles on the map.'],
+  dunqiang: ['盾牆', 'Shield Wall', '挺身而出，替同伴承受攻擊，自身防禦大增。', 'Steps in front of friends and takes the blows, with much more defence.'],
+  gongjiang: ['工匠', 'Engineer', '火計與攻城計策威力大增。', 'Fire and siege ploys much stronger.'],
+  guanxing: ['觀星', 'Stargazer', '回復與天候計策更強，水戰時速度上升。', 'Better healing and weather ploys; faster on water.'],
+  miaoshou: ['妙手', 'Light Fingers', '攻擊時有機會偷得金錢或道具；能發現地圖上的秘密。', 'May steal gold or items when attacking; finds secrets on the map.'],
+  yinjiang: ['陰將', 'Black Lotus Rite', '黑蓮教的邪術：每回合恢復兵力。', 'A Black Lotus rite: recovers troops every turn.'],
+};
+export const skillName = (id) => (SKILLS[id] ? L(SKILLS[id][0], SKILLS[id][1]) : id);
+export const skillDesc = (id) => (SKILLS[id] ? L(SKILLS[id][2], SKILLS[id][3]) : '');
+
+// ---------- levels ----------
+export const MAXLV = 70;
+export const expFor = (lv) => Math.round(18 * lv * lv + 12 * lv); // total exp to reach lv+1 from lv
+// soldiers a general can lead
+export function maxTroops(lv, lead, haoling) {
+  const base = (80 + lead * 2) * (1 + 0.3 * (lv - 1)) * (1 + 0.018 * Math.pow(lv - 1, 1.45));
+  return Math.round(base * (haoling ? 1.15 : 1) / 10) * 10;
+}
+// the strategy pool from the army's strategist
+export const maxTP = (int, lv) => Math.round(int * 0.3 + lv * 1.6 + 8);
