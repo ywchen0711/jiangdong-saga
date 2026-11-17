@@ -117,13 +117,13 @@ export function fieldUpdate() {
     if (S.vehicle === 'ship') {
       if (!sailable(k) || k === K.PLACE) {
         // landing: step onto the shore, the ship waits
-        if (walkable(k)) { S.ship = { x: tileX(), y: tileY() }; S.vehicle = S.horse ? 'horse' : 'foot'; sfx('step'); begin(dk); return; }
+        if (walkable(k)) { S.ship = { x: tileX(), y: tileY() }; S.vehicle = S.horse ? 'horse' : 'foot'; F.trail = []; sfx('step'); begin(dk); return; }
         sfx('bump'); return;
       }
       begin(dk); return;
     }
     // boarding the ship from the shore
-    if (S.ship && S.ship.x === tx && S.ship.y === ty) { S.vehicle = 'ship'; S.ship = null; sfx('door'); begin(dk); return; }
+    if (S.ship && S.ship.x === tx && S.ship.y === ty) { S.vehicle = 'ship'; S.ship = null; F.trail = []; sfx('door'); begin(dk); return; }
     if (worldBlocked(tx, ty)) { return; }
     begin(dk); return;
   }
@@ -218,6 +218,20 @@ function updateNpcs() {
 
 // ---------- drawing ----------
 let camX = 0, camY = 0;
+// the line behind the leader: trail[0] is the tile the leader is leaving, and during a step each follower walks
+// from the tile it stood on (one further back in the trail) to the next one, at the leader's pace
+function followers() {
+  const out = [];
+  S.front.slice(1, 4).forEach((id, i) => {
+    const t = F.trail[i]; if (!t) return;
+    const g = GENERALS[id], m = member(id); if (!g || !m) return;
+    const k = F.moving ? Math.min(1, Math.abs((F.mdir === 'l' || F.mdir === 'r' ? F.px - F.from[0] : F.py - F.from[1]) / T)) : 1;
+    const s = (F.moving && F.trail[i + 1]) || t;
+    const fx = s[0] + (t[0] - s[0]) * k, fy = s[1] + (t[1] - s[1]) * k;
+    out.push({ i, id, g, m, x: fx * T, y: fy * T, dir: (F.trail[i + 1] || t)[2], walking: !!F.moving && (s[0] !== t[0] || s[1] !== t[1]) });
+  });
+  return out;
+}
 function leaderLook() { const id = S.front[0] || 'sunquan'; const g = GENERALS[id], m = member(id); return { look: g.look, equip: m ? m.equip : {}, opts: { shield: g.shield, quiver: g.quiver } }; }
 function drawFigure(look, equip, opts, x, y, dir, moving, at) {
   const sh = fieldSheet(look, equip, opts);
@@ -246,18 +260,7 @@ export function fieldDraw() {
   // the leader and the line behind
   const L0 = leaderLook();
   if (!F.hideLeader) list.push({ y: F.py + 15, d: () => drawFigure(L0.look, L0.equip, L0.opts, F.px - camX, F.py - camY, F.dir, !!F.moving || (input.dir() && !UI.active), F.frame) });
-  if (!F.hideLeader) S.front.slice(1, 4).forEach((id, i) => {
-    const t = F.trail[i]; if (!t) return;
-    const g = GENERALS[id], mm = member(id); if (!mm) return;
-    // followers glide behind the leader: trail[0] is the tile the leader is leaving, and during a step each
-    // follower walks from the tile it stood on (one further back in the trail) to the next one, at the leader's pace
-    const k = F.moving ? Math.min(1, Math.abs((F.mdir === 'l' || F.mdir === 'r' ? F.px - F.from[0] : F.py - F.from[1]) / T)) : 1;
-    const s = (F.moving && F.trail[i + 1]) || t;
-    const fx = s[0] + (t[0] - s[0]) * k, fy = s[1] + (t[1] - s[1]) * k;
-    const walking = F.moving && s !== t && (s[0] !== t[0] || s[1] !== t[1]);
-    const dir = (F.trail[i + 1] || t)[2];
-    list.push({ y: fy * T + 14, d: () => drawFigure(g.look, mm.equip, { shield: g.shield, quiver: g.quiver }, fx * T - camX, fy * T - camY, dir, walking, F.frame + i * 3) });
-  });
+  if (!F.hideLeader) for (const f of followers()) list.push({ y: f.y + 14, d: () => drawFigure(f.g.look, f.m.equip, { shield: f.g.shield, quiver: f.g.quiver }, f.x - camX, f.y - camY, f.dir, f.walking, F.frame + f.i * 3) });
   list.sort((a, b) => a.y - b.y);
   for (const o of list) o.d();
   if (m.dark) { const g = ctx.createRadialGradient(F.px - camX + 8, F.py - camY + 8, 30, F.px - camX + 8, F.py - camY + 8, 200); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.7)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -301,8 +304,13 @@ function drawWorldMode() {
   if (S.ship) drawShip(S.ship.x * T - camX, S.ship.y * T - camY, 'l');
   const x = F.px - camX, y = F.py - camY;
   if (S.vehicle === 'ship') drawShip(x, y, F.dir === 'r' ? 'r' : 'l');
-  else if (S.horse) drawRider(x, y);
-  else { const L0 = leaderLook(); drawFigure(L0.look, L0.equip, L0.opts, x, y, F.dir, !!F.moving, F.frame); }
+  else {
+    const L0 = leaderLook(), id0 = S.front[0] || 'sunquan';
+    const list = [{ y: F.py, d: () => (S.horse ? drawRider(x, y, id0, F.dir, !!F.moving, F.frame) : drawFigure(L0.look, L0.equip, L0.opts, x, y, F.dir, !!F.moving, F.frame)) }];
+    for (const f of followers()) list.push({ y: f.y, d: () => (S.horse ? drawRider(f.x - camX, f.y - camY, f.id, f.dir, f.walking, F.frame + f.i * 3) : drawFigure(f.g.look, f.m.equip, { shield: f.g.shield, quiver: f.g.quiver }, f.x - camX, f.y - camY, f.dir, f.walking, F.frame + f.i * 3)) });
+    list.sort((a, b) => a.y - b.y);
+    for (const o of list) o.d();
+  }
   drawMinimap();
   const k = WD.t[tileY() * WW + tileX()];
   if (k === K.PLACE) { const id = WD.placeAt[tileY() * WW + tileX()]; if (id) { const s = placeName(id), w = textW(s) + 20; windowBox((W - w) / 2, 8, w, 22); text(s, W / 2, 13, '#f8e070', { align: 'center' }); } }
@@ -313,18 +321,17 @@ function drawShip(x, y, face) {
   if (sp && im) { const bob = Math.round(Math.sin(F.frame / 12)); ctx.drawImage(im, sp[0], sp[1], sp[2], sp[3], Math.round(x + 8 - sp[2] / 2), Math.round(y + 14 - sp[3] + bob), sp[2], sp[3]); }
 }
 // on horseback: the horse (half size) and the leader's top half on it
-function drawRider(x, y) {
-  const L0 = leaderLook(), m = member(S.front[0] || 'sunquan');
+function drawRider(x, y, id, dir, moving, at) {
+  const g = GENERALS[id], m = member(id);
   const hname = (m && m.equip.horse && HORSE_COL[m.equip.horse]) || 'brown';
   const hi = IMG['h:' + (hname === 'red' ? 'brown' : hname)];
-  const dir = F.dir;
   // half-size horse: [row, feet y, saddle x, saddle y] in the 128px frame
   const A = { u: [4, 108, 64, 62], l: [5, 94, 62, 52], d: [6, 96, 64, 58], r: [7, 94, 66, 52] }[dir];
-  const fr = F.moving ? Math.floor(F.frame / 4) % 4 : 0;
-  const sh = fieldSheet(L0.look, L0.equip, L0.opts);
+  const fr = moving ? Math.floor(at / 4) % 4 : 0;
+  const sh = g && fieldSheet(g.look, m ? m.equip : {}, { shield: g.shield, quiver: g.quiver });
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 14, dir === 'l' || dir === 'r' ? 13 : 6, 3, 0, 0, 7); ctx.fill();
   const hx = Math.round(x + 8 - 32), hy = Math.round(y + 15 - A[1] / 2);
-  const man = () => { if (sh) { const top = hy + A[3] / 2 - 22, left = hx + A[2] / 2 - 16; ctx.drawImage(sh, 0, DROW[dir] * 32, 32, 25, left, top + (F.moving ? fr % 2 : 0), 32, 25); } };
+  const man = () => { if (sh) { const top = hy + A[3] / 2 - 22, left = hx + A[2] / 2 - 16; ctx.drawImage(sh, 0, DROW[dir] * 32, 32, 25, left, top + (moving ? fr % 2 : 0), 32, 25); } };
   if (hi) { if (hname === 'red') ctx.filter = 'hue-rotate(-18deg) saturate(1.8)'; ctx.drawImage(hi, fr * 128, A[0] * 128, 128, 128, hx, hy, 64, 64); ctx.filter = 'none'; }
   man();
 }
