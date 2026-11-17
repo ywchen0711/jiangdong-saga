@@ -2,16 +2,16 @@
 // little crowd of soldiers that thins out as their troops (兵力, their life) fall. Each round you give every
 // general in the front line an order — attack, a tactic from the shared strategy pool, an item, defend — or
 // order the whole army to charge, or retreat; then everyone acts in order of speed.
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=2';
-import { input } from './input.js?v=2';
-import { sfx, playMusic, currentSong } from './audio.js?v=2';
-import { UI, menu, say, wait as uiWait, descBox, fit } from './ui.js?v=2';
-import { L } from './i18n.js?v=2';
-import { IMG, FX, tileset } from './assets.js?v=2';
-import { GENERALS, gearFor, genName, parseLook } from './generals.js?v=2';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName } from './data.js?v=2';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=2';
-import { battleSheet, fieldSheet } from './doll.js?v=2';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=3';
+import { input } from './input.js?v=3';
+import { sfx, playMusic, currentSong } from './audio.js?v=3';
+import { UI, menu, say, wait as uiWait, descBox, fit } from './ui.js?v=3';
+import { L } from './i18n.js?v=3';
+import { IMG, FX, tileset } from './assets.js?v=3';
+import { GENERALS, gearFor, genName, parseLook } from './generals.js?v=3';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName } from './data.js?v=3';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=3';
+import { battleSheet, fieldSheet } from './doll.js?v=3';
 
 export const B = { active: false };
 const waits = [];
@@ -284,7 +284,7 @@ async function pickTarget(side, u, { all = false, down = false } = {}) {
     UIpush(w);
   });
 }
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=2';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=3';
 function drawInfo(t) {
   const name = genName(t.g), s = `${name}  Lv${t.lv}  ${unitName(t.unit)}`;
   windowBox(140, 4, 200, B.scouted || t.side === 'ally' ? 30 : 18);

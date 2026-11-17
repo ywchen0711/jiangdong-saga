@@ -1,9 +1,9 @@
 // Dialogue boxes, choices and list menus. Each returns a promise, so story scripts can be
 // written as plain async code; the main loop feeds them input and draws them on top.
-import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=2';
-import { input } from './input.js?v=2';
-import { sfx } from './audio.js?v=2';
-import { speaker, L } from './i18n.js?v=2';
+import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=3';
+import { input } from './input.js?v=3';
+import { sfx } from './audio.js?v=3';
+import { speaker, L } from './i18n.js?v=3';
 
 // short coloured status tags so the panels show who is poisoned, slowed, shielded... at a glance
 const STTAG = {
@@ -40,6 +40,8 @@ export const UI = {
   update() { const t = stack[stack.length - 1]; if (t) t.update(); },
   draw() { for (const w of stack) w.draw(); },
   clear() { stack.length = 0; },
+  depth() { return stack.length; },
+  trim(n) { if (stack.length > n) stack.length = n; },
 };
 let frame = 0;
 export function uiTick() { frame++; }
@@ -127,7 +129,8 @@ export function fit(s, w) {
 
 // ---------- list menus ----------
 // items: [{ label, right, disabled, color }] or strings
-export function menu(items, { x = 150, y = 60, w, cols = 1, cancel = true, title, start = 0, onMove, rowH = 16, maxRows = 9, drawExtra, keys } = {}) {
+// back: the answer the cancel button gives when the menu can't simply be closed ("no thanks" on a question)
+export function menu(items, { x = 150, y = 60, w, cols = 1, cancel = true, back = null, title, start = 0, onMove, rowH = 16, maxRows = 9, drawExtra, keys } = {}) {
   items = items.map((it) => (typeof it === 'string' ? { label: it } : it));
   // a window sized to its contents never grows past the screen
   const colW = w ? Math.floor((w - 20) / cols) : Math.min(Math.floor((W - 30) / cols), Math.max(...items.map((it) => textW(it.label) + (it.right ? textW(String(it.right)) + 14 : 0))) + 8);
@@ -154,7 +157,8 @@ export function menu(items, { x = 150, y = 60, w, cols = 1, cancel = true, title
       if (input.pressed('a')) {
         if (items[this.i].disabled) { sfx('buzz'); return; }
         sfx('ok'); this.done(this.i);
-      } else if (cancel && input.pressed('b')) { sfx('cancel'); this.done(-1); }
+      } else if (input.pressed('b') && back != null) { sfx('cancel'); this.done(back); }
+      else if (cancel && input.pressed('b')) { sfx('cancel'); this.done(-1); }
     },
     draw() {
       windowBox(x, y, w, h);

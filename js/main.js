@@ -1,22 +1,22 @@
 // 江東霸業傳 Saga of Jiangdong: start-up, the title screen, the main loop, and the glue between walking,
 // battles, menus and the story. window.G exposes hooks for testing.
-import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=2';
-import { input, pollInput, endInput, setupTouch } from './input.js?v=2';
-import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=2';
-import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=2';
-import { L, LANG, setLang } from './i18n.js?v=2';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=2';
-import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=2';
-import * as FIELD from './field.js?v=2';
-import { overviewMap } from './worldgfx.js?v=2';
-import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=2';
-import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=2';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=2';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=2';
-import { openMenu, fullMap } from './menu.js?v=2';
-import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=2';
-import { buildMap } from './maps.js?v=2';
-import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=2';
+import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=3';
+import { input, pollInput, endInput, setupTouch } from './input.js?v=3';
+import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=3';
+import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=3';
+import { L, LANG, setLang } from './i18n.js?v=3';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=3';
+import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=3';
+import * as FIELD from './field.js?v=3';
+import { overviewMap } from './worldgfx.js?v=3';
+import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=3';
+import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=3';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=3';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=3';
+import { openMenu, fullMap } from './menu.js?v=3';
+import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=3';
+import { buildMap } from './maps.js?v=3';
+import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=3';
 
 export const G = window.G = { mode: 'boot', S, F, B, UI, GENERALS, GEN_LIST, ITEMS, PLACES, REGIONS };
 G.uiActive = () => UI.active;
@@ -89,7 +89,8 @@ G.fade = fade;
 export async function run(fn) {
   if (busy) return;
   busy = true; G.busy = true; F.busy = true;
-  try { await fn(); } catch (e) { console.error(e); }
+  const depth = UI.depth();
+  try { await fn(); } catch (e) { console.error(e); UI.trim(depth); }
   busy = false; G.busy = false; F.busy = false;
 }
 G.run = run;
@@ -227,7 +228,7 @@ function draw() {
 }
 // ---------- start ----------
 setupTouch();
-import { WOBJ, tileset } from './assets.js?v=2';
+import { WOBJ, tileset } from './assets.js?v=3';
 G.WOBJ = WOBJ; G.tileset = tileset;
 requestAnimationFrame(frame);
 // tests can run the game faster than the screen refreshes (and while the page is hidden)

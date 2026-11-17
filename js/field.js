@@ -1,19 +1,19 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=2';
-import { input } from './input.js?v=2';
-import { sfx } from './audio.js?v=2';
-import { UI } from './ui.js?v=2';
-import { L } from './i18n.js?v=2';
-import { IMG, tileset, WOBJ } from './assets.js?v=2';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=2';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=2';
-import { renderMap, solidKind, TILES } from './tiles.js?v=2';
-import { buildMap, placeName } from './maps.js?v=2';
-import { GENERALS, parseLook } from './generals.js?v=2';
-import { fieldSheet } from './doll.js?v=2';
-import { S, member, hasSkill, troopsMax } from './state.js?v=2';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=3';
+import { input } from './input.js?v=3';
+import { sfx } from './audio.js?v=3';
+import { UI } from './ui.js?v=3';
+import { L } from './i18n.js?v=3';
+import { IMG, tileset, WOBJ } from './assets.js?v=3';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=3';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=3';
+import { renderMap, solidKind, TILES } from './tiles.js?v=3';
+import { buildMap, placeName } from './maps.js?v=3';
+import { GENERALS, parseLook } from './generals.js?v=3';
+import { fieldSheet } from './doll.js?v=3';
+import { S, member, hasSkill, troopsMax } from './state.js?v=3';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };

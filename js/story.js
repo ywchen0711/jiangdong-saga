@@ -2,19 +2,19 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=2';
-import { sfx, playMusic, stopMusic } from './audio.js?v=2';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=2';
-import { L } from './i18n.js?v=2';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=2';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=2';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=2';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=2';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=2';
-import * as FIELD from './field.js?v=2';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=2';
-import { placeName } from './maps.js?v=2';
-import { portrait } from './doll.js?v=2';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=3';
+import { sfx, playMusic, stopMusic } from './audio.js?v=3';
+import { UI, menu, say, ask, notice, wait } from './ui.js?v=3';
+import { L } from './i18n.js?v=3';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=3';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=3';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=3';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=3';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=3';
+import * as FIELD from './field.js?v=3';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=3';
+import { placeName } from './maps.js?v=3';
+import { portrait } from './doll.js?v=3';
 
 export const STORY = {};
 const G = () => window.G;
@@ -1013,7 +1013,7 @@ export async function openChest(e) {
 // ---------- the boatman and shrines ----------
 async function boatman() {
   if (!S.flags.ship) return say(L('船夫', 'Boatman'), L('過江就走渡口的渡船吧，路上的渡口都有船。要出海？那得有自己的大船才行。', 'To cross the river, use the ferries where the roads meet the water. Going to sea? You\'ll need a big ship of your own.'));
-  const c = await ask(L('船夫', 'Boatman'), L('主公的戰船停在別處。要我派人把船開到這個港口來嗎？', 'Your warship is moored elsewhere, my lord. Shall I have it brought round to this port?'), [L('好', 'Yes'), L('不用', 'No')]);
+  const c = await ask(L('船夫', 'Boatman'), L('主公的戰船停在別處。要我派人把船開到這個港口來嗎？', 'Your warship is moored elsewhere, my lord. Shall I have it brought round to this port?'), [L('好', 'Yes'), L('不用', 'No')], { back: 1 });
   if (c === 0) { const P = PLACES[F.map.place]; S.ship = findWater(P[2], P[3]); S.vehicle = S.horse ? 'horse' : 'foot'; sfx('door'); await say(L('船夫', 'Boatman'), L('船已經在港外等著了。', 'The ship is waiting outside the port.')); }
 }
 const SHRINE_GIFT = { huangshan: 'mn_changshe', lushan: 'bk_water', huashan: 'mn_fengshi' };
@@ -1026,7 +1026,7 @@ async function shrine(place) {
     if (it.form) { if (!S.forms.includes(it.form)) S.forms.push(it.form); sfx('level'); return N(`習得了「${FORMS[it.form].zh}」！`, `Learned the ${FORMS[it.form].en} formation!`); }
     give(gift); sfx('chest'); return N(`得到了「${it.zh}」！`, `Received ${it.en}!`);
   }
-  const c = await ask(L('老僧', 'Old Monk'), L('要在佛前祈福嗎？全軍會恢復一些精神。（免費）', 'Will you pray before the Buddha? Your army will recover a little. (Free)'), [L('祈福', 'Pray'), L('不用了', 'No thanks')]);
+  const c = await ask(L('老僧', 'Old Monk'), L('要在佛前祈福嗎？全軍會恢復一些精神。（免費）', 'Will you pray before the Buddha? Your army will recover a little. (Free)'), [L('祈福', 'Pray'), L('不用了', 'No thanks')], { back: 1 });
   if (c === 0) { healAll(0.3); sfx('heal'); await N('一股暖意流過全軍。', 'A warmth flows through the army.'); }
 }
 export async function warpHome() {

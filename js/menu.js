@@ -1,17 +1,17 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=2';
-import { input } from './input.js?v=2';
-import { sfx, setMusic, music } from './audio.js?v=2';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=2';
-import { L, LANG, setLang } from './i18n.js?v=2';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=2';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor } from './data.js?v=2';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=2';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=2';
-import { PLACES, REGIONS, WW, WH } from './world.js?v=2';
-import { overviewMap } from './worldgfx.js?v=2';
-import { F, tileX, tileY } from './field.js?v=2';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=3';
+import { input } from './input.js?v=3';
+import { sfx, setMusic, music } from './audio.js?v=3';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=3';
+import { L, LANG, setLang } from './i18n.js?v=3';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=3';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor } from './data.js?v=3';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=3';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=3';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=3';
+import { overviewMap } from './worldgfx.js?v=3';
+import { F, tileX, tileY } from './field.js?v=3';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
@@ -91,7 +91,7 @@ async function generalsMenu() {
       }
     }
     if (o === 2) { S.strategist = id; S.tp = Math.min(S.tp, tpMax()); sfx('ok'); await say(null, L(`${genName(id)}成為了軍師。全軍的策略由其智力指揮。`, `${genName(id)} is now the army's strategist; their INT guides every tactic.`)); }
-    if (o === 3) { const ok = await ask(null, L(`真的要讓${genName(id)}離隊嗎？`, `Really dismiss ${genName(id)}?`), [L('是', 'Yes'), L('否', 'No')]); if (ok === 0) { dismiss(id); start = 0; } }
+    if (o === 3) { const ok = await ask(null, L(`真的要讓${genName(id)}離隊嗎？`, `Really dismiss ${genName(id)}?`), [L('是', 'Yes'), L('否', 'No')], { back: 1 }); if (ok === 0) { dismiss(id); start = 0; } }
   }
 }
 
@@ -178,7 +178,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=2'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=3'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -234,7 +234,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=2'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=3'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();

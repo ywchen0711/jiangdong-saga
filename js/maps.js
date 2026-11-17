@@ -1,11 +1,11 @@
 // Towns, castles, villages, ports, forts, temples, caves and the rooms inside them. Every place on the world
 // map gets its own layout, made from a template for its kind and a seed from its name, so the same place always
 // looks the same. Ground is laid out as letters; houses, trees and furniture are objects placed on top.
-import { hash, canvas } from './gfx.js?v=2';
-import { tileset } from './assets.js?v=2';
-import { TILES } from './tiles.js?v=2';
-import { PLACES } from './world.js?v=2';
-import { L } from './i18n.js?v=2';
+import { hash, canvas } from './gfx.js?v=3';
+import { tileset } from './assets.js?v=3';
+import { TILES } from './tiles.js?v=3';
+import { PLACES } from './world.js?v=3';
+import { L } from './i18n.js?v=3';
 
 // ---------- extra tiles ----------
 // a 16-piece floor autotile (3x3 patch, a column, a row and a single), as in tiles.js
@@ -302,7 +302,7 @@ function buildRoom(id, role) {
     thing(m, cx, 2, (g, X, Y) => { g.fillStyle = '#3a2410'; g.fillRect(X - 6, Y + 4, 28, 10); g.fillStyle = '#b8862e'; g.fillRect(X - 5, Y + 5, 26, 8); g.fillStyle = '#e0b858'; g.fillRect(X + 4, Y - 6, 8, 12); });
     thing(m, cx - 3, 2, brazier); thing(m, cx + 3, 2, brazier);
     m.ents.push(npc(`monk_${id}`, folkLook(seed, 'monk'), 'shrine', { x: cx, y: 4, dir: 'd', role: 'shrine' }));
-  } else {
+  } else if (!role.startsWith('house')) {
     obj(m, 'counter', cx - 1, 2);
     if (role === 'weapon') { obj(m, 'rack', 1, 1); obj(m, 'rack', W - 3, 1); }
     else if (role === 'armour') { obj(m, 'shelf', 1, 1); obj(m, 'shelf', W - 2, 1); obj(m, 'goods', 1, 4); }

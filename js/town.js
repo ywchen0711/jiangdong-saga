@@ -1,15 +1,15 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=2';
-import { sfx } from './audio.js?v=2';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=2';
-import { L } from './i18n.js?v=2';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=2';
-import { ITEMS, itemName, unitName } from './data.js?v=2';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=2';
-import { PLACES, REGIONS } from './world.js?v=2';
-import { itemDesc, drawStatus } from './menu.js?v=2';
-import { hash } from './gfx.js?v=2';
+import { W, H, text, windowBox } from './gfx.js?v=3';
+import { sfx } from './audio.js?v=3';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=3';
+import { L } from './i18n.js?v=3';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=3';
+import { ITEMS, itemName, unitName } from './data.js?v=3';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=3';
+import { PLACES, REGIONS } from './world.js?v=3';
+import { itemDesc, drawStatus } from './menu.js?v=3';
+import { hash } from './gfx.js?v=3';
 
 // what each shop sells, by how far into the story the place's region opens
 const STOCK = {
@@ -50,6 +50,7 @@ const tierOf = (place) => { const r = REGIONS[PLACES[place][5]]; const ch = r ? 
 const goldPanel = () => panel(() => { windowBox(W - 112, 4, 108, 22); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); });
 
 export async function shop(kind, place) {
+  if (!STOCK[kind]) return;
   const close = goldPanel();
   const greet = { weapon: ['歡迎光臨！上好的兵器都在這裡。', 'Welcome! The finest weapons are here.'], armour: ['鎧甲頭盔，保命要緊。', 'Armour and helms. Your life comes first.'], item: ['傷藥、軍酒、兵糧，行軍必備。', 'Salves, wine, rations: everything for the march.'], book: ['兵書戰策，看懂了可是無價之寶。', 'Books of war. Priceless, if you can understand them.'], horse: ['好馬！日行千里！', 'Fine horses! A thousand li a day!'] }[kind];
   await say(L('店主', 'Shopkeeper'), L(greet[0], greet[1]));
@@ -95,7 +96,7 @@ export async function inn(place) {
   const n = Object.keys(S.roster).length;
   const price = Math.max(10, Math.round((5 + tierOf(place) * 6) * Math.max(1, Math.ceil(n / 3))));
   const free = S.flags.homeBase === place;
-  const c = await ask(L('掌櫃', 'Innkeeper'), free ? L('主公回來了！房間一直為您留著。要休息嗎？', 'My lord is back! Your rooms are always ready. Will you rest?') : L(`住一晚${price}金，全軍兵力與策略值都會恢復。要住嗎？`, `A night is ${price} gold; every general's troops and the strategy pool will recover. Stay?`), [L('住宿', 'Stay'), L('記錄', 'Save'), L('不用了', 'No thanks')]);
+  const c = await ask(L('掌櫃', 'Innkeeper'), free ? L('主公回來了！房間一直為您留著。要休息嗎？', 'My lord is back! Your rooms are always ready. Will you rest?') : L(`住一晚${price}金，全軍兵力與策略值都會恢復。要住嗎？`, `A night is ${price} gold; every general's troops and the strategy pool will recover. Stay?`), [L('住宿', 'Stay'), L('記錄', 'Save'), L('不用了', 'No thanks')], { back: 2 });
   if (c === 0) {
     if (!free && S.gold < price) { await say(L('掌櫃', 'Innkeeper'), L('錢不夠啊，客官。', "You haven't enough, sir.")); return; }
     if (!free) S.gold -= price;
@@ -105,7 +106,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=2');
+  const { save, slotInfo } = await import('./state.js?v=3');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;
@@ -136,7 +137,7 @@ export async function tavern(place) {
     if (c < 0) return;
     const g = gs[c];
     S.met[g.id] = Math.max(S.met[g.id] || 0, 1);
-    const o = await ask(genName(g), g.famous ? famousLine(g.id) : L(`在下${g.zh}，${unitName(g.unit)}出身。若肯出${fee(g)}金安家，便為主公效力。`, `I am ${g.en}, a ${unitName(g.unit).toLowerCase()} officer. Give my family ${fee(g)} gold and I will serve you.`), [L(`出${fee(g)}金`, `Pay ${fee(g)}`), L('送禮', 'Give a gift'), L('算了', 'Never mind')]);
+    const o = await ask(genName(g), g.famous ? famousLine(g.id) : L(`在下${g.zh}，${unitName(g.unit)}出身。若肯出${fee(g)}金安家，便為主公效力。`, `I am ${g.en}, a ${unitName(g.unit).toLowerCase()} officer. Give my family ${fee(g)} gold and I will serve you.`), [L(`出${fee(g)}金`, `Pay ${fee(g)}`), L('送禮', 'Give a gift'), L('算了', 'Never mind')], { back: 2 });
     if (o === 0) { if (S.gold < fee(g)) { await say(genName(g), L('……主公的誠意似乎不太夠啊。', '...My lord seems a little short.')); continue; } S.gold -= fee(g); join(g, lv); await joined(g); continue; }
     if (o === 1) {
       const gifts = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind === 'gift');
