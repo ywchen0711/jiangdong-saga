@@ -40,7 +40,7 @@ An original Three Kingdoms army RPG that runs in the browser. Alternate history:
 | 取消 Cancel | X / Esc | B | B |
 | 選單 Menu | C / Tab | Y / Start | 選單 |
 | 全圖 Full map | Q / V | X | 地圖 |
-| 跑步 Run (towns) | Shift | | |
+| 跑步 Run (towns) | Shift | | 按住 B Hold B |
 | 戰鬥加速 Fast battle | F (按住 hold) | Select | 加速 |
 | 音樂 Music | M | | ♪ |
 
@@ -60,6 +60,14 @@ Jeff is a shipwright and engineer (a strategist who builds fire rafts), Erin a n
 All files are static. Serve the folder with any web server, for example `python -m http.server`, and open `index.html`. ES modules are imported with `?v=N` so a new version is fetched after an update.
 
 `tools/doll_build.py` cuts the LPC layers (it needs a clone of the Universal LPC generator), `tools/item_icons.py` packs the Ninja Adventure item pictures used for icons, and `tools/world_art.py` draws the world-map sprites. The treasures are a table in `js/treasures.js`.
+
+## iPhone and iPad
+
+- 觸控按鈕在 iPad 上也會出現；橫拿時畫面會讓出位置給按鈕，不會蓋住對話框。
+  The touch buttons also appear on iPad; held sideways, the picture makes room for them so they never cover the text boxes.
+- Sound starts with your first tap. It keeps playing with the ring/silent switch on silent (iOS 17 and later), and comes back after a call, Siri or the lock screen.
+- **Add to Home Screen** from Safari's Share menu to play full screen with its own icon.
+- The game runs at the same speed on 120 Hz ProMotion screens and in Low Power Mode.
 
 ## 素材 Assets
 

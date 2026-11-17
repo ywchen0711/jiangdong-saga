@@ -236,3 +236,47 @@ export function bar(x, y, w, v, max, col = '#58e070', g = ctx) {
   g.fillStyle = col; g.fillRect(x, y, Math.round(w * f), 3);
   g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(x, y, Math.round(w * f), 1);
 }
+
+// Safari (iPhone, iPad and Mac) ignores ctx.filter, so there the same colour change is worked out on
+// the pixels: hue-rotate, saturate and brightness, in order, as the browser filter would do them.
+export const HAS_FILTER = (() => { try { return 'filter' in document.createElement('canvas').getContext('2d'); } catch (e) { return false; } })();
+const mmul = (a, b) => { const o = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) o.push(a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c]); return o; };
+const fmCache = new Map();
+function filterMatrix(f) {
+  if (fmCache.has(f)) return fmCache.get(f);
+  let m = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  for (const [, fn, v] of f.matchAll(/([a-z-]+)\(\s*(-?[\d.]+)/g)) {
+    const n = parseFloat(v);
+    let k;
+    if (fn === 'hue-rotate') {
+      const a = (n * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+      k = [0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928,
+        0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283,
+        0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072];
+    } else if (fn === 'saturate') {
+      k = [0.213 + 0.787 * n, 0.715 - 0.715 * n, 0.072 - 0.072 * n, 0.213 - 0.213 * n, 0.715 + 0.285 * n, 0.072 - 0.072 * n, 0.213 - 0.213 * n, 0.715 - 0.715 * n, 0.072 + 0.928 * n];
+    } else if (fn === 'brightness') k = [n, 0, 0, 0, n, 0, 0, 0, n];
+    else continue;
+    m = mmul(k, m);
+  }
+  fmCache.set(f, m);
+  return m;
+}
+export function filterPixels(x, w, h, f) {
+  const m = filterMatrix(f), d = x.getImageData(0, 0, w, h), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    if (!p[i + 3]) continue;
+    const r = p[i], g = p[i + 1], b = p[i + 2];
+    p[i] = m[0] * r + m[1] * g + m[2] * b; p[i + 1] = m[3] * r + m[4] * g + m[5] * b; p[i + 2] = m[6] * r + m[7] * g + m[8] * b;
+  }
+  x.putImageData(d, 0, 0);
+}
+// a cell of a sheet with a filter worked into its pixels, made once (for Safari, see above)
+const tintCache = new WeakMap();
+export function filtered(img, sx, sy, w, h, f) {
+  let m = tintCache.get(img); if (!m) tintCache.set(img, (m = new Map()));
+  const key = f + '|' + sx + ',' + sy + ',' + w + ',' + h;
+  let c = m.get(key);
+  if (!c) { c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, sx, sy, w, h, 0, 0, w, h); filterPixels(x, w, h, f); m.set(key, c); }
+  return c;
+}

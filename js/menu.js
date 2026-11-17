@@ -1,21 +1,21 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=5';
-import { input } from './input.js?v=5';
-import { sfx, setMusic, music } from './audio.js?v=5';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=5';
-import { L, LANG, setLang } from './i18n.js?v=5';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=5';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=5';
-import { icon, ICON_COL } from './icons.js?v=5';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=5';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=5';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=5';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=5';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=6';
+import { input } from './input.js?v=6';
+import { sfx, setMusic, music } from './audio.js?v=6';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=6';
+import { L, LANG, setLang } from './i18n.js?v=6';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=6';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=6';
+import { icon, ICON_COL } from './icons.js?v=6';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=6';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=6';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=6';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=6';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=5';
-import { overviewMap } from './worldgfx.js?v=5';
-import { F, tileX, tileY } from './field.js?v=5';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=6';
+import { overviewMap } from './worldgfx.js?v=6';
+import { F, tileX, tileY } from './field.js?v=6';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
@@ -151,7 +151,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=5'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=6'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -286,7 +286,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=5'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=6'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();

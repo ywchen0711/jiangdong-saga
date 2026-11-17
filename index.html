@@ -6,10 +6,20 @@
 <title>江東霸業傳 Saga of Jiangdong</title>
 <meta name="description" content="原創的三國軍團角色扮演遊戲：架空歷史，以孫權為主角，率領武將奪回江東、對抗黑蓮教。巨大的世界地圖、紙娃娃系統、策略、陣形、技能與五百名武將。中英雙語。An original Three Kingdoms army RPG in Chinese and English: an alternate history starring Sun Quan, a huge world map, a paper-doll system, tactics, formations, skills and 500 generals.">
 <link rel="icon" href="data:,">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="江東霸業傳">
+<meta name="theme-color" content="#07060a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preload" href="fonts/Cubic_11.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   @font-face { font-family: Cubic11; src: url(fonts/Cubic_11.woff2) format('woff2'); font-display: block; }
   html, body { margin: 0; height: 100%; background: #07060a; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  /* iPhone / iPad: no bounce, no long-press callout or magnifier, no grey tap flash */
+  html, body { overscroll-behavior: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { position: fixed; inset: 0; height: 100dvh; }
   body { display: flex; align-items: center; justify-content: center; font-family: Cubic11, sans-serif; color: #ccd; }
   body.portrait { align-items: flex-start; padding-top: max(8px, env(safe-area-inset-top)); box-sizing: border-box; }
   #screen { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
@@ -32,14 +42,27 @@
   body.portrait .btn.mp { right: calc(max(18px, env(safe-area-inset-right)) + 68px); }
   body.portrait .btn.f { left: max(18px, env(safe-area-inset-left)); }
   .dpad div, .btn { opacity: 0.85; }
+  #sa { position: fixed; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  body.padtop { align-items: flex-start; padding-top: env(safe-area-inset-top); box-sizing: border-box; }
+  /* sideways with the pad beside the picture: the small buttons stack in the right-hand column */
+  body.side .btn.m { right: calc(max(8px, env(safe-area-inset-right)) + 52px); }
+  body.side .btn.mp { right: calc(max(8px, env(safe-area-inset-right)) + 52px); top: calc(max(10px, env(safe-area-inset-top)) + 38px); }
   #musicBtn { position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 20; width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.45); background: rgba(40,16,12,0.6); color: #fff; font: 20px sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #musicBtn.off { opacity: 0.6; }
+  /* a tablet gets thumb-sized buttons, a little bigger than a phone's */
+  @media (min-width: 700px) and (min-height: 600px) and (pointer: coarse) {
+    .dpad { transform: scale(1.2); transform-origin: left bottom; }
+    .btn.a, .btn.b { transform: scale(1.2); transform-origin: right bottom; }
+    .btn.b { right: calc(max(18px, env(safe-area-inset-right)) + 86px); }
+    .btn.a { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 62px); }
+  }
   #musicBtn.off::after { content: ''; position: absolute; width: 30px; height: 3px; background: #ff6070; transform: rotate(-45deg); border-radius: 2px; }
 </style>
 </head>
 <body>
 <button id="musicBtn" type="button" aria-label="Music on/off" title="Music on/off (M)">♪</button>
 <canvas id="screen" width="480" height="270"></canvas>
+<div id="sa"></div>
 <div id="touch">
   <div class="dpad"><div class="u" data-k="up"></div><div class="l" data-k="left"></div><div class="c"></div><div class="r" data-k="right"></div><div class="d" data-k="down"></div></div>
   <div class="btn b" data-k="b">B</div>
@@ -51,20 +74,47 @@
 <script>
   // The 480x270 picture fills the window (on a phone held upright it sits at the top, over the buttons).
   // Inside, the canvas holds a whole number of real pixels per game pixel so the pixel font stays sharp.
+  const PH = 270;
+    // held sideways on a touch screen, leave room for the pad: beside the picture (phones) or under it
+    // (tablets), whichever keeps the bigger picture, so the pad does not cover the text boxes
+    const room = (w, h) => {
+      const full = Math.min(w / 480, h / PH);
+      if (!document.body.classList.contains('touching') || w <= h) return [full, false];
+      const cs = getComputedStyle(document.getElementById('sa')), px = (v) => parseFloat(v) || 0;
+      const big = w >= 1000, sideW = (big ? 210 : 156) + Math.max(px(cs.paddingLeft), px(cs.paddingRight)), padH = (big ? 196 : 160) + px(cs.paddingBottom);
+      const below = Math.min(w / 480, (h - px(cs.paddingTop) - padH) / PH), beside = Math.min((w - 2 * sideW) / 480, h / PH), best = Math.max(below, beside);
+      return best >= full * 0.6 && best < full ? [best, below >= beside] : [full, false];
+    };
   function fit() {
     const dpr = window.devicePixelRatio || 1, portrait = innerHeight > innerWidth * 1.15;
     document.body.classList.toggle('portrait', portrait);
-    let s = Math.min(innerWidth / 480, (portrait ? innerHeight * 0.62 : innerHeight) / 270);
+    // on a phone or tablet, when whole pixels would leave more than a tenth of the room unused, the
+    // picture fills it instead (those sharp screens hide the uneven pixels)
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    const [full, top] = portrait ? [Math.min(innerWidth / 480, innerHeight * 0.62 / 270), false] : room(innerWidth, innerHeight);
+    const side = !portrait && !top && full < Math.min(innerWidth / 480, innerHeight / 270);
+    if (document.body.classList.contains('padtop') !== top) document.body.classList.toggle('padtop', top);
+    if (document.body.classList.contains('side') !== side) document.body.classList.toggle('side', side);
+    let s = full, k;
     if (s * dpr >= 2) s = Math.floor(s * dpr) / dpr;
-    const k = Math.max(1, Math.min(4, Math.ceil(s * dpr - 0.01)));
+    if (coarse && dpr >= 2 && s < full * 0.9) { s = full; k = Math.max(1, Math.min(4, Math.floor(s * dpr))); }
+    else k = Math.max(1, Math.min(4, Math.ceil(s * dpr - 0.01)));
     const c = document.getElementById('screen');
     if (c.width !== 480 * k) { c.width = 480 * k; c.height = 270 * k; }
     c.style.width = Math.round(480 * s) + 'px'; c.style.height = Math.round(270 * s) + 'px';
     document.body.style.setProperty('--cb', Math.round(270 * s + (portrait ? 8 : 0)) + 'px');
   }
   addEventListener('resize', fit);
+  // iPhone / iPad: fit again after a turn or when the Safari bars come and go; no pinch or double-tap zoom
+  addEventListener('orientationchange', () => setTimeout(fit, 250));
+  addEventListener('pageshow', fit);
+  if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+  addEventListener('gesturestart', (e) => e.preventDefault());
+  addEventListener('dblclick', (e) => e.preventDefault());
+  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  new MutationObserver(fit).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   fit();
 </script>
-<script type="module" src="js/main.js?v=5"></script>
+<script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>

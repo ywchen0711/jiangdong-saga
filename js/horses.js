@@ -1,8 +1,8 @@
 // Horse coats. The LPC horses come in five coats (brown, black, gray, white, golden); the famous horses' other
 // coats (red, chestnut, blood bay, purple bay, dappled, sage) are those sheets shifted in hue, saturation and
 // lightness once, on first use, and kept.
-import { IMG } from './assets.js?v=5';
-import { canvas } from './gfx.js?v=5';
+import { IMG } from './assets.js?v=6';
+import { canvas } from './gfx.js?v=6';
 
 const COATS = {
   red: ['brown', -18, 1.8, 1], chestnut: ['brown', -8, 1.3, 0.95], bloodbay: ['brown', -14, 1.5, 0.82], purple: ['brown', -48, 0.9, 0.78],

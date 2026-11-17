@@ -11,20 +11,20 @@
 //   softer, a beaten random army flees, and when every enemy leader falls the rest break and run
 // - tactics may fail: the chance (shown in the menu) depends on INT, element, weather and terrain
 // - statuses with turns, shown as small icons; bosses announce their big moves a turn ahead (bosses.js)
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=5';
-import { input } from './input.js?v=5';
-import { sfx, playMusic, currentSong } from './audio.js?v=5';
-import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=5';
-import { L } from './i18n.js?v=5';
-import { IMG, FX, tileset } from './assets.js?v=5';
-import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=5';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=5';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=5';
-import { battleSheet, fieldSheet } from './doll.js?v=5';
-import { horseImg } from './horses.js?v=5';
-import { gearFx, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=5';
-import { icon, digits, ICON_COL } from './icons.js?v=5';
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=5';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=6';
+import { input } from './input.js?v=6';
+import { sfx, playMusic, currentSong } from './audio.js?v=6';
+import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=6';
+import { L } from './i18n.js?v=6';
+import { IMG, FX, tileset } from './assets.js?v=6';
+import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=6';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=6';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=6';
+import { battleSheet, fieldSheet } from './doll.js?v=6';
+import { horseImg } from './horses.js?v=6';
+import { gearFx, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=6';
+import { icon, digits, ICON_COL } from './icons.js?v=6';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=6';
 
 export const B = { active: false };
 const waits = [];
@@ -1498,7 +1498,10 @@ function drawUnit(u) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale((flip !== !!u.fled ? -1 : 1) * GSCALE, GSCALE);
-  if (u.berserk && !dead) ctx.filter = 'saturate(1.6) hue-rotate(-12deg) brightness(1.1)';
+  // berserk: a hotter, redder look (Safari has no ctx.filter, so it gets pre-tinted copies)
+  const BERSERK = 'saturate(1.6) hue-rotate(-12deg) brightness(1.1)', tint = u.berserk && !dead && !HAS_FILTER;
+  const draw9 = (img, sx, sy, sw, sh, dx, dy, dw, dh) => { if (tint) ctx.drawImage(filtered(img, sx, sy, sw, sh, BERSERK), dx, dy, dw, dh); else ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh); };
+  if (u.berserk && !dead && HAS_FILTER) ctx.filter = BERSERK;
   if (mounted) {
     const hi = horseImg(u.horse);
     // horse frames are 128px; facing left the walking horse stands on y 94 with its saddle at (62, 52),
@@ -1507,15 +1510,15 @@ function drawUnit(u) {
     const row = running ? 1 : 5, fr = running ? Math.floor(u.at / 4) % 4 : (u.anim === 'idle' ? 0 : 1);
     const feet = running ? 90 : 94, sx = running ? 60 : 62, sy = running ? 50 : 52;
     if (hi) {
-      ctx.drawImage(hi, fr * 128, row * 128, 128, 128, -59, 1 - feet, 128, 128);
-      ctx.filter = u.berserk ? 'saturate(1.6) hue-rotate(-12deg) brightness(1.1)' : 'none';
+      draw9(hi, fr * 128, row * 128, 128, 128, -59, 1 - feet, 128, 128);
+      if (HAS_FILTER) ctx.filter = u.berserk ? BERSERK : 'none';
     }
     // the rider sits with the hips (about 44px down the 64px figure) on the saddle; legs are cut at the thigh
     const off = (F.cell - 64) / 2, cut = 50;
     const top = 1 - feet + sy - 44 + (running ? Math.floor(u.at / 4) % 2 : 0);
-    ctx.drawImage(F.img, F.sx, F.sy, F.cell, off + cut, -59 + sx - F.cell / 2, top - off, F.cell, off + cut);
+    draw9(F.img, F.sx, F.sy, F.cell, off + cut, -59 + sx - F.cell / 2, top - off, F.cell, off + cut);
   } else {
-    ctx.drawImage(F.img, F.sx, F.sy, F.cell, F.cell, -F.cell / 2, -60 - (F.cell - 64) / 2, F.cell, F.cell);
+    draw9(F.img, F.sx, F.sy, F.cell, F.cell, -F.cell / 2, -60 - (F.cell - 64) / 2, F.cell, F.cell);
   }
   ctx.filter = 'none';
   ctx.restore();

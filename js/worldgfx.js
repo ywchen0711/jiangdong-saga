@@ -2,9 +2,9 @@
 // wobble so coasts, deserts and snowfields have soft natural edges; shores get foam. Trees, hills, mountains,
 // walls, bridges and places are sprites drawn on top. The map is drawn in 32x32-tile chunks, made when first
 // seen and forgotten when far away.
-import { canvas } from './gfx.js?v=5';
-import { tileset, wsprite, WOBJ } from './assets.js?v=5';
-import { WW, WH, K, PLACES, WATER } from './world.js?v=5';
+import { canvas } from './gfx.js?v=6';
+import { tileset, wsprite, WOBJ } from './assets.js?v=6';
+import { WW, WH, K, PLACES, WATER } from './world.js?v=6';
 
 export const CH = 16; // tiles per chunk side
 let WD = null; // the generated world
@@ -220,7 +220,8 @@ export function drawWorld(g, camX, camY, w, h) {
     else { chunks.delete(key); chunks.set(key, ch); }
     g.drawImage(ch, Math.round(cx * S - camX), Math.round(cy * S - camY));
   }
-  while (chunks.size > 30) chunks.delete(chunks.keys().next().value);
+  // old chunks give their pixels back at once (iPhone and iPad cap the memory all canvases may use)
+  while (chunks.size > 30) { const k = chunks.keys().next().value, old = chunks.get(k); chunks.delete(k); old.width = old.height = 0; }
   return made;
 }
 // keep the chunks round the camera ready ahead of time (one per call)

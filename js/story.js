@@ -2,22 +2,22 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=5';
-import { sfx, playMusic, stopMusic } from './audio.js?v=5';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=5';
-import { L } from './i18n.js?v=5';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=5';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=5';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=5';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=5';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=5';
-import * as FIELD from './field.js?v=5';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=5';
-import { placeName } from './maps.js?v=5';
-import { portrait } from './doll.js?v=5';
-import { KITS } from './bosses.js?v=5';
-import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=5';
-import { TREASURES, SRC } from './data.js?v=5';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=6';
+import { sfx, playMusic, stopMusic } from './audio.js?v=6';
+import { UI, menu, say, ask, notice, wait } from './ui.js?v=6';
+import { L } from './i18n.js?v=6';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=6';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=6';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=6';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=6';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=6';
+import * as FIELD from './field.js?v=6';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=6';
+import { placeName } from './maps.js?v=6';
+import { portrait } from './doll.js?v=6';
+import { KITS } from './bosses.js?v=6';
+import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=6';
+import { TREASURES, SRC } from './data.js?v=6';
 
 export const STORY = {};
 const G = () => window.G;

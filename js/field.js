@@ -1,21 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=5';
-import { input } from './input.js?v=5';
-import { sfx } from './audio.js?v=5';
-import { UI } from './ui.js?v=5';
-import { L } from './i18n.js?v=5';
-import { IMG, tileset, WOBJ } from './assets.js?v=5';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=5';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=5';
-import { renderMap, solidKind, TILES } from './tiles.js?v=5';
-import { buildMap, placeName } from './maps.js?v=5';
-import { GENERALS, parseLook } from './generals.js?v=5';
-import { fieldSheet } from './doll.js?v=5';
-import { horseImg } from './horses.js?v=5';
-import { ITEMS, gearFx } from './data.js?v=5';
-import { S, member, hasSkill, troopsMax } from './state.js?v=5';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=6';
+import { input, lastDevice } from './input.js?v=6';
+import { sfx } from './audio.js?v=6';
+import { UI } from './ui.js?v=6';
+import { L } from './i18n.js?v=6';
+import { IMG, tileset, WOBJ } from './assets.js?v=6';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=6';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=6';
+import { renderMap, solidKind, TILES } from './tiles.js?v=6';
+import { buildMap, placeName } from './maps.js?v=6';
+import { GENERALS, parseLook } from './generals.js?v=6';
+import { fieldSheet } from './doll.js?v=6';
+import { horseImg } from './horses.js?v=6';
+import { ITEMS, gearFx } from './data.js?v=6';
+import { S, member, hasSkill, troopsMax } from './state.js?v=6';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };
@@ -136,7 +136,9 @@ export function fieldUpdate() {
 }
 function begin(dk) { F.moving = 1; F.mdir = dk; F.from = [F.px, F.py]; F.trail.unshift([tileX(), tileY(), dk]); if (F.trail.length > 8) F.trail.pop(); }
 // whole pixels a tick that divide a tile, so every step is even
-function speed() { if (F.mode === 'local') return input.held('run') ? 4 : 2; if (S.vehicle === 'ship') return 4; if (S.vehicle === 'horse' || S.horse) return 4; return input.held('run') ? 4 : 2; }
+// run: Shift, or on a touch screen hold B (there is no Shift there)
+const running = () => input.held('run') || (lastDevice === 'touch' && input.held('b'));
+function speed() { if (F.mode === 'local') return running() ? 4 : 2; if (S.vehicle === 'ship') return 4; if (S.vehicle === 'horse' || S.horse) return 4; return running() ? 4 : 2; }
 function stepOn() {
   const [dx, dy] = DIRV[F.mdir], sp = speed();
   F.px += dx * sp; F.py += dy * sp;

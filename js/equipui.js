@@ -1,18 +1,18 @@
 // The paper doll on screen: the equip page (a big figure that turns through four directions, the battle pose
 // beside it, mounted when a horse is worn, each slot with its icon, stats before and after), trying things on
 // from the bag or a shop counter, and the treasure codex (寶物錄) with its 300 entries.
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=5';
-import { input } from './input.js?v=5';
-import { sfx } from './audio.js?v=5';
-import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=5';
-import { L } from './i18n.js?v=5';
-import { GENERALS, genName } from './generals.js?v=5';
-import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=5';
-import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=5';
-import { battleSheet } from './doll.js?v=5';
-import { horseImg } from './horses.js?v=5';
-import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=5';
-import { hintText, owned, setTryOn } from './treasure_world.js?v=5';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=6';
+import { input } from './input.js?v=6';
+import { sfx } from './audio.js?v=6';
+import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=6';
+import { L } from './i18n.js?v=6';
+import { GENERALS, genName } from './generals.js?v=6';
+import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=6';
+import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=6';
+import { battleSheet } from './doll.js?v=6';
+import { horseImg } from './horses.js?v=6';
+import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=6';
+import { hintText, owned, setTryOn } from './treasure_world.js?v=6';
 
 // ---------- what an item does, in words ----------
 export function itemDesc(id) {
@@ -44,7 +44,7 @@ export function itemDesc(id) {
   if (it.kind === 'key') p.push(L('重要物品', 'Key item'));
   return p.join(L('，', ', '));
 }
-import { parseFx } from './treasures.js?v=5';
+import { parseFx } from './treasures.js?v=6';
 const gearFxOf = (code) => parseFx(code);
 
 // ---------- the doll on stage ----------

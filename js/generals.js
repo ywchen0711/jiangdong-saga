@@ -2,7 +2,7 @@
 // looks and skills of their own), four travellers from beyond the western sea, the sect's own commanders,
 // and the rest made by a seeded name generator from historical surnames and given-name characters.
 // The same seed always gives the same 500.
-import { L } from './i18n.js?v=5';
+import { L } from './i18n.js?v=6';
 
 // ---------- looks ----------
 // a look is a short string: "b=m s=light hd=m h=topknot hc=black bd=beard t=kimono tc=red l=wide lc=navy f=boots fc=black c=solid cc=red hat=tied hatc=red g=patch belt=sash bc=gold"
