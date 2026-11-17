@@ -2,7 +2,7 @@
 // looks and skills of their own), four travellers from beyond the western sea, the sect's own commanders,
 // and the rest made by a seeded name generator from historical surnames and given-name characters.
 // The same seed always gives the same 500.
-import { L } from './i18n.js?v=4';
+import { L } from './i18n.js?v=5';
 
 // ---------- looks ----------
 // a look is a short string: "b=m s=light hd=m h=topknot hc=black bd=beard t=kimono tc=red l=wide lc=navy f=boots fc=black c=solid cc=red hat=tied hatc=red g=patch belt=sash bc=gold"
@@ -62,7 +62,7 @@ const F = [
   // the four from beyond the western sea
   ['jeff', '傑夫', 'Jeff', 48, 92, 70, 60, 'inf', 'sun', 'b=m s=light h=messy hc=chestnut bd=b_stubble t=frock tc=brown l=pants lc=charcoal f=boots fc=black g=round', 'wrench cloth', 'gongjiang guimou', { tac: ['huoji', 'luoshi'], west: true }],
   ['erin', '艾琳', 'Erin', 42, 86, 66, 76, 'nav', 'sun', 'b=f s=light hd=f h=braid hc=ginger t=long2 tc=sky l=pants lc=tan f=boots fc=brown c=trim cc=navy belt=leather bc=brown', 'bamboostaff cloth', 'guanxing yishu', { tac: ['zhiliao', 'shuiji'], west: true }],
-  ['josh', '喬許', 'Josh', 90, 50, 78, 62, 'inf', 'sun', 'b=u s=amber h=curly hc=lpcr:charcoal bd=b_beard t=vest tc=leather l=pants lc=navy f=boots fc=black', 'ironspear leather', 'dunqiang tiebi', { shield: 's_round', west: true }],
+  ['josh', '喬許', 'Josh', 90, 50, 78, 62, 'inf', 'sun', 'b=u s=amber h=curly hc=lpcr:charcoal bd=b_beard t=vest tc=leather l=pants lc=navy f=boots fc=black', 'ironspear leather', 'dunqiang tiebi', { shieldItem: 'voyager', west: true }],
   ['jasper', '賈斯珀', 'Jasper', 70, 74, 62, 96, 'arc', 'sun', 'b=m s=light h=cowlick hc=blonde t=laced tc=green l=pants lc=brown f=boots fc=brown n=scarf', 'shortbow cloth', 'miaoshou jisu', { west: true, quiver: true }],
   // the usurper, bandits and the lesser lords of the south
   ['sunhao', '孫暠', 'Sun Hao', 74, 58, 70, 66, 'inf', 'sun_hao', 'b=m s=light h=topknot hc=black bd=m_french t=kimono tc=purple l=wide lc=black f=boots c=solid cc=purple', 'steelsword zhajia plumehelm', 'weifeng', {}],
@@ -217,7 +217,7 @@ export const GEN_LIST = [];
 function add(g) { GENERALS[g.id] = g; GEN_LIST.push(g); }
 for (const [id, zh, en, str, int, lead, spd, unit, faction, look, gear, skills, extra] of F) {
   const [w, a, h, hr, tr] = gear.split(' ').map((x) => (x === 'none' ? null : x));
-  add({ id, zh, en, str, int, lead, spd, unit, faction, look: parseLook(look), lookStr: look, gear: { weapon: w || null, armour: a || null, helm: h || null, horse: hr || null, treasure: tr || null }, skills: skills ? skills.split(' ') : [], famous: true, female: /b=f/.test(look), ...extra });
+  add({ id, zh, en, str, int, lead, spd, unit, faction, look: parseLook(look), lookStr: look, gear: { weapon: w || null, shield: (extra && extra.shieldItem) || null, armour: a || null, helm: h || null, cape: null, horse: hr || null, treasure: tr || null }, skills: skills ? skills.split(' ') : [], famous: true, female: /b=f/.test(look), ...extra });
 }
 export const FAMOUS_COUNT = GEN_LIST.length;
 // the generated ones
@@ -269,5 +269,5 @@ export const genName = (g) => (typeof g === 'string' ? (GENERALS[g] ? L(GENERALS
 export function gearFor(g, lv) {
   if (g.gear) return { ...g.gear };
   const tier = Math.max(0, Math.min(4, Math.floor(lv / 11)));
-  return { weapon: GEAR[g.wk][tier], armour: GEAR.armour[Math.min(4, tier + (g.arch === 'war' ? 0 : 0))], helm: g.arch === 'sage' ? (tier >= 2 ? 'lunjin' : null) : GEAR.helm[tier], horse: g.unit === 'cav' ? GEAR.horse[Math.max(1, tier)] : null, treasure: null };
+  return { weapon: GEAR[g.wk][tier], armour: GEAR.armour[Math.min(4, tier + (g.arch === 'war' ? 0 : 0))], helm: g.arch === 'sage' ? (tier >= 2 ? 'lunjin' : null) : GEAR.helm[tier], horse: g.unit === 'cav' ? GEAR.horse[Math.max(1, tier)] : null, shield: null, cape: null, treasure: null };
 }

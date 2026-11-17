@@ -1,6 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=4';
+import { L } from './i18n.js?v=5';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=5';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -102,8 +103,13 @@ item('wristguard', '護腕', 'Wrist Guards', 'treasure', 600, { atk: 4, look: { 
 item('scarf', '絲巾', 'Silk Scarf', 'treasure', 300, { spd: 3, look: { scarf: true } });
 item('compass', '司南', 'South-Pointer', 'treasure', 0, { spd: 6, int: 4, rare: true });
 item('sextant', '星盤', 'Star Astrolabe', 'treasure', 0, { int: 8, naval: true, rare: true });
-item('warcape', '戰袍', 'War Cape', 'treasure', 1200, { def: 4, lead: 4, look: { cape: 'c_trim' } });
-item('dragoncape', '龍紋披風', 'Dragon Cape', 'treasure', 0, { def: 10, lead: 8, look: { cape: 'c_trim', capeCol: 'gold' }, rare: true });
+item('warcape', '戰袍', 'War Cape', 'cape', 1200, { def: 4, lead: 4, look: { cape: 'c_trim', capeCol: 'red' } });
+item('cloak', '布披風', 'Travelling Cloak', 'cape', 260, { def: 2, lead: 1, look: { cape: 'c_solid', capeCol: 'gray' } });
+// shields (one-handed weapons only)
+item('sh_wood', '木牌', 'Wooden Buckler', 'shield', 90, { def: 3, look: { shield: 's_round', smetal: 'iron', swood: 'walnut' } });
+item('sh_iron', '鐵牌', 'Iron Shield', 'shield', 600, { def: 7, look: { shield: 's_heater', smetal: 'iron', swood: 'oak' } });
+item('sh_steel', '鋼牌', 'Steel Kite Shield', 'shield', 1800, { def: 11, look: { shield: 's_kite', smetal: 'steel' } });
+item('dragoncape', '龍紋披風', 'Dragon Cape', 'cape', 0, { def: 10, lead: 8, look: { cape: 'c_trim', capeCol: 'gold' }, rare: true });
 // supplies
 item('salve', '傷藥', 'Salve', 'supply', 30, { heal: 0.3, target: 'one' });
 item('jinchuang', '金創藥', 'Wound Balm', 'supply', 160, { heal: 1, target: 'one' });
@@ -149,14 +155,78 @@ item('lotus', '黑蓮令', 'Black Lotus Token', 'key', 0, {});
 item('shipwright', '船圖', 'Ship Plans', 'key', 0, {});
 item('blueprint', '火龍船圖', 'Fire-Dragon Raft Plans', 'key', 0, {});
 item('lotuskey', '四蓮鑰', 'Four Lotus Keys', 'key', 0, {});
+item('q_heirloom', '傳家玉珮', 'Jade Heirloom', 'key', 0, {});
+item('q_seal', '彭城官印', 'Seal of Pengcheng', 'key', 0, {});
+bindItem(item);
+addTreasures(item, I);
 export const ITEMS = I;
 export const itemName = (id) => (I[id] ? L(I[id].zh, I[id].en) : id);
-export const SLOT_OF = { weapon: 'weapon', armour: 'armour', helm: 'helm', horse: 'horse', treasure: 'treasure' };
-export const SLOTS = ['weapon', 'armour', 'helm', 'horse', 'treasure'];
-export const SLOT_NAME = { weapon: ['武器', 'Weapon'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], horse: ['坐騎', 'Mount'], treasure: ['寶物', 'Treasure'] };
+// what a general's gear does in battle: every piece's effects, plus set bonuses for 2-4 pieces of one set worn
+// together, kept under caps so that no treasure (or pile of them) makes a leader's fight trivial
+const FX_CAP = { vs: 0.25, as: 0.15, el: 0.3, res: 0.6, resel: 0.4, form: 0.15, tac: 0.25, cost: 0.25, refl: 0.2, ctr: 0.25, nav: 0.25, regen: 0.04, crit: 0.12, eva: 0.1, heal: 0.3, first: 0.25, guard: 0.35, steal: 0.3, mor: 15, sp: 15, kill: 10, scout: 2 };
+function addFx(t, fx) {
+  for (const [k, v] of Object.entries(fx || {})) {
+    if (typeof v === 'object') { const o = t[k] || (t[k] = {}); for (const [a, b] of Object.entries(v)) o[a] = (o[a] || 0) + b; }
+    else t[k] = (t[k] || 0) + v;
+  }
+}
+export function setCount(equip) {
+  const n = {};
+  for (const id of Object.values(equip || {})) { const it = id && I[id]; if (it && it.set) n[it.set] = (n[it.set] || 0) + 1; }
+  return n;
+}
+const fxCache = new Map();
+export function gearFx(equip) {
+  const key = JSON.stringify(equip || {});
+  const got = fxCache.get(key); if (got) return got;
+  const t = {};
+  for (const id of Object.values(equip || {})) { const it = id && I[id]; if (it && it.fx) addFx(t, it.fx); }
+  for (const [set, n] of Object.entries(setCount(equip))) { const st = SETS[set]; if (!st) continue; for (const [k, code] of Object.entries(st.b)) if (n >= +k) addFx(t, parseFx(code)); }
+  // 'all' spreads to every member of a group
+  if (t.vs && t.vs.all) { for (const u of ['inf', 'cav', 'arc', 'nav']) t.vs[u] = (t.vs[u] || 0) + t.vs.all; delete t.vs.all; }
+  if (t.res && t.res.all) { for (const s of ['confuse', 'sleep', 'stun', 'fear', 'curse', 'poison', 'silence', 'provoke', 'defdown']) t.res[s] = (t.res[s] || 0) + t.res.all; delete t.res.all; }
+  if (t.resel && t.resel.all) { for (const e of ['fire', 'water', 'rock', 'thunder', 'dark']) t.resel[e] = (t.resel[e] || 0) + t.resel.all; delete t.resel.all; }
+  for (const [k, cap] of Object.entries(FX_CAP)) {
+    if (t[k] === undefined) continue;
+    if (typeof t[k] === 'object') for (const a of Object.keys(t[k])) t[k][a] = Math.min(cap, t[k][a]);
+    else t[k] = Math.min(cap, t[k]);
+  }
+  if (fxCache.size > 400) fxCache.clear();
+  fxCache.set(key, t);
+  return t;
+}
+// a line describing effects, for menus
+const ELN = { fire: ['火', 'fire'], water: ['水', 'water'], rock: ['石', 'rock'], thunder: ['雷', 'thunder'], dark: ['暗', 'dark'], all: ['全屬性', 'all elements'] };
+const STN = { confuse: ['混亂', 'confusion'], sleep: ['昏睡', 'sleep'], stun: ['受困', 'traps'], fear: ['恐懼', 'fear'], curse: ['詛咒', 'curses'], poison: ['中毒', 'poison'], silence: ['封策', 'seals'], provoke: ['激怒', 'provoking'], defdown: ['破甲', 'armour break'], all: ['異常', 'all statuses'] };
+const UNN = { inf: ['步兵', 'foot'], cav: ['騎兵', 'horse'], arc: ['弓兵', 'bows'], nav: ['水軍', 'navy'], all: ['全兵種', 'all units'] };
+const FXN = { tac: ['策略威力+', 'tactic power +'], cost: ['策略消耗−', 'tactic cost −'], refl: ['反彈策略', 'reflect ploys '], ctr: ['反擊', 'counter '], nav: ['水戰傷害+', 'naval damage +'], regen: ['每回合回兵', 'troops back each turn '], crit: ['會心+', 'critical +'], eva: ['閃避+', 'evasion +'], heal: ['治療+', 'healing +'], first: ['先制+', 'first strike +'], guard: ['護衛同伴', 'guard friends '], steal: ['偷竊+', 'steal +'] };
+export function fxText(fx, short = false) {
+  const p = [], pc = (v) => Math.round(v * 100);
+  for (const [k, v] of Object.entries(fx || {})) {
+    if (k === 'vs') { const e = Object.entries(v); if (e.length === 4 && e.every(([, x]) => x === e[0][1])) p.push(L(`對全兵種+${pc(e[0][1])}%`, `+${pc(e[0][1])}% vs all`)); else for (const [u, x] of e) p.push(L(`對${UNN[u][0]}+${pc(x)}%`, `+${pc(x)}% vs ${UNN[u][1]}`)); }
+    else if (k === 'as') for (const [u, x] of Object.entries(v)) p.push(L(`為${UNN[u][0]}時攻擊+${pc(x)}%`, `+${pc(x)}% when ${UNN[u][1]}`));
+    else if (k === 'el') for (const [e, x] of Object.entries(v)) p.push(L(`${ELN[e][0]}計+${pc(x)}%`, `${ELN[e][1]} ploys +${pc(x)}%`));
+    else if (k === 'res') { const e = Object.entries(v); if (e.length >= 9) p.push(L(`抗異常${pc(Math.min(...e.map(([, x]) => x)))}%`, `${pc(Math.min(...e.map(([, x]) => x)))}% resist statuses`)); else for (const [s, x] of e) p.push(L(`抗${STN[s] ? STN[s][0] : s}${pc(x)}%`, `${pc(x)}% resist ${STN[s] ? STN[s][1] : s}`)); }
+    else if (k === 'resel') { const e = Object.entries(v); if (e.length >= 5) p.push(L(`屬性傷害−${pc(Math.min(...e.map(([, x]) => x)))}%`, `element damage −${pc(Math.min(...e.map(([, x]) => x)))}%`)); else for (const [el, x] of e) p.push(L(`${ELN[el][0]}傷−${pc(x)}%`, `${ELN[el][1]} damage −${pc(x)}%`)); }
+    else if (k === 'form') for (const [f, x] of Object.entries(v)) p.push(L(`${FORMS[f] ? FORMS[f].zh : f}時攻防+${pc(x)}%`, `+${pc(x)}% in ${FORMS[f] ? FORMS[f].en : f}`));
+    else if (k === 'mor') p.push(L(`開戰士氣+${v}`, `start morale +${v}`));
+    else if (k === 'sp') p.push(L(`策略值上限+${v}`, `max SP +${v}`));
+    else if (k === 'kill') p.push(L(`擊倒時士氣+${v}`, `morale +${v} per kill`));
+    else if (k === 'scout') p.push(L('少遇敵、易得寶', 'fewer battles, more finds'));
+    else if (FXN[k]) p.push(L(`${FXN[k][0]}${pc(v)}%`, `${FXN[k][1]}${pc(v)}%`));
+  }
+  void short;
+  return p.join(L('，', ', '));
+}
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=5';
+// the paper doll's slots; the accessory slot keeps its old save name 'treasure'
+export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
+export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };
+// weapons that leave a hand free for a shield
+export const ONE_HAND = new Set(['sword', 'spear', 'axe', 'mace', 'staff']);
 // which weapons each unit type may use (strategists of any type may use staffs)
-export const CAN_USE = { inf: ['sword', 'spear', 'halberd', 'axe', 'staff'], cav: ['sword', 'spear', 'halberd', 'axe', 'staff'], arc: ['bow', 'xbow', 'sword', 'staff'], nav: ['sword', 'spear', 'halberd', 'axe', 'bow', 'xbow', 'staff'] };
-export const SWING = { sword: 'slash', axe: 'slash', spear: 'thrust', halberd: 'thrust', bow: 'shoot', xbow: 'thrust', staff: 'thrust' };
+export const CAN_USE = { inf: ['sword', 'twin', 'spear', 'halberd', 'axe', 'mace', 'staff'], cav: ['sword', 'twin', 'spear', 'halberd', 'axe', 'mace', 'staff'], arc: ['bow', 'xbow', 'sword', 'twin', 'staff'], nav: ['sword', 'twin', 'spear', 'halberd', 'axe', 'mace', 'bow', 'xbow', 'staff'] };
+export const SWING = { sword: 'slash', twin: 'slash', axe: 'slash', mace: 'slash', spear: 'thrust', halberd: 'thrust', bow: 'shoot', xbow: 'thrust', staff: 'thrust' };
 
 // ---------- tactics ----------
 // t: e1 one foe, eall all foes, a1 one friend, aall all friends, down a fallen friend, field (escape etc.)

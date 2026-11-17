@@ -1,8 +1,8 @@
 // The game state: the army (generals, their levels, troops and gear), gold, items, flags, where you are,
 // and saving and loading. A general's numbers are worked out here from their base stats and gear.
-import { GENERALS, gearFor, genName } from './generals.js?v=4';
-import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE } from './data.js?v=4';
-import { L } from './i18n.js?v=4';
+import { GENERALS, gearFor, genName } from './generals.js?v=5';
+import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=5';
+import { L } from './i18n.js?v=5';
 
 export const S = {};
 export function newGame() {
@@ -12,6 +12,7 @@ export function newGame() {
     roster: {}, front: [], strategist: null, formation: 'fangyuan', forms: ['fangyuan'], tp: 0,
     pos: { map: 'world', x: 238, y: 99, dir: 'd' }, vehicle: 'foot', ship: null, horse: false,
     met: {}, lastTown: 'haiyan', steps: 0, repel: 0, time: 0, battles: 0, wins: 0, captured: 0, chests: {}, visited: {},
+    found: {}, rumours: {}, quests: {}, codex: {}, dropPity: {},
   });
 }
 newGame();
@@ -22,8 +23,10 @@ export function recruit(id, lv, o = {}) {
   const g = GENERALS[id];
   if (!g || S.roster[id]) return S.roster[id];
   lv = Math.max(1, Math.min(MAXLV, lv || 1));
-  const m = { id, lv, exp: 0, troops: 0, equip: gearFor(g, lv), tactics: [...(g.tac || [])], loyalty: o.loyalty || 80 };
+  const m = { id, lv, exp: 0, troops: 0, equip: fullEquip(gearFor(g, lv)), tactics: [...(g.tac || [])], loyalty: o.loyalty || 80, plus: {} };
   for (const k of Object.keys(m.equip)) if (m.equip[k] && !ITEMS[m.equip[k]]) m.equip[k] = null;
+  // treasures a general brings along count as found
+  for (const it of Object.values(m.equip)) if (it && ITEMS[it] && ITEMS[it].tr) markFound(it);
   S.roster[id] = m;
   learnTactics(m);
   m.troops = troopsMax(m);
@@ -34,21 +37,30 @@ export function recruit(id, lv, o = {}) {
 }
 export function dismiss(id) { delete S.roster[id]; S.front = S.front.filter((x) => x !== id); if (S.strategist === id) S.strategist = bestStrategist(); }
 export function bestStrategist() { let b = null; for (const id of Object.keys(S.roster)) if (!b || GENERALS[id].int > GENERALS[b].int) b = id; return b; }
+// every slot present, empty ones as null (older gear lists had five)
+export function fullEquip(e) { const o = {}; for (const s of SLOTS) o[s] = (e && e[s]) || null; return o; }
+export function markFound(id) { if (!S.found) S.found = {}; if (ITEMS[id] && ITEMS[id].tr && !S.found[id]) { S.found[id] = 1; return true; } return false; }
 const gearSum = (m, k) => { let t = 0; for (const s of Object.values(m.equip || {})) if (s && ITEMS[s] && ITEMS[s][k]) t += ITEMS[s][k]; return t; };
 export function stat(m, k) {
   const g = GENERALS[m.id];
-  if (k === 'str') return Math.min(120, g.str + Math.floor(gearSum(m, 'atk') / 4));
-  if (k === 'int') return Math.min(120, g.int + gearSum(m, 'int'));
-  if (k === 'lead') return Math.min(120, g.lead + gearSum(m, 'lead'));
-  if (k === 'spd') return Math.min(130, g.spd + gearSum(m, 'spd'));
+  const pl = (m.plus && m.plus[k]) || 0;
+  if (k === 'str') return Math.min(120, g.str + pl + Math.floor(gearSum(m, 'atk') / 4));
+  if (k === 'int') return Math.min(120, g.int + pl + gearSum(m, 'int'));
+  if (k === 'lead') return Math.min(120, g.lead + pl + gearSum(m, 'lead'));
+  if (k === 'spd') return Math.min(130, g.spd + pl + gearSum(m, 'spd'));
   return 0;
 }
-export const atkOf = (m) => GENERALS[m.id].str + gearSum(m, 'atk');
+export const atkOf = (m) => GENERALS[m.id].str + ((m.plus && m.plus.str) || 0) + gearSum(m, 'atk');
 export const defOf = (m) => Math.round(GENERALS[m.id].lead * 0.55 + gearSum(m, 'def'));
 export const hasSkill = (m, s) => GENERALS[m.id].skills.includes(s);
 export function troopsMax(m) { return maxTroops(m.lv, stat(m, 'lead'), hasSkill(m, 'haoling')); }
 // the army's strategy pool
-export function tpMax() { const s = S.strategist && S.roster[S.strategist]; return s ? maxTP(stat(s, 'int'), s.lv) : 10; }
+// treasures that add strategy points count for everyone in the front line (at most +20)
+export function tpMax() {
+  const s = S.strategist && S.roster[S.strategist];
+  let extra = 0; for (const id of S.front || []) { const m = S.roster[id]; if (m) extra += gearFx(m.equip).sp || 0; }
+  return (s ? maxTP(stat(s, 'int'), s.lv) : 10) + Math.min(20, extra);
+}
 // tactics a general knows: learned by level and INT, from books, or their own
 export function learnTactics(m) {
   const g = GENERALS[m.id], int = stat(m, 'int'), got = [];
@@ -70,7 +82,14 @@ export function usableTactics(m) {
 export function canEquip(m, id) {
   const it = ITEMS[id]; if (!it) return false;
   if (it.kind === 'weapon') return CAN_USE[GENERALS[m.id].unit].includes(it.cat) || (it.cat === 'staff');
-  return ['armour', 'helm', 'horse', 'treasure'].includes(it.kind);
+  if (it.kind === 'shield') { const w = m.equip && ITEMS[m.equip.weapon]; return !w || ONE_HAND.has(w.cat); }
+  return ['armour', 'helm', 'cape', 'horse', 'treasure'].includes(it.kind);
+}
+// a weapon that needs both hands puts the shield back in the bag; returns the shield taken off
+export function fitShield(m) {
+  const w = m.equip && ITEMS[m.equip.weapon];
+  if (m.equip.shield && w && !ONE_HAND.has(w.cat)) { const s = m.equip.shield; m.equip.shield = null; give(s); return s; }
+  return null;
 }
 export function gainExp(m, n) {
   const ups = [];
@@ -84,7 +103,7 @@ export function gainExp(m, n) {
 }
 // ---------- items ----------
 export const have = (id) => S.items[id] || 0;
-export function give(id, n = 1) { S.items[id] = (S.items[id] || 0) + n; if (S.items[id] <= 0) delete S.items[id]; }
+export function give(id, n = 1) { S.items[id] = (S.items[id] || 0) + n; if (S.items[id] <= 0) delete S.items[id]; if (n > 0) markFound(id); }
 export function take(id, n = 1) { if (!have(id)) return false; give(id, -n); return true; }
 export function healAll(frac = 1) { for (const m of Object.values(S.roster)) m.troops = Math.min(troopsMax(m), Math.max(m.troops, 0) + Math.round(troopsMax(m) * frac)); S.tp = tpMax(); }
 // ---------- formations ----------
@@ -113,8 +132,24 @@ export function load(slot) {
     const d = JSON.parse(localStorage.getItem(KEY + slot) || 'null');
     if (!d || !d.roster) return false;
     newGame(); Object.assign(S, d);
+    migrate();
     return true;
   } catch (e) { return false; }
+}
+// saves from before the seven slots: capes worn as treasures move to the cape slot, Josh takes up his shield,
+// and every treasure already owned counts as found
+export function migrate() {
+  for (const k of ['found', 'rumours', 'quests', 'codex', 'dropPity']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
+  for (const m of Object.values(S.roster || {})) {
+    const old = m.equip || {};
+    m.equip = fullEquip(old);
+    if (!m.plus) m.plus = {};
+    const t = m.equip.treasure && ITEMS[m.equip.treasure];
+    if (t && t.kind === 'cape') { if (!m.equip.cape) m.equip.cape = m.equip.treasure; else give(m.equip.treasure); m.equip.treasure = null; }
+    if (m.id === 'josh' && old.shield === undefined) m.equip.shield = 'voyager';
+    for (const it of Object.values(m.equip)) if (it) markFound(it);
+  }
+  for (const id of Object.keys(S.items || {})) markFound(id);
 }
 export function slotInfo(slot) {
   try {

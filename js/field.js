@@ -1,19 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=4';
-import { input } from './input.js?v=4';
-import { sfx } from './audio.js?v=4';
-import { UI } from './ui.js?v=4';
-import { L } from './i18n.js?v=4';
-import { IMG, tileset, WOBJ } from './assets.js?v=4';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=4';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=4';
-import { renderMap, solidKind, TILES } from './tiles.js?v=4';
-import { buildMap, placeName } from './maps.js?v=4';
-import { GENERALS, parseLook } from './generals.js?v=4';
-import { fieldSheet } from './doll.js?v=4';
-import { S, member, hasSkill, troopsMax } from './state.js?v=4';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=5';
+import { input } from './input.js?v=5';
+import { sfx } from './audio.js?v=5';
+import { UI } from './ui.js?v=5';
+import { L } from './i18n.js?v=5';
+import { IMG, tileset, WOBJ } from './assets.js?v=5';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=5';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=5';
+import { renderMap, solidKind, TILES } from './tiles.js?v=5';
+import { buildMap, placeName } from './maps.js?v=5';
+import { GENERALS, parseLook } from './generals.js?v=5';
+import { fieldSheet } from './doll.js?v=5';
+import { horseImg } from './horses.js?v=5';
+import { ITEMS, gearFx } from './data.js?v=5';
+import { S, member, hasSkill, troopsMax } from './state.js?v=5';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };
@@ -175,6 +177,7 @@ function encounterTick(k, x, y, inside = false) {
   if (S.vehicle === 'horse' || S.horse) d *= 0.8;
   if (S.repel > 0) { S.repel--; d *= 0.2; if (S.repel === 0 && FH.note) FH.note(L('隱蹤香的效力消失了。', 'The hiding incense wears off.')); }
   if (S.front.some((id) => member(id) && hasSkill(member(id), 'chihou'))) d *= 0.75;
+  if (S.front.some((id) => member(id) && gearFx(member(id).equip).scout)) d *= 0.85;
   F.enc += d;
   if (F.enc >= F.encAt) {
     F.enc = 0; F.encAt = 16 + Math.floor(Math.random() * 22);
@@ -273,6 +276,15 @@ function drawNpc(e) {
 }
 function drawChest(e) {
   const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY), open = S.chests[e.id];
+  if (e.tr) {
+    // a treasure chest: lacquered red with gold bands, and a glint while it is still closed
+    ctx.fillStyle = '#1a0606'; ctx.fillRect(X, Y + 2, 16, 13);
+    ctx.fillStyle = open ? '#5a1810' : '#a82418'; ctx.fillRect(X + 1, Y + 3, 14, open ? 4 : 11);
+    ctx.fillStyle = '#f0c040'; ctx.fillRect(X + 1, Y + 3, 14, 1); ctx.fillRect(X + 1, Y + 7, 14, 1); ctx.fillRect(X + 4, Y + 3, 1, open ? 4 : 11); ctx.fillRect(X + 11, Y + 3, 1, open ? 4 : 11);
+    if (!open) { ctx.fillStyle = '#ffe890'; ctx.fillRect(X + 7, Y + 6, 2, 3); const f = (F.frame + e.x * 13) % 80; if (f < 14) { ctx.fillStyle = '#ffffff'; ctx.fillRect(X + 12, Y, 1, 5); ctx.fillRect(X + 10, Y + 2, 5, 1); } }
+    else { ctx.fillStyle = '#3a0c08'; ctx.fillRect(X + 1, Y + 8, 14, 6); }
+    return;
+  }
   ctx.fillStyle = '#200c08'; ctx.fillRect(X + 1, Y + 3, 14, 12);
   ctx.fillStyle = open ? '#583018' : '#b06830'; ctx.fillRect(X + 2, Y + 4, 12, open ? 3 : 10);
   if (!open) { ctx.fillStyle = '#f0c040'; ctx.fillRect(X + 2, Y + 7, 12, 1); ctx.fillRect(X + 7, Y + 6, 2, 3); }
@@ -323,8 +335,8 @@ function drawShip(x, y, face) {
 // on horseback: the horse (half size) and the leader's top half on it
 function drawRider(x, y, id, dir, moving, at) {
   const g = GENERALS[id], m = member(id);
-  const hname = (m && m.equip.horse && HORSE_COL[m.equip.horse]) || 'brown';
-  const hi = IMG['h:' + (hname === 'red' ? 'brown' : hname)];
+  const hname = (m && m.equip.horse && ITEMS[m.equip.horse] && ITEMS[m.equip.horse].horse) || 'brown';
+  const hi = horseImg(hname);
   // half-size horse: [row, feet y, saddle x, saddle y] in the 128px frame
   const A = { u: [4, 108, 64, 62], l: [5, 94, 62, 52], d: [6, 96, 64, 58], r: [7, 94, 66, 52] }[dir];
   const fr = moving ? Math.floor(at / 4) % 4 : 0;
@@ -332,10 +344,9 @@ function drawRider(x, y, id, dir, moving, at) {
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 14, dir === 'l' || dir === 'r' ? 13 : 6, 3, 0, 0, 7); ctx.fill();
   const hx = Math.round(x + 8 - 32), hy = Math.round(y + 15 - A[1] / 2);
   const man = () => { if (sh) { const top = hy + A[3] / 2 - 22, left = hx + A[2] / 2 - 16; ctx.drawImage(sh, 0, DROW[dir] * 32, 32, 25, left, top + (moving ? fr % 2 : 0), 32, 25); } };
-  if (hi) { if (hname === 'red') ctx.filter = 'hue-rotate(-18deg) saturate(1.8)'; ctx.drawImage(hi, fr * 128, A[0] * 128, 128, 128, hx, hy, 64, 64); ctx.filter = 'none'; }
+  if (hi) ctx.drawImage(hi, fr * 128, A[0] * 128, 128, 128, hx, hy, 64, 64);
   man();
 }
-const HORSE_COL = { nag: 'gray', warhorse: 'brown', xiliang: 'black', dawan: 'golden', dilu: 'white', jueying: 'black', chitu: 'red' };
 // the little map in the corner
 function drawMinimap() {
   const ov = overviewMap(1);
@@ -347,4 +358,4 @@ function drawMinimap() {
   if ((F.frame >> 4) % 2) { ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 + tileX() - sx - 1, y0 + tileY() - sy - 1, 3, 3); }
 }
 export function setBanner(s, t = 150) { F.banner = s; F.bannerT = t; }
-export { camX, camY };
+export { camX, camY, solidLocal };

@@ -1,9 +1,9 @@
 // Dialogue boxes, choices and list menus. Each returns a promise, so story scripts can be
 // written as plain async code; the main loop feeds them input and draws them on top.
-import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=4';
-import { input } from './input.js?v=4';
-import { sfx } from './audio.js?v=4';
-import { speaker, L } from './i18n.js?v=4';
+import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=5';
+import { input } from './input.js?v=5';
+import { sfx } from './audio.js?v=5';
+import { speaker, L } from './i18n.js?v=5';
 
 // short coloured status tags so the panels show who is poisoned, slowed, shielded... at a glance
 const STTAG = {
@@ -133,7 +133,7 @@ export function fit(s, w) {
 export function menu(items, { x = 150, y = 60, w, cols = 1, cancel = true, back = null, title, start = 0, onMove, rowH = 16, maxRows = 9, drawExtra, keys } = {}) {
   items = items.map((it) => (typeof it === 'string' ? { label: it } : it));
   // a window sized to its contents never grows past the screen
-  const colW = w ? Math.floor((w - 20) / cols) : Math.min(Math.floor((W - 30) / cols), Math.max(...items.map((it) => textW(it.label) + (it.right ? textW(String(it.right)) + 14 : 0))) + 8);
+  const colW = w ? Math.floor((w - 20) / cols) : Math.min(Math.floor((W - 30) / cols), Math.max(...items.map((it) => textW(it.label) + (it.icon ? 18 : 0) + (it.right ? textW(String(it.right)) + 14 : 0))) + 8);
   w = w || colW * cols + 26;
   const rows = Math.ceil(items.length / cols), vis = Math.min(rows, maxRows);
   const h = vis * rowH + 12 + (title ? 16 : 0);
@@ -168,7 +168,10 @@ export function menu(items, { x = 150, y = 60, w, cols = 1, cancel = true, back 
         const it = items[k], cx = x + 18 + (k % cols) * colW, cy = oy + (Math.floor(k / cols) - this.scroll) * rowH;
         // a long name is shortened with "…" rather than running into the number on its right
         const rs = it.right !== undefined ? String(it.right) : '';
-        text(fit(it.label, colW - 6 - (rs ? textW(rs) + 6 : 0)), cx, cy, it.disabled ? '#8088a8' : it.color || '#f8f8f8');
+        // an optional 16px icon before the label (item pictures)
+        if (it.icon) it.icon(cx, cy - 2);
+        const lx = cx + (it.icon ? 18 : 0);
+        text(fit(it.label, colW - 6 - (it.icon ? 18 : 0) - (rs ? textW(rs) + 6 : 0)), lx, cy, it.disabled ? '#8088a8' : it.color || '#f8f8f8');
         if (rs) text(rs, cx + colW - 6, cy, it.disabled ? '#8088a8' : it.rcolor || '#f8f8f8', { align: 'right' });
       }
       // the more-above / more-below arrows sit on the window's frame, clear of the numbers in the right column

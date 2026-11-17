@@ -2,20 +2,22 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=4';
-import { sfx, playMusic, stopMusic } from './audio.js?v=4';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=4';
-import { L } from './i18n.js?v=4';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=4';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=4';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=4';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=4';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=4';
-import * as FIELD from './field.js?v=4';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=4';
-import { placeName } from './maps.js?v=4';
-import { portrait } from './doll.js?v=4';
-import { KITS } from './bosses.js?v=4';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=5';
+import { sfx, playMusic, stopMusic } from './audio.js?v=5';
+import { UI, menu, say, ask, notice, wait } from './ui.js?v=5';
+import { L } from './i18n.js?v=5';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=5';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=5';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=5';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=5';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=5';
+import * as FIELD from './field.js?v=5';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=5';
+import { placeName } from './maps.js?v=5';
+import { portrait } from './doll.js?v=5';
+import { KITS } from './bosses.js?v=5';
+import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=5';
+import { TREASURES, SRC } from './data.js?v=5';
 
 export const STORY = {};
 const G = () => window.G;
@@ -194,12 +196,14 @@ async function advise(id) {
 }
 async function fight(id, extra = {}) {
   const b = BOSSES[id];
+  const firstTime = !S.flags['won_' + id];
   await advise(id);
   const cfg = { ...b, foes: officers(id, b), boss: b.foes.some((f) => f.boss), intro: b.intro ? L(b.intro[0], b.intro[1]) : undefined, capture: false, kit: kitOf(id), bossId: id, ...extra };
   for (const f of cfg.foes) S.met[f.id] = Math.max(S.met[f.id] || 0, 1);
   sfx('encounter');
   const r = await battle(cfg);
   if (r === 'win') S.flags['won_' + id] = 1;
+  if (r === 'win' && firstTime && !extra.noReward) await bossReward(id);
   return r;
 }
 STORY.fight = fight;
@@ -290,6 +294,7 @@ FH.populate = (mapId, ents) => {
   if (mapId === 'haiyan' && S.flags.ch1 && !S.flags.westerners) {
     for (const [id, x, y] of [['jeff', 22, 16], ['erin', 23, 15], ['josh', 21, 15], ['jasper', 24, 16]]) { const g = GENERALS[id]; ents.push({ type: 'npc', id: 'p_' + id, look: g.look, equip: g.gear, opts: { shield: g.shield, quiver: g.quiver }, x, y, dir: 'l', talk: 'p:shipwreck' }); }
   }
+  trPopulate(mapId, ents);
 };
 // chapter 1
 person('wu/hall', 'zhuzhi', 8, 4, 'd', () => true, 'zhuzhi');
@@ -391,6 +396,8 @@ export async function talkTo(e) {
     return shop(k, place);
   }
   if (t === 'boatman') return boatman();
+  if (t === 'tr:merchant') return merchant();
+  if (t.startsWith('tr:quest:')) return quest(t.slice(9));
   if (t === 'shrine') return shrine(F.map.place);
   if (t.startsWith('home:')) { const ln = HOME[Math.floor(hash(t.length, F.map.place.length, 4) * HOME.length)]; return say(L('居民', 'Resident'), L(ln[0], ln[1])); }
   if (t.startsWith('sign_')) { const r = t.slice(5); const nmz = { inn: ['客棧', 'Inn'], weapon: ['武器', 'Weapons'], armour: ['防具', 'Armour'], item: ['道具', 'Supplies'], book: ['書肆', 'Books'], tavern: ['酒館', 'Tavern'], shrine: ['廟', 'Shrine'] }[r] || ['', '']; return N(`招牌上寫著「${nmz[0]}」。`, `The sign reads "${nmz[1]}".`); }
@@ -982,6 +989,7 @@ export async function onTrigger(e) {
     }
     S.flags['cave_' + id] = 1;
     if (ITEMS[item].form) { S.forms.push(ITEMS[item].form); sfx('level'); await N(`找到了「${ITEMS[item].zh}」，習得了${FORMS[ITEMS[item].form].zh}！`, `Found the ${ITEMS[item].en} and learned the ${FORMS[ITEMS[item].form].en} formation!`); }
+    else if (ITEMS[item].tr) await gainTreasure(item);
     else { give(item); sfx('chest'); await N(`找到了「${ITEMS[item].zh}」！`, `Found ${ITEMS[item].en}!`); }
     return;
   }
@@ -1025,6 +1033,7 @@ const CHEST_ITEMS = [['salve', 'salve', 'wine', 'gold', 'smoke', 'incense'], ['j
 const SPECIAL_CHEST = { tianzhu_f2_1: 'yitian', jiuyi_f3_3: 'longdan', jiuyi_f2_1: 'bk_rock', shanyue_f2_3: 'compass', wuxia_f2_1: 'qinggang', wuxia_f3_3: 'dragoncape', wuxia_f1_3: 'bk_inferno', tianzhu_f1_3: 'bk_stun' };
 export async function openChest(e) {
   if (S.chests[e.id]) return N('箱子是空的。', 'The chest is empty.');
+  if (e.tr) return openTreasureChest(e);
   S.chests[e.id] = 1;
   sfx('chest');
   let item = e.item || SPECIAL_CHEST[e.id];
@@ -1034,6 +1043,7 @@ export async function openChest(e) {
     item = pool[Math.floor(hash(e.id.length, e.id.charCodeAt(e.id.length - 1), 7) * pool.length)];
     if (item === 'gold') { const g = 60 + ch * 80 + Math.floor(hash(e.id.length, 3, 3) * 100); S.gold += g; return N(`得到了${g}金！`, `Found ${g} gold!`); }
   }
+  if (ITEMS[item].tr) return gainTreasure(item, ['寶箱裡是', 'In the chest:']);
   give(item);
   return N(`得到了「${ITEMS[item].zh}」！`, `Found ${ITEMS[item].en}!`);
 }
@@ -1131,13 +1141,25 @@ export const SECRETS = [
   [136, 96, 'mn_tuzhen'], [129, 150, 'silk'], [205, 72, 'bingfu'], [181, 44, 'dawan'], [150, 30, 'jueying'], [118, 74, 'sunzi'], [72, 70, 'yangyouji'],
   [60, 120, 'qingnang'], [240, 152, 'sextant'], [96, 112, 'goldarmour'], [140, 60, 'zijinguan'], [62, 40, 'chitu'],
 ];
+// the treasures buried in the wilds join Jasper's secrets
+for (const id of TREASURES) { const sc = SRC[id]; if (sc && sc.t === 'secret' && !SECRETS.some((x) => x[2] === id)) SECRETS.push([sc.x, sc.y, id]); }
 const jasperHere = () => S.front.includes('jasper');
 let secretsFixed = false;
 function fixSecrets() {
   if (secretsFixed || !FIELD.WD) return; secretsFixed = true;
   const ok = (x, y) => { const k = FIELD.WD.t[y * WW + x]; return k !== undefined && walkableK(k) && k !== K.PLACE && k !== K.ROAD; };
-  for (const sc of SECRETS) { if (ok(sc[0], sc[1])) continue; outer: for (let r = 1; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (ok(sc[0] + dx, sc[1] + dy)) { sc[0] += dx; sc[1] += dy; break outer; } }
+  const taken = new Set();
+  const free = (x, y) => ok(x, y) && !taken.has(x * 1000 + y) && (!limit || (REGIONS[FIELD.regionAt(x, y)] || [0, 0, 0, 0, 99])[4] <= limit);
+  let limit = 0;
+  for (const sc of SECRETS) {
+    // a treasure must lie in a land that is open by its chapter
+    limit = ITEMS[sc[2]] && ITEMS[sc[2]].tr ? ITEMS[sc[2]].ch : 0;
+    if (!free(sc[0], sc[1])) { outer: for (let r = 1; r < 10; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (free(sc[0] + dx, sc[1] + dy)) { sc[0] += dx; sc[1] += dy; break outer; } }
+    taken.add(sc[0] * 1000 + sc[1]);
+    const src = SRC[sc[2]]; if (src && src.t === 'secret') { src.x = sc[0]; src.y = sc[1]; }
+  }
 }
+STORY.fixSecrets = fixSecrets;
 FH.secrets = () => { fixSecrets(); return SECRETS.filter((sc) => !S.flags['secret_' + sc[0] + '_' + sc[1]]); };
 STORY.secretAt = (x, y) => { fixSecrets(); return SECRETS.find((s) => s[0] === x && s[1] === y && !S.flags['secret_' + x + '_' + y]); };
 STORY.onStep = (x, y) => {
@@ -1148,6 +1170,7 @@ STORY.onStep = (x, y) => {
     await T('jasper', '等等！這裡的草被壓過……地下埋著東西！', 'Wait! The grass here has been trampled... something is buried!');
     const it = ITEMS[s[2]];
     if (it.form) { if (!S.forms.includes(it.form)) S.forms.push(it.form); sfx('level'); await N(`挖出了「${it.zh}」，習得了${FORMS[it.form].zh}！`, `Dug up the ${it.en} and learned the ${FORMS[it.form].en} formation!`); return; }
+    if (it.tr) { await gainTreasure(s[2], ['挖出了', 'Dug up']); return; }
     give(s[2]); sfx('chest');
     await N(`挖出了「${it.zh}」！`, `Dug up ${it.en}!`);
   });

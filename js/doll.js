@@ -3,26 +3,31 @@
 // recoloured from the LPC palettes, so 500 generals get 500 looks from a hundred layer sheets, and whatever a
 // general equips shows on them. Pictures come in three sizes: the battle sheet (64px figures, with the swing
 // of their weapon), the half-size walking sheet for maps, and a head-and-shoulders portrait.
-import { canvas } from './gfx.js?v=4';
-import { ITEMS, SWING } from './data.js?v=4';
+import { canvas } from './gfx.js?v=5';
+import { ITEMS, SWING } from './data.js?v=5';
 
 let META = null;
-try { META = await (await fetch('assets/doll/doll.json?v=1')).json(); } catch (e) { META = null; }
+try { META = await (await fetch('assets/doll/doll.json?v=2')).json(); } catch (e) { META = null; }
 export const dollReady = () => !!META;
 const ANIM = META ? META.anims : {}; // anim -> [frames, rows, cell]
 
 // ---------- the layers of a look ----------
-// a general's base look plus what they have equipped -> [[layer id, {material: ramp}]]
+// a general's base look plus what they have equipped -> [[layer id, {material: ramp}, extra]]; extra may ask for a
+// coloured outline (glow, for famous pieces) or a shifted, darker copy (the second blade of a pair)
 const METAL = (m) => 'ulpc:' + (m || 'steel');
+const WOOD = { ebony: 'lpcr:coffee', gold: 'lpcr:tan', umber: 'lpcr:umber' };
+const wood = (w) => (WOOD[w] || 'ulpc:' + (w || 'walnut'));
+const CLOTH = { gold: 'yellow', sage: 'green', ivory: 'white', crimson: 'red' };
 export function layersOf(look, equip = {}, opts = {}) {
   const b = look.b === 'muscular' ? 'male' : look.b, out = [];
-  const add = (id, mats) => { if (id && META && META.layers[id] && META.layers[id][b]) out.push([id, mats || {}]); };
-  const pre = (v, d) => { v = v || d; return v.includes(':') ? v : 'ulpc:' + v; };
+  const add = (id, mats, x) => { if (id && META && META.layers[id] && META.layers[id][b]) out.push([id, mats || {}, x || null]); };
+  const pre = (v, d) => { v = v || d; v = CLOTH[v] || v; return v.includes(':') ? v : 'ulpc:' + v; };
   const skin = { body: pre(look.s, 'light') }, hair = { hair: pre(look.hc, 'black') };
   const cloth = (c) => ({ cloth: pre(c, 'gray') });
   const it = (slot) => (equip[slot] && ITEMS[equip[slot]]) || null;
-  const w = it('weapon'), a = it('armour'), h = it('helm'), tr = it('treasure');
-  const wl = (w && w.look) || {}, al = (a && a.look) || {}, hl = (h && h.look) || {}, tl = (tr && tr.look) || {};
+  const w = it('weapon'), a = it('armour'), h = it('helm'), tr = it('treasure'), cp = it('cape'), sd = it('shield');
+  const wl = (w && w.look) || {}, al = (a && a.look) || {}, hl = (h && h.look) || {}, tl = (tr && tr.look) || {}, cl = (cp && cp.look) || {}, sl = (sd && sd.look) || {};
+  const gl = (l) => (l.glow ? { glow: l.glow } : null);
   add('body', skin);
   add(look.hd || 'head_m', skin);
   if (look.hd === 'head_old' || look.hd === 'head_fold') add('wrinkles', skin);
@@ -36,35 +41,55 @@ export function layersOf(look, equip = {}, opts = {}) {
     else if (torso === 't_tunic' || torso === 't_blouse') torso = 't_long';
     if (legs === 'l_wide' || legs === 'l_skirt') legs = 'l_pantaloons';
   }
+  // a fine robe (armour of the robe kind) brings its own colour and a formal belt
+  if (al.robe && al.atype === 'robe' && a.tr) { tc = { 3: 'navy', 4: 'white' }[a.rar] || tc; }
   add(legs, cloth(look.lc));
   if (skirt) add(skirt, cloth(tc));
-  add(look.f, cloth(look.fc));
+  add(al.feet || look.f, al.feet ? { metal: METAL(al.ametal) } : cloth(look.fc));
   add(torso, cloth(tc));
   if (torso === 't_kimono' && b === 'female') add('t_kimono_sleeves', cloth(tc));
-  if (belt) add(belt, { cloth: pre(look.bc, tc === 'black' ? 'red' : 'black'), metal: 'ulpc:brass' });
+  // an accessory belt replaces the sash
+  if (tl.belt) add(tl.belt, { cloth: pre(tl.bcol || 'black'), metal: 'ulpc:gold' }, gl(tl));
+  else if (belt) add(belt, { cloth: pre(look.bc, tc === 'black' ? 'red' : 'black'), metal: 'ulpc:brass' });
   // armour
-  if (al.armour) add(al.armour, { metal: METAL(al.ametal), cloth: pre(al.acloth || (tc === 'white' ? 'walnut' : tc), 'walnut') });
+  const ag = gl(al);
+  if (al.armour) add(al.armour, { metal: METAL(al.ametal), cloth: pre(al.acloth || (tc === 'white' ? 'walnut' : tc), 'walnut') }, ag);
   if (al.legs2) add(al.legs2, { metal: METAL(al.ametal), cloth: 'ulpc:leather' });
-  if (al.shoulders) add(al.shoulders, { metal: METAL(al.ametal), cloth: 'ulpc:' + (look.tc || 'red') });
-  if (al.arms) add(al.arms, { metal: METAL(al.ametal) });
+  if (al.shoulders) add(al.shoulders, { metal: METAL(al.ametal), cloth: pre(al.mantal || look.tc || 'red') }, ag);
+  if (al.arms) add(al.arms, { metal: METAL(al.ametal), cloth: 'ulpc:leather' });
   if (tl.bracers) add('bracers', { cloth: 'ulpc:leather', metal: 'ulpc:bronze' });
+  if (tl.cuffs) add('cuffs', { cloth: 'ulpc:yellow' });
   if (tl.scarf || look.n === 'n_scarf') add('n_scarf', cloth(tl.scarf ? 'red' : look.tc === 'green' ? 'yellow' : 'red'));
+  if (tl.neck) add(tl.neck, { metal: 'ulpc:gold' }, gl(tl));
   if (look.g) add(look.g, { metal: 'ulpc:brass', cloth: 'ulpc:black' });
-  // a cape from the look, or a treasure that is a cape
-  if (tl.cape) add(tl.cape, cloth(tl.capeCol || look.cc || look.tc));
-  else if (look.c) add(look.c, cloth(look.cc));
+  // the cape slot; an older look may wear its own cape
+  const cape = cl.cape || tl.cape;
+  // LPC's trimmed cape is the trim alone, worn over a plain cape: gold trim on dark cloth, red on pale
+  const capeOf = (c, col) => {
+    if (c === 'c_trim') { add('c_solid', cloth(col), gl(cl)); add('c_trim', cloth(['black', 'navy', 'maroon', 'purple', 'red', 'green', 'forest', 'charcoal'].includes(col) ? 'yellow' : col === 'yellow' || col === 'gold' ? 'maroon' : 'red')); }
+    else add(c, cloth(col), gl(cl));
+  };
+  if (cape) { capeOf(cape, cl.capeCol || tl.capeCol || look.cc || look.tc); add('n_capeclip', { metal: cp && cp.rar >= 3 ? 'ulpc:gold' : 'ulpc:brass' }); }
+  else if (look.c) capeOf(look.c, look.cc);
   // head: hair and beard, then whatever is on it
   const helmet = hl.helm || null;
-  const hairId = helmet && helmet.startsWith('hm_') && look.h && /long|xlong|princess|braid|pony|loose|wavy/.test(look.h) ? look.h : helmet && helmet.startsWith('hm_') ? 'h_buzz' : look.h;
+  const full = helmet && helmet.startsWith('hm_');
+  const hairId = full && look.h && /long|xlong|princess|braid|pony|loose|wavy/.test(look.h) ? look.h : full ? 'h_buzz' : look.h;
   add(hairId, hair);
   if (look.bd) add(look.bd, hair);
-  if (helmet) add(helmet, { metal: METAL(hl.hmetal), cloth: pre(hl.hcloth || look.tc, 'red') });
+  if (helmet) add(helmet, { metal: METAL(hl.hmetal), cloth: pre(hl.hcloth || look.tc, 'red') }, gl(hl));
   else if (look.hat) add(look.hat, { cloth: 'ulpc:' + (look.hatc || 'red'), metal: 'ulpc:gold', hair: 'ulpc:' + (look.hatc === 'white' ? 'white' : 'red') });
-  if (hl.plume) add(hl.plume, { cloth: 'ulpc:red', hair: 'ulpc:red', metal: METAL(hl.hmetal) });
-  // weapon, and Josh's shield, the archers' quiver
+  if (hl.plume) { const pc = pre(hl.pcol || 'red'); add(hl.plume, { cloth: pc, hair: pc.replace('ulpc:', 'lpcr:'), metal: METAL(hl.hmetal) }); }
+  // weapon (a pair of blades shows the second one just behind), the shield, the archers' quiver
   if (opts.quiver || (w && (w.cat === 'bow'))) add('quiver', { cloth: 'ulpc:leather', wood: 'ulpc:oak' });
-  if (wl.weapon) { add(wl.weapon, { metal: METAL(wl.wmetal), wood: 'ulpc:' + (wl.wwood || 'walnut') }); if (w.cat === 'bow') add('w_arrow', {}); }
-  if (opts.shield) add(opts.shield, { metal: 'ulpc:iron', wood: 'ulpc:oak', cloth: 'ulpc:' + (look.tc || 'red') });
+  if (wl.weapon) {
+    const mats = { metal: METAL(wl.wmetal), wood: wood(wl.wwood) };
+    if (wl.twin) add(wl.weapon, mats, { shift: [5, -2], dim: 0.72 });
+    add(wl.weapon, mats, gl(wl));
+    if (w.cat === 'bow') add('w_arrow', {});
+  }
+  const shield = sl.shield || (equip.shield === undefined ? opts.shield : null);
+  if (shield) add(shield, { metal: METAL(sl.smetal || 'iron'), wood: wood(sl.swood || 'oak'), cloth: pre(look.tc || 'red') }, gl(sl));
   return out;
 }
 export function swingOf(equip) { const w = equip && ITEMS[equip.weapon]; return w ? SWING[w.cat] : 'slash'; }
@@ -73,39 +98,49 @@ export function swingOf(equip) { const w = equip && ITEMS[equip.weapon]; return 
 const imgs = new Map();
 function sheet(file) {
   let p = imgs.get(file);
-  if (!p) { p = new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'assets/doll/' + file + '?v=1'; }); imgs.set(file, p); }
+  if (!p) { p = new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'assets/doll/' + file + '?v=2'; }); imgs.set(file, p); }
   return p;
 }
 const hex2int = (h) => { const n = parseInt(h.slice(1), 16); return ((n & 255) << 16) | (n & 0xff00) | ((n >> 16) & 255); }; // as little-endian ABGR without alpha
 // recoloured copies of layer sheets, by file and colours
 const tinted = new Map();
-async function layerCanvas(ent, mats) {
+async function layerCanvas(ent, mats, x) {
   const want = Object.entries(ent.mats || {}).filter(([m]) => mats[m] && mats[m] !== ent.mats[m]);
-  const key = ent.file + '|' + want.map(([m]) => m + ':' + mats[m]).join(',');
+  const key = ent.file + '|' + want.map(([m]) => m + ':' + mats[m]).join(',') + (x ? '|' + JSON.stringify(x) : '');
   let p = tinted.get(key);
   if (p) { tinted.delete(key); tinted.set(key, p); return p; }
   p = sheet(ent.file).then((im) => {
     if (!im) return null;
-    if (!want.length) return im;
+    if (!want.length && !x) return im;
     const c = canvas(im.width, im.height); c.x.drawImage(im, 0, 0);
     const id = c.x.getImageData(0, 0, im.width, im.height), u = new Uint32Array(id.data.buffer);
     const map = new Map();
     for (const [m] of want) {
-      const src = META.pal[m][ent.mats[m]], tgt = META.pal[m][mats[m]] || META.pal[m][mats[m].replace('ulpc:', 'lpcr:')];
+      const src = META.pal[m][ent.mats[m]], tgt = META.pal[m][mats[m]] || META.pal[m][mats[m].replace('ulpc:', 'lpcr:')] || META.pal[m][mats[m].replace('lpcr:', 'ulpc:')];
       if (!src || !tgt) continue;
       for (let i = 0; i < src.length; i++) { const t = tgt[Math.round((i * (tgt.length - 1)) / Math.max(1, src.length - 1))]; map.set(hex2int(src[i]), hex2int(t)); }
     }
-    for (let i = 0; i < u.length; i++) {
+    if (map.size) for (let i = 0; i < u.length; i++) {
       const v = u[i];
       if (!(v >>> 24)) continue;
       const t = map.get(v & 0xffffff);
       if (t !== undefined) u[i] = (v & 0xff000000) | t;
     }
+    const W = im.width, H = im.height;
+    if (x && x.dim) for (let i = 0; i < u.length; i++) { const v = u[i]; if (!(v >>> 24)) continue; const r = (v & 255) * x.dim, g = ((v >> 8) & 255) * x.dim, bl = ((v >> 16) & 255) * x.dim; u[i] = (v & 0xff000000) | (bl << 16) | (g << 8) | r; }
+    // a famous piece gets a one-pixel outline in its colour, and a softer second ring
+    if (x && x.glow) {
+      const n = parseInt(x.glow.slice(1), 16), col = (n & 0xff0000) >> 16 | (n & 0xff00) | (n & 255) << 16;
+      const a0 = new Uint8Array(W * H); for (let i = 0; i < u.length; i++) a0[i] = u[i] >>> 24 > 60 ? 1 : 0;
+      const ring = (src, alpha) => { const out = new Uint8Array(W * H); for (let y = 1; y < H - 1; y++) for (let xx = 1; xx < W - 1; xx++) { const i = y * W + xx; if (src[i]) continue; const cy = y & 63, cx = xx & 63; if (cy < 2 || cy > 61 || cx < 2 || cx > 61) continue; if (src[i - 1] || src[i + 1] || src[i - W] || src[i + W]) { out[i] = 1; if (!(u[i] >>> 24)) u[i] = (alpha << 24) | col; } } return out; };
+      const r1 = ring(a0, 230); const a1 = new Uint8Array(W * H); for (let i = 0; i < a1.length; i++) a1[i] = a0[i] | r1[i]; ring(a1, 90);
+    }
     c.x.putImageData(id, 0, 0);
+    if (x && x.shift) { const c2 = canvas(W, H); c2.x.drawImage(c, x.shift[0], x.shift[1]); return c2; }
     return c;
   });
   tinted.set(key, p);
-  while (tinted.size > 160) tinted.delete(tinted.keys().next().value);
+  while (tinted.size > 200) tinted.delete(tinted.keys().next().value);
   return p;
 }
 
@@ -116,7 +151,7 @@ async function stack(layers, body, anims) {
   if (body === 'muscular') body = 'male';
   // which parts of which layers, deepest first
   const parts = [];
-  const cans = await Promise.all(layers.map(([id, mats]) => layerCanvas(META.layers[id][body], mats)));
+  const cans = await Promise.all(layers.map(([id, mats, x]) => layerCanvas(META.layers[id][body], mats, x)));
   layers.forEach(([id], li) => { const ent = META.layers[id][body]; if (!cans[li]) return; for (const pt of ent.parts) parts.push({ z: pt.z, a: pt.a, img: cans[li], li }); });
   parts.sort((p, q) => p.z - q.z || p.li - q.li);
   const meta = {}; let y = 0, w = 0;
@@ -136,7 +171,7 @@ async function stack(layers, body, anims) {
   }
   return { img: c, meta };
 }
-const lookKey = (look, equip, opts) => JSON.stringify([look, equip ? [equip.weapon, equip.armour, equip.helm, equip.treasure] : 0, opts && opts.shield, opts && opts.quiver]);
+const lookKey = (look, equip, opts) => JSON.stringify([look, equip ? [equip.weapon, equip.armour, equip.helm, equip.treasure, equip.cape, equip.shield === undefined ? '-' : equip.shield] : 0, opts && opts.shield, opts && opts.quiver]);
 
 // battle sheets: walk (left row only used), idle, hurt, cast and the weapon's swing
 const battleCache = new Map();
@@ -216,4 +251,4 @@ export function portrait(look, equip, opts = {}) {
   return null;
 }
 export function portraitAsync(look, equip, opts = {}) { portrait(look, equip, opts); return porCache.get('p' + lookKey(look, equip, opts)); }
-export { ANIM, META };
+export { ANIM, META, stack };

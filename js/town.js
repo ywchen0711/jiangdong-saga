@@ -1,15 +1,20 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=4';
-import { sfx } from './audio.js?v=4';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=4';
-import { L } from './i18n.js?v=4';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=4';
-import { ITEMS, itemName, unitName } from './data.js?v=4';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=4';
-import { PLACES, REGIONS } from './world.js?v=4';
-import { itemDesc, drawStatus } from './menu.js?v=4';
-import { hash } from './gfx.js?v=4';
+import { W, H, text, windowBox } from './gfx.js?v=5';
+import { sfx } from './audio.js?v=5';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=5';
+import { L } from './i18n.js?v=5';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=5';
+import { ITEMS, itemName, unitName } from './data.js?v=5';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=5';
+import { PLACES, REGIONS } from './world.js?v=5';
+import { itemDesc, drawStatus } from './menu.js?v=5';
+import { drawEquipPanel } from './equipui.js?v=5';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=5';
+import { TREASURES, SRC, RARITY, ONE_HAND } from './data.js?v=5';
+import { canEquip } from './state.js?v=5';
+import { rumour, SHOP_KIND, treasurePrice, owned, gainTreasure } from './treasure_world.js?v=5';
+import { hash } from './gfx.js?v=5';
 
 // what each shop sells, by how far into the story the place's region opens
 const STOCK = {
@@ -23,13 +28,13 @@ const STOCK = {
     ['qixing', 'trident', 'yanyue', 'xuanhua', 'irontaibow', 'craneFan'],
   ],
   armour: [
-    ['cloth', 'leather', 'headband', 'leathercap'],
-    ['cloth', 'leather', 'daopao', 'headband', 'leathercap', 'ironhelm'],
-    ['leather', 'chain', 'daopao', 'ironhelm', 'lunjin'],
-    ['chain', 'zhajia', 'waterarmour', 'daopao', 'ironhelm', 'kettlehelm', 'lunjin'],
-    ['zhajia', 'waterarmour', 'rattan', 'yulin', 'kettlehelm', 'plumehelm', 'lunjin'],
-    ['yulin', 'rattan', 'waterarmour', 'plumehelm', 'phoenixhelm'],
-    ['yulin', 'mingguang', 'phoenixhelm', 'lionhelm'],
+    ['cloth', 'leather', 'headband', 'leathercap', 'sh_wood'],
+    ['cloth', 'leather', 'daopao', 'headband', 'leathercap', 'ironhelm', 'sh_wood', 'cloak'],
+    ['leather', 'chain', 'daopao', 'ironhelm', 'lunjin', 'sh_iron', 'cloak'],
+    ['chain', 'zhajia', 'waterarmour', 'daopao', 'ironhelm', 'kettlehelm', 'lunjin', 'sh_iron', 'cloak'],
+    ['zhajia', 'waterarmour', 'rattan', 'yulin', 'kettlehelm', 'plumehelm', 'lunjin', 'sh_iron', 'warcape'],
+    ['yulin', 'rattan', 'waterarmour', 'plumehelm', 'phoenixhelm', 'sh_steel', 'warcape'],
+    ['yulin', 'mingguang', 'phoenixhelm', 'lionhelm', 'sh_steel', 'warcape'],
   ],
   item: [
     ['salve', 'wine', 'smoke', 'incense'],
@@ -38,7 +43,7 @@ const STOCK = {
     ['jinchuang', 'qingxin', 'wine', 'rations', 'smoke', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine'],
     ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'wristguard', 'scarf'],
     ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'goodwine', 'oldbook', 'silk', 'jade', 'huxin'],
-    ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'silk', 'pearl', 'jade', 'huxin', 'bingfu', 'warcape'],
+    ['jinchuang', 'qingxin', 'rations', 'incense', 'returnseal', 'tpdan', 'tpbig', 'gunpowder', 'zhaohun', 'silk', 'pearl', 'jade', 'huxin', 'bingfu'],
   ],
   book: [
     ['bk_fire'], ['bk_fire', 'bk_water'], ['bk_fire', 'bk_water', 'bk_heal'], ['bk_water', 'bk_heal', 'bk_wind'], ['bk_heal', 'bk_wind', 'bk_rock', 'bk_revive'], ['bk_rock', 'bk_revive', 'bk_thunder'], ['bk_thunder', 'bk_revive'],
@@ -62,13 +67,32 @@ export async function shop(kind, place) {
   }
   close();
 }
+const priceOf = (id) => (ITEMS[id].tr ? treasurePrice(id) : ITEMS[id].price);
+const GEAR_KINDS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 async function buy(kind, place) {
-  const stock = STOCK[kind][tierOf(place)];
-  let cur = 0;
+  // a few treasures turn up as rare stock, chapter by chapter
+  const rare = TREASURES.filter((id) => SRC[id] && SRC[id].t === 'shop' && SHOP_KIND[ITEMS[id].kind] === kind && ITEMS[id].ch <= S.chapter && !owned(id));
+  let cur = 0, who = 0;
   for (;;) {
-    const c = await menu(stock.map((id) => ({ label: itemName(id), right: ITEMS[id].price, disabled: ITEMS[id].price > S.gold })), { x: 6, y: 4, w: 200, maxRows: 12, onMove: (i) => { cur = i; }, drawExtra: () => descBox(itemDesc(stock[cur]) + L(`（持有${have(stock[cur])}）`, ` (have ${have(stock[cur])})`)) });
+    const stock = [...STOCK[kind][tierOf(place)], ...rare.filter((id) => !owned(id))];
+    warmIcons(stock);
+    const ids = S.front.filter((x) => member(x));
+    const gear = (id) => GEAR_KINDS.includes(ITEMS[id].kind);
+    const tryOn = () => {
+      const id = stock[cur], it = ITEMS[id], gid = ids[who % ids.length], m = member(gid);
+      if (!gear(id) || !m) { descBox(itemDesc(id) + L(`（持有${have(id)}）`, ` (have ${have(id)})`)); return; }
+      const e = { ...m.equip, [it.kind]: id };
+      if (it.kind === 'weapon' && !ONE_HAND.has(it.cat)) e.shield = null;
+      const ok = canEquip({ ...m, equip: e }, id) && (it.kind !== 'shield' || !m.equip.weapon || ONE_HAND.has(ITEMS[m.equip.weapon].cat));
+      drawEquipPanel(gid, e, 214, it.kind, `${ok ? '' : L('【無法裝備】', '[cannot use] ')}${itemName(id)}${it.tr ? '【' + L(RARITY[it.rar][0], RARITY[it.rar][1]) + '】' : ''}\n${itemDesc(id)}\n${L(`持有${have(id)}　←→換人試穿`, `Have ${have(id)}  ←→ try on another`)}`);
+    };
+    const c = await menu(stock.map((id) => ({ label: itemName(id), right: priceOf(id), disabled: priceOf(id) > S.gold, color: ITEMS[id].tr ? RARITY[ITEMS[id].rar][2] : undefined, icon: (x, y) => drawItemIcon(id, x, y, 1, { frame: false }) })),
+      { x: 4, y: 4, w: 208, maxRows: 14, start: cur, title: L('←→換人試穿', '←→ try on whom'), onMove: (i) => { cur = i; }, drawExtra: tryOn,
+        keys: { left: () => { who = (who + ids.length - 1) % Math.max(1, ids.length); sfx('cursor'); return false; }, right: () => { who = (who + 1) % Math.max(1, ids.length); sfx('cursor'); return false; } } });
     if (c < 0) return;
+    if (typeof c === 'object') continue;
     const id = stock[c], it = ITEMS[id];
+    if (it.tr) { if (S.gold < priceOf(id)) { sfx('buzz'); continue; } S.gold -= priceOf(id); await gainTreasure(id, ['買下了', 'Bought']); continue; }
     let n = 1;
     if (it.kind === 'supply' || it.kind === 'gift') {
       const max = Math.min(99, Math.floor(S.gold / it.price));
@@ -84,7 +108,7 @@ async function buy(kind, place) {
 }
 async function sell() {
   for (;;) {
-    const ids = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind !== 'key' && ITEMS[k].price > 0);
+    const ids = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind !== 'key' && ITEMS[k].price > 0 && !ITEMS[k].tr);
     if (!ids.length) { await notice(L('沒有可以賣的東西。', 'Nothing to sell.'), 50); return; }
     const c = await menu(ids.map((k) => ({ label: itemName(k), right: `${Math.floor(ITEMS[k].price / 2)}×${S.items[k]}` })), { x: 6, y: 4, w: 220, maxRows: 12 });
     if (c < 0) return;
@@ -106,7 +130,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=4');
+  const { save, slotInfo } = await import('./state.js?v=5');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;
@@ -129,12 +153,14 @@ export async function tavern(place) {
   await say(L('酒保', 'Barkeep'), L('來喝一杯？這裡常有些落魄的豪傑。', 'A drink? Down-at-heel heroes often turn up here.'));
   for (;;) {
     const gs = tavernGenerals(place);
-    if (!gs.length) { await say(L('酒保', 'Barkeep'), L('今天沒什麼人。', 'Quiet today.')); return; }
+    if (!gs.length) { await say(L('酒保', 'Barkeep'), L('今天沒什麼人。', 'Quiet today.')); await rumour(place); return; }
     let cur = 0;
     const lv = recruitLv(place);
     const fee = (g) => Math.round((lv * 60 + (g.str + g.int + g.lead) * 3) * (g.famous ? 2.5 : 1));
-    const c = await menu(gs.map((g) => ({ label: genName(g), right: fee(g) })), { x: 6, y: 4, w: 150, title: L('在座的豪傑', 'Heroes present'), onMove: (i) => { cur = i; }, drawExtra: () => { S.met[gs[cur].id] = S.met[gs[cur].id] || 1; drawStatus(gs[cur].id, 160, 4, W - 166, 120); } });
+    const rows = [...gs.map((g) => ({ label: genName(g), right: fee(g) })), { label: L('打聽寶物', 'Treasure rumours'), color: '#ffe080' }];
+    const c = await menu(rows, { x: 6, y: 4, w: 150, title: L('在座的豪傑', 'Heroes present'), onMove: (i) => { cur = i; }, drawExtra: () => { if (cur >= gs.length) return; S.met[gs[cur].id] = S.met[gs[cur].id] || 1; drawStatus(gs[cur].id, 160, 4, W - 166, 196, null, lv); } });
     if (c < 0) return;
+    if (c === gs.length) { await rumour(place); continue; }
     const g = gs[c];
     S.met[g.id] = Math.max(S.met[g.id] || 0, 1);
     const o = await ask(genName(g), g.famous ? famousLine(g.id) : L(`在下${g.zh}，${unitName(g.unit)}出身。若肯出${fee(g)}金安家，便為主公效力。`, `I am ${g.en}, a ${unitName(g.unit).toLowerCase()} officer. Give my family ${fee(g)} gold and I will serve you.`), [L(`出${fee(g)}金`, `Pay ${fee(g)}`), L('送禮', 'Give a gift'), L('算了', 'Never mind')], { back: 2 });

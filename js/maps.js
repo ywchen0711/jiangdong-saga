@@ -1,11 +1,11 @@
 // Towns, castles, villages, ports, forts, temples, caves and the rooms inside them. Every place on the world
 // map gets its own layout, made from a template for its kind and a seed from its name, so the same place always
 // looks the same. Ground is laid out as letters; houses, trees and furniture are objects placed on top.
-import { hash, canvas } from './gfx.js?v=4';
-import { tileset } from './assets.js?v=4';
-import { TILES } from './tiles.js?v=4';
-import { PLACES } from './world.js?v=4';
-import { L } from './i18n.js?v=4';
+import { hash, canvas } from './gfx.js?v=5';
+import { tileset } from './assets.js?v=5';
+import { TILES } from './tiles.js?v=5';
+import { PLACES } from './world.js?v=5';
+import { L } from './i18n.js?v=5';
 
 // ---------- extra tiles ----------
 // a 16-piece floor autotile (3x3 patch, a column, a row and a single), as in tiles.js
@@ -266,7 +266,7 @@ function buildOutside(id, extraEnts) {
     m.ents.push(npc(`folk${i}_${id}`, folkLook(seed + 20 + i, kindF), `folk:${id}:${i}`, { x, y, dir: 'd', wander: kindF !== 'guard' }));
   }
   if (extraEnts) extraEnts(m, b, { cx, H, W, midY, top, doors });
-  return finish(b, { id, name: placeName(id), music: { capital: 'castle', castle: 'castle', fort: 'tension', temple: 'temple', cave: 'cave', village: 'village', port: 'harbor' }[kind] || 'town', safe: true, ents: m.ents, entry: [cx, H - 2, 'u'], kind, place: id });
+  return finish(b, { id, name: placeName(id), music: { capital: 'castle', castle: 'castle', fort: 'tension', temple: 'temple', cave: 'cave', village: 'village', port: 'harbor' }[kind] || 'town', safe: true, ents: m.ents, entry: kind === 'port' ? [cx, H - 5, 'u'] : [cx, H - 2, 'u'], kind, place: id });
 }
 
 // rooms

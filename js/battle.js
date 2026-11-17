@@ -11,18 +11,20 @@
 //   softer, a beaten random army flees, and when every enemy leader falls the rest break and run
 // - tactics may fail: the chance (shown in the menu) depends on INT, element, weather and terrain
 // - statuses with turns, shown as small icons; bosses announce their big moves a turn ahead (bosses.js)
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=4';
-import { input } from './input.js?v=4';
-import { sfx, playMusic, currentSong } from './audio.js?v=4';
-import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=4';
-import { L } from './i18n.js?v=4';
-import { IMG, FX, tileset } from './assets.js?v=4';
-import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=4';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=4';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=4';
-import { battleSheet, fieldSheet } from './doll.js?v=4';
-import { icon, digits, ICON_COL } from './icons.js?v=4';
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=4';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND } from './gfx.js?v=5';
+import { input } from './input.js?v=5';
+import { sfx, playMusic, currentSong } from './audio.js?v=5';
+import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=5';
+import { L } from './i18n.js?v=5';
+import { IMG, FX, tileset } from './assets.js?v=5';
+import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=5';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=5';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit } from './state.js?v=5';
+import { battleSheet, fieldSheet } from './doll.js?v=5';
+import { horseImg } from './horses.js?v=5';
+import { gearFx, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=5';
+import { icon, digits, ICON_COL } from './icons.js?v=5';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=5';
 
 export const B = { active: false };
 const waits = [];
@@ -92,6 +94,7 @@ function makeUnit(side, spec, slot) {
     weakFire: !!(equip.armour && ITEMS[equip.armour] && ITEMS[equip.armour].weakFire), opts: { shield: g.shield || null, quiver: !!g.quiver },
     illusion: !!spec.illusion, bomb: spec.bomb || 0, petal: !!spec.petal, summon: !!spec.summon,
     hpMul: m ? 1 : (spec.mul || 1) * (spec.boss ? BOSS_HP : 1),
+    fx: m ? gearFx(equip) : {},
   };
   if (spec.boss) { u.atk = Math.round(u.atk * (spec.atkMul || BOSS_ATK)); u.def = Math.round(u.def * (spec.defMul || BOSS_DEF)); }
   else if (side === 'foe' && B.cfg && B.cfg.boss && !spec.summon) u.atk = Math.round(u.atk * ELITE_ATK);
@@ -141,15 +144,19 @@ function physDamage(a, d, mul = 1, opts = {}) {
   const fa = formOf(a.side), fd = formOf(d.side);
   let A = a.atk * buffK(a, 'atk') * fa.atk * (a.st.provoke ? 1.2 : 1) * (a.st.fear ? 0.7 : 1) * (a.st.curse ? 0.8 : 1) * (a.berserk ? 1.4 : 1) * (pincered(a) ? 1.3 : 1);
   if (a.g.skills.includes('yongmeng')) A *= 1.1;
+  const ax = a.fx || {}, dx = d.fx || {}, curForm = (s) => (s === 'ally' ? B.form : B.foeForm);
+  A *= 1 + ((ax.vs && ax.vs[d.unit]) || 0) + ((ax.as && ax.as[a.unit]) || 0) + ((ax.form && ax.form[curForm(a.side)]) || 0);
   if (skillOnSide(d.side, 'weifeng')) A *= 0.92;
   let D = d.def * buffK(d, 'def') * fd.def * (d.st.provoke ? 0.6 : 1) * (d.st.defdown ? 0.65 : 1) * (d.berserk ? 0.8 : 1);
   if (d.g.skills.includes('tiebi')) D *= 1.2;
+  D *= 1 + ((dx.form && dx.form[curForm(d.side)]) || 0);
   if (d.g.skills.includes('dunqiang')) D *= 1.3;
   if (a.g.skills.includes('shenshe')) D *= 0.75;
   let dmg = (A * A) / (A + D) / 52 * scaleLv(a.lv);
   dmg *= 0.55 + 0.45 * (a.troops / a.max);
   const edge = edgeOf(a, d); dmg *= edge;
   dmg *= formMul(a.side) * moraleMul(a.side);
+  if (B.naval && ax.nav) dmg *= 1 + ax.nav;
   if (B.naval) { if (a.g.skills.includes('shuizhan')) dmg *= 1.25; if (d.g.skills.includes('shuizhan')) dmg /= 1.2; if (fa.naval) dmg *= fa.naval; if (fd.naval) dmg /= fd.naval; }
   if (B.round === 1) { if (a.g.skills.includes('tuji')) dmg *= 1.3; if (a.g.skills.includes('yexi')) dmg *= 1.15; if (fa.charge) dmg *= fa.charge; }
   if ((a.unit === 'arc') && fa.bow) dmg *= fa.bow;
@@ -165,7 +172,7 @@ function physDamage(a, d, mul = 1, opts = {}) {
   if (veiled(d)) dmg *= 0.5;
   if (d.side === 'foe' && B.kit && B.kit.chained) dmg *= 0.75;
   if (B.lvgap && a.side === 'foe') dmg *= B.lvgap;
-  const crit = 0.05 + (a.g.skills.includes('shenshe') ? 0.15 : 0) + (B.scouted && a.side === 'ally' ? 0.08 : 0);
+  const crit = 0.05 + (a.g.skills.includes('shenshe') ? 0.15 : 0) + (B.scouted && a.side === 'ally' ? 0.08 : 0) + (ax.crit || 0);
   const isCrit = !opts.tele && Math.random() < crit;
   if (isCrit) dmg *= 1.5;
   if (d.guard) dmg *= opts.tele ? 0.35 : 0.5;
@@ -173,6 +180,7 @@ function physDamage(a, d, mul = 1, opts = {}) {
   // misses: a nimble formation, fog on the river, a boss too quick for blades
   if (!opts.tele) {
     if (fd.evade && Math.random() < fd.evade) return { dmg: 0, miss: true };
+    if (dx.eva && Math.random() < dx.eva) return { dmg: 0, miss: true };
     if (B.fog > 0 && a.side === 'ally' && Math.random() < 0.35) return { dmg: 0, miss: true, fog: true };
     if (B.kit && B.kit.evade && d.kidx === 0 && !ranged(a) && !disabled(d) && Math.random() < B.kit.evade) return { dmg: 0, miss: true };
   }
@@ -201,6 +209,7 @@ export function tacChance(a, d, t) {
     const w = B.kit && B.kit.weak; if (w && w.st === t.st && d.kidx === 0) c += 0.35;
     if (d.boss && B.kit && B.kit.immune && B.kit.immune.includes(t.st)) return 0;
     if (d.g.skills.includes('kanpo') && ['confuse', 'stun', 'provoke', 'sleep'].includes(t.st)) return 0;
+    if (d.fx && d.fx.res && d.fx.res[t.st]) c *= 1 - d.fx.res[t.st];
   }
   if (d.g.skills.includes('fanji')) c -= 0.2;
   const fd = formOf(d.side); if (fd.resist) c -= fd.resist;
@@ -211,6 +220,9 @@ function tacDamage(a, d, t) {
   // a clever caster against a dull target does more, but never wildly more
   let dmg = (t.pow || 1) * ((int + 40) / (dint * 0.6 + 70)) * 0.75 * scaleLv(a.lv);
   const f = formOf(a.side); dmg *= f.tac;
+  const ax = a.fx || {}, dx = d.fx || {};
+  dmg *= 1 + (ax.tac || 0) + ((ax.el && t.el && ax.el[t.el]) || 0);
+  if (dx.resel && t.el && dx.resel[t.el]) dmg *= 1 - dx.resel[t.el];
   dmg *= formMul(a.side) * moraleMul(a.side);
   if (a.g.skills.includes('guimou') || (a.side === 'ally' && S.strategist && GENERALS[S.strategist].skills.includes('guimou') && stratUnit())) dmg *= 1.15;
   if (t.el === 'fire') { if (B.weather === 'rain') dmg *= 0.6; if (B.weather === 'wind') dmg *= 1.3; if (B.terrain === 'forest') dmg *= 1.2; if (d.weakFire) dmg *= 2; if (a.g.skills.includes('gongjiang')) dmg *= 1.25; if (d.side === 'foe' && B.kit && B.kit.chained) dmg *= 1.4; }
@@ -274,6 +286,8 @@ export function startBattle(cfg) {
     S.front.filter((id) => member(id)).forEach((id, i) => B.units.push(makeUnit('ally', { id }, i)));
     cfg.foes.forEach((f, i) => B.units.push(makeUnit('foe', { ...f, kidx: i }, i)));
     layoutSide('ally', B.form, true); layoutSide('foe', B.foeForm, true);
+    B.morale.ally = Math.min(100, B.morale.ally + Math.min(15, alive('ally').reduce((t, u) => t + (u.fx.mor || 0), 0)));
+    B.relicUsed = {};
     if (B.kit && B.kit.wall !== undefined) { const w = kitBoss(B.kit.wall); if (w) w.wall = true; }
     if (B.kit && B.kit.moves) B.kit.moves.forEach((m, i) => { B.nextMove[i] = m.first; });
     playMusic(cfg.music || (cfg.boss ? 'boss' : cfg.naval ? 'naval' : 'battle'));
@@ -304,7 +318,7 @@ async function run() {
   // a surprise attack: the enemy sometimes strikes first (scouts and surprise skills prevent it)
   let first = null;
   if (!B.cfg.boss && Math.random() < 0.08 && !skillOnSide('ally', 'qixi')) first = 'foe';
-  else if (!B.cfg.boss && Math.random() < (skillOnSide('ally', 'yexi') ? 0.18 : 0.07)) first = 'ally';
+  else if (!B.cfg.boss && Math.random() < (skillOnSide('ally', 'yexi') ? 0.18 : 0.07) + Math.max(0, ...alive('ally').map((u) => (u.fx.first || 0) * 0.4))) first = 'ally';
   if (first) { say1(first === 'foe' ? L('敵軍突襲！', 'An enemy ambush!') : L('我軍搶得先機！', 'We strike first!')); await tick(40); }
   for (;;) {
     B.round++;
@@ -342,7 +356,7 @@ async function run() {
     }
   }
 }
-const speedOf = (u) => u.spd * buffK(u, 'spd') * formOf(u.side).spd * (u.g.skills.includes('jisu') ? 1.2 : 1) * (B.naval && u.g.skills.includes('guanxing') ? 1.2 : 1) * rnd(0.85, 1.15) + (u.guard ? 1000 : 0);
+const speedOf = (u) => u.spd * (B.round === 1 && u.fx && u.fx.first ? 1 + u.fx.first : 1) * buffK(u, 'spd') * formOf(u.side).spd * (u.g.skills.includes('jisu') ? 1.2 : 1) * (B.naval && u.g.skills.includes('guanxing') ? 1.2 : 1) * rnd(0.85, 1.15) + (u.guard ? 1000 : 0);
 
 // ---------- boss mechanics ----------
 const mvName = (m) => L(m.name[0], m.name[1]);
@@ -441,7 +455,7 @@ async function instantMove(u, mv) {
   if (mv.kind === 'decree') { for (const v of alive('foe')) { v.buf.atk = 3; v.buf.def = 3; } morale('foe', 12); say1(L(`${N(u)}「${mvName(mv)}」：敵軍攻守上升！`, `${N(u)}: ${mvName(mv)}! The enemy grows stronger!`)); sfx('buff'); await tick(46); return; }
   if (mv.kind === 'curse') {
     say1(L(`${N(u)}「${mvName(mv)}」！`, `${N(u)}: ${mvName(mv)}!`)); sfx('spore');
-    for (const v of allies) { if (v.g.skills.includes('kanpo')) { pop(v, L('看破！', 'Clear mind!'), '#a0d0ff'); continue; } v.st.curse = 4; pop(v, L('詛咒', 'Cursed'), '#d050d0'); fxs.push({ k: 'spirit', x: v.x, y: v.y - 30, t: 0 }); }
+    for (const v of allies) { if (v.g.skills.includes('kanpo')) { pop(v, L('看破！', 'Clear mind!'), '#a0d0ff'); continue; } if (v.fx.res && v.fx.res.curse && Math.random() < v.fx.res.curse) { pop(v, L('抵抗', 'Resisted'), '#a0d0ff'); continue; } v.st.curse = 4; pop(v, L('詛咒', 'Cursed'), '#d050d0'); fxs.push({ k: 'spirit', x: v.x, y: v.y - 30, t: 0 }); }
     await tick(50); return;
   }
   if (mv.kind === 'shadows' || mv.kind === 'illusion') {
@@ -528,7 +542,7 @@ async function unleash(u) {
   if (m.kind === 'decree') { for (const v of alive('foe')) { v.buf.atk = 3; v.buf.def = 3; pop(v, L('攻防↑', 'ATK DEF↑'), '#ffe080'); } morale('foe', 15); sfx('buff'); await tick(36); return; }
   if (m.kind === 'divide' || m.kind === 'freeze') {
     const st = m.kind === 'divide' ? 'confuse' : 'stun';
-    const strong = targets.filter((v) => !(v.g.skills.includes('kanpo'))).sort((a, b) => b.atk - a.atk).slice(0, 2);
+    const strong = targets.filter((v) => !(v.g.skills.includes('kanpo'))).sort((a, b) => b.atk - a.atk).slice(0, 2).filter((v) => { const r = v.fx.res && v.fx.res[st]; if (r && Math.random() < r) { pop(v, L('抵抗', 'Resisted'), '#a0d0ff'); return false; } return true; });
     for (const v of strong) { v.st[st] = st === 'confuse' ? 3 : 2; pop(v, st === 'confuse' ? L('混亂', 'Confused') : L('凍結受困', 'Frozen'), st === 'confuse' ? '#e080ff' : '#a0e8ff'); fxs.push({ k: st === 'confuse' ? 'spirit' : 'ice', x: v.x, y: v.y - 30, t: 0 }); }
     morale('ally', -6); sfx('spore'); await tick(46); return;
   }
@@ -579,7 +593,7 @@ async function giveOrders(orders) {
     if (u.st.confuse) { orders.set(u, { confused: true }); i++; continue; }
     B.cur = u;
     const cmds = [L('攻擊', 'Attack'), L('策略', 'Tactic'), L('道具', 'Item'), L('防禦', 'Defend'), L('變陣', 'Formation'), L('兵法', 'Help'), L('全軍突擊', 'Charge!'), L('撤退', 'Retreat')];
-    const dis = [false, !tacticsOf(u).length || !!u.st.silence, !Object.keys(S.items).some((k) => ITEMS[k] && ITEMS[k].kind === 'supply' && !ITEMS[k].fieldOnly), false, S.forms.length < 2, false, false, !B.cfg.canRun && B.cfg.canRun !== undefined];
+    const dis = [false, !tacticsOf(u).length || !!u.st.silence, !battleItems().length, false, S.forms.length < 2, false, false, !B.cfg.canRun && B.cfg.canRun !== undefined];
     const c = await menu(cmds.map((s, k) => ({ label: s, disabled: dis[k] })), { x: 4, y: 186, w: 156, cols: 2, rowH: 13, cancel: true, title: N(u) });
     if (c === -1) { if (i > 0) { i--; while (i > 0 && (fr[i].st.stun || fr[i].st.sleep || fr[i].st.confuse)) i--; orders.delete(fr[i]); fr[i].guard = false; } continue; }
     if (c === 0) { const t = await pickTarget('foe', u); if (!t) continue; orders.set(u, { kind: 'attack', target: t }); i++; continue; }
@@ -593,7 +607,7 @@ async function giveOrders(orders) {
   }
   B.cur = null;
 }
-const tacCost = (t) => Math.max(1, Math.round(TACTICS[t].cost * (hasShensuan() ? 0.75 : 1)));
+const tacCost = (t, u) => Math.max(1, Math.round(TACTICS[t].cost * (hasShensuan() ? 0.75 : 1) * (1 - ((u && u.fx && u.fx.cost) || 0))));
 const hasShensuan = () => S.strategist && GENERALS[S.strategist].skills.includes('shensuan') && !!stratUnit();
 function autoOrder(u) {
   const foes = alive('foe');
@@ -649,7 +663,7 @@ function drawInfo(p) {
   icon(t.unit, 124, y + 3); y += 14;
   if (!foe) { text(fit(`${L('兵', 'T')} ${t.troops}/${t.max}`, 146), X, y, '#e0e0e0'); y += 14; const h = B.preview ? B.preview(t) : 0; if (h > 0) { text(fit(L(`恢復 +${h} → ${t.troops + h}`, `Heals +${h} -> ${t.troops + h}`), 146), X, y, '#90ffa8'); y += 14; } }
   else if (B.scouted) { text(fit(`${L('兵', 'T')}${t.troops} ${L('武', 'S')}${t.str} ${L('智', 'I')}${t.int}`, 146), X, y, '#e0e0e0'); y += 14; }
-  else { text(unitName(t.unit), X, y, '#b8c8e0'); y += 14; }
+  else { text(fit(`${unitName(t.unit)} ${L('兵力約', 'troops ~')}${Math.max(1, Math.round(t.troops / t.max * 10)) * 10}%`, 146), X, y, '#b8c8e0'); y += 14; }
   if (!foe || !u) return;
   const notes = [];
   if (p.tac) {
@@ -667,7 +681,7 @@ function drawInfo(p) {
   for (const [s1, c] of notes.slice(0, 3)) { if (y > 254) break; text(fit(s1, 146), X, y, c); y += 14; }
 }
 // how many troops a heal would bring back (shown on the army panel before choosing)
-function tacHealAmt(u, x, t) { if (x.troops <= 0) return 0; const k = (u.g.skills.includes('guanxing') ? 1.2 : 1) * (0.6 + tacPower(u) / 250); return Math.max(0, Math.min(x.max - x.troops, Math.round(x.max * t.heal * k / Math.max(1, x.hpMul || 1)))); }
+function tacHealAmt(u, x, t) { if (x.troops <= 0) return 0; const k = (u.g.skills.includes('guanxing') ? 1.2 : 1) * (0.6 + tacPower(u) / 250) * (1 + ((u.fx && u.fx.heal) || 0)); return Math.max(0, Math.min(x.max - x.troops, Math.round(x.max * t.heal * k / Math.max(1, x.hpMul || 1)))); }
 function itemHealAmt(x, it) { return x.troops <= 0 ? 0 : Math.max(0, Math.min(x.max - x.troops, Math.round(x.max * it.heal))); }
 function healAllPreview(u, t) { return t && t.heal && t.t === 'aall' ? (x) => tacHealAmt(u, x, t) : null; }
 function itemNote(it) {
@@ -687,7 +701,7 @@ async function pickTactic(u) {
   const foes = alive('foe');
   // the chance shown in the menu: against the average enemy (each target's own chance shows when aiming)
   const pct = (id) => { const t = TACTICS[id]; if (!(t.pow || t.st) || t.t === 'self' || t.t[0] !== 'e' || !foes.length) return ''; return Math.round(foes.reduce((s, f) => s + tacChance(u, f, t), 0) / foes.length * 100) + '%'; };
-  const items = list.map((t) => ({ label: tacName(t), right: `${pct(t)} ${tacCost(t)}`.trim(), disabled: tacCost(t) > S.tp || (TACTICS[t].escape && B.cfg.boss) || (TACTICS[t].t === 'down' && !B.units.some((x) => x.side === 'ally' && x.troops <= 0 && !x.summon)) }));
+  const items = list.map((t) => ({ label: tacName(t), right: `${pct(t)} ${tacCost(t, u)}`.trim(), disabled: tacCost(t, u) > S.tp || (TACTICS[t].escape && B.cfg.boss) || (TACTICS[t].t === 'down' && !B.units.some((x) => x.side === 'ally' && x.troops <= 0 && !x.summon)) }));
   let cur = 0;
   const c = await menu(items, { x: 6, y: 34, w: 196, title: L(`策略值 ${S.tp}/${tpMax()}　成功率 消耗`, `SP ${S.tp}/${tpMax()}  chance cost`), maxRows: 8, onMove: (i) => { cur = i; B.preview = healAllPreview(u, TACTICS[list[i]]); }, drawExtra: () => { const d = TAC_DESC[list[cur]]; if (d) sideNote(L(d[0], d[1])); } });
   B.preview = null;
@@ -697,15 +711,17 @@ async function pickTactic(u) {
   if (t.t === 'e1') { target = await pickTarget('foe', u, { tac: t.id }); if (!target) return null; }
   else if (t.t === 'a1') { target = await pickTarget('ally', u, { heal: t.heal ? (x) => tacHealAmt(u, x, t) : null }); if (!target) return null; }
   else if (t.t === 'down') { target = await pickTarget('ally', u, { down: true }); if (!target) return null; }
-  return { kind: 'tactic', tac: t.id, target, cost: tacCost(t.id) };
+  return { kind: 'tactic', tac: t.id, target, cost: tacCost(t.id, u) };
 }
+const battleItems = () => Object.keys(S.items).filter((k) => ITEMS[k] && ((ITEMS[k].kind === 'supply' && !ITEMS[k].fieldOnly) || ITEMS[k].kind === 'relic'));
 async function pickItem(u) {
-  const ids = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind === 'supply' && !ITEMS[k].fieldOnly);
+  const ids = battleItems().sort((a, b) => (ITEMS[a].kind === 'relic') - (ITEMS[b].kind === 'relic'));
   let cur = 0;
-  const c = await menu(ids.map((k) => ({ label: itemName(k), right: S.items[k] })), { x: 6, y: 34, w: 160, title: L('道具', 'Items'), maxRows: 7, onMove: (i) => { cur = i; const it = ITEMS[ids[i]]; B.preview = it && it.heal && it.target === 'all' ? (x) => itemHealAmt(x, it) : null; }, drawExtra: () => { const it = ITEMS[ids[cur]]; if (it) sideNote(itemNote(it)); } });
+  const c = await menu(ids.map((k) => ({ label: itemName(k), right: ITEMS[k].kind === 'relic' ? (B.relicUsed[k] ? L('已用', 'used') : L('戰具', 'relic')) : S.items[k], color: ITEMS[k].kind === 'relic' ? RARITY[ITEMS[k].rar][2] : undefined, disabled: !!B.relicUsed[k] })), { x: 6, y: 34, w: 170, title: L('道具', 'Items'), maxRows: 7, onMove: (i) => { cur = i; const it = ITEMS[ids[i]]; B.preview = it && it.heal && it.target === 'all' ? (x) => itemHealAmt(x, it) : null; }, drawExtra: () => { const it = ITEMS[ids[cur]]; if (it) sideNote(it.kind === 'relic' ? L(RELIC_FX[it.relic][0], RELIC_FX[it.relic][1]) : itemNote(it)); } });
   B.preview = null;
   if (c < 0) return null;
   const it = ITEMS[ids[c]];
+  if (it.kind === 'relic') { B.relicUsed[ids[c]] = 1; let target = null; if (it.relic === 'incense') { target = await pickTarget('ally', u, { down: true }); if (!target) { B.relicUsed[ids[c]] = 0; return null; } } return { kind: 'item', item: ids[c], target, relic: it.relic }; }
   let target = null;
   if (it.target === 'one') { target = await pickTarget('ally', u, { heal: it.heal ? (x) => itemHealAmt(x, it) : null }); if (!target) return null; }
   if (it.target === 'down') { target = await pickTarget('ally', u, { down: true }); if (!target) return null; }
@@ -803,7 +819,7 @@ function smartOrders(fr, orders) {
   const can = (u, id) => !u.st.silence && TACTICS[id] && tacticsOf(u).includes(id) && tacCost(id) <= tp;
   const pool = () => free.filter((u) => !orders.has(u));
   const bestCaster = (ids, target, minCh = 0) => { let best = null; for (const u of pool()) for (const id of ids) if (can(u, id)) { const ch = target ? tacChance(u, target, TACTICS[id]) : 1; if (ch >= minCh && (!best || ch > best.ch || (ch === best.ch && u.atk < best.u.atk))) best = { u, id, ch }; } return best; };
-  const castOn = (b, target) => assign(b.u, { kind: 'tactic', tac: b.id, target, cost: tacCost(b.id) });
+  const castOn = (b, target) => assign(b.u, { kind: 'tactic', tac: b.id, target, cost: tacCost(b.id, b.u) });
   let pills = have('qingxin');
   // the enemy changed formation to beat ours: change back to one that beats theirs
   if (B.round > 1 && formEdge(B.form, B.foeForm) < 0 && pool().length) {
@@ -1031,6 +1047,7 @@ function cover(t) {
   const g = guardOf(t); if (g) return g;
   for (const v of alive(t.side)) {
     if (v === t) continue;
+    if (v.fx && v.fx.guard && t.troops < t.max * 0.5 && !disabled(v) && Math.random() < v.fx.guard) return v;
     if (v.g.skills.includes('dunqiang') && Math.random() < 0.4) return v;
     if (v.g.skills.includes('huwei') && t.troops < t.max * 0.3 && Math.random() < 0.35) return v;
   }
@@ -1043,7 +1060,7 @@ function breakWall(t, why) {
   void why;
 }
 async function moveTo(u, tx, frames) { const x0 = u.dx; u.anim = 'walk'; for (let f = 1; f <= frames; f++) { u.dx = x0 + ((tx - x0) * f) / frames; u.at++; await tick(1); } }
-async function attack(u, t0, confused = false, mul = 1) {
+async function attack(u, t0, confused = false, mul = 1, isCounter = false) {
   const t = confused ? t0 : cover(t0);
   if (t !== t0) { say1(guardOf(t0) === t ? L(`${N(t)}替${N(t0)}擋下了攻擊！`, `${N(t)} shields ${N(t0)}!`) : L(`${N(t)}挺身而出！`, `${N(t)} steps in the way!`)); await tick(14); }
   if (!confused) say1(L(`${N(u)}的攻擊！`, `${N(u)} attacks!`));
@@ -1078,7 +1095,7 @@ async function attack(u, t0, confused = false, mul = 1) {
         // an ambush laid by the target's side springs
         if (B.ambush[t.side] && u.side !== t.side) { const am = B.ambush[t.side]; B.ambush[t.side] = null; await tick(10); say1(L('伏兵殺出！', 'The ambush springs!')); fxs.push({ k: 'leaf', x: u.x + u.dx, y: u.y - 30, t: 0 }); const d2 = Math.round(am * 1.2); hurt(u, d2); pop(u, d2, '#ffb060'); sfx('hit'); morale(u.side, -5); }
         // light fingers
-        if (u.side === 'ally' && u.g.skills.includes('miaoshou') && Math.random() < 0.2) { const gold = 10 + t.lv * 12; S.gold += gold; pop(u, `+${gold}${L('金', 'g')}`, '#ffe080'); }
+        if (u.side === 'ally' && Math.random() < (u.g.skills.includes('miaoshou') ? 0.2 : 0) + (u.fx.steal || 0)) { const gold = 10 + t.lv * 12; S.gold += gold; pop(u, `+${gold}${L('金', 'g')}`, '#ffe080'); }
       }
     }
     await tick(1);
@@ -1086,6 +1103,8 @@ async function attack(u, t0, confused = false, mul = 1) {
   if (!rng) await moveTo(u, 0, Math.max(6, Math.round(Math.abs(reach) / 8)));
   u.anim = 'idle'; u.dx = 0;
   await tick(6);
+  // a counter-blow from a general whose gear is made for it
+  if (!isCounter && !confused && t.troops > 0 && u.troops > 0 && t.fx && t.fx.ctr && !disabled(t) && !t.st.confuse && !rng && Math.random() < t.fx.ctr) { say1(L(`${N(t)}反擊！`, `${N(t)} strikes back!`)); await tick(10); await attack(t, u, false, 0.5, true); }
 }
 async function attackAll(u) {
   say1(L(`${N(u)}橫掃千軍！`, `${N(u)} sweeps through the ranks!`));
@@ -1144,7 +1163,7 @@ async function castTactic(u, t, o) {
   for (const x of targets) {
     if (isEnemyOf(u, x) && (t.pow || t.st)) {
       // a mirror sends the ploy back at the one who cast it
-      if (mirrored(x)) {
+      if (mirrored(x) || (x.fx && x.fx.refl && Math.random() < x.fx.refl)) {
         pop(x, L('反彈！', 'Reflected!'), '#c0f0ff');
         if (t.pow) { const d = tacDamage(u, u, t); hurt(u, d); pop(u, d, '#ffd0a0'); fxs.push({ k: t.fx || 'spark', x: u.x, y: u.y - 24, t: 0 }); }
         else if (t.st && t.st !== 'provoke') { u.st[t.st] = typeof ST_TURNS[t.st] === 'function' ? ST_TURNS[t.st]() : ST_TURNS[t.st] || 2; pop(u, stName(t.st), '#e0a0ff', -12); }
@@ -1174,15 +1193,35 @@ async function castTactic(u, t, o) {
     }
     if (t.buff) { x.buf[t.buff] = 3; pop(x, { atk: L('攻↑', 'ATK↑'), def: L('防↑', 'DEF↑'), spd: L('速↑', 'SPD↑') }[t.buff], '#ffe080'); }
     // healing works on a general's own soldiers: a leader's huge host gains no more than an ordinary one
-    if (t.heal) { const k = (u.g.skills.includes('guanxing') ? 1.2 : 1) * (0.6 + tacPower(u) / 250); const h = heal(x, x.max * t.heal * k / Math.max(1, x.hpMul || 1)); if (h) pop(x, '+' + h, '#80ffa0'); }
+    if (t.heal) { const k = (u.g.skills.includes('guanxing') ? 1.2 : 1) * (0.6 + tacPower(u) / 250) * (1 + ((u.fx && u.fx.heal) || 0)); const h = heal(x, x.max * t.heal * k / Math.max(1, x.hpMul || 1)); if (h) pop(x, '+' + h, '#80ffa0'); }
     if (t.revive) { x.troops = Math.round(x.max * t.revive); x.dead = false; x.anim = 'idle'; x.st = {}; pop(x, L('重整旗鼓！', 'Rallied!'), '#80ffa0'); morale(u.side, 5); }
   }
   if (t.buff === 'atk') morale(u.side, 10);
   if (failed) morale(u.side, -2);
   await tick(30);
 }
+async function useRelic(u, o, it) {
+  say1(L(`${N(u)}祭出了${it.zh}！`, `${N(u)} brings out the ${it.en}!`));
+  u.anim = 'cast'; u.at = 0; sfx('special'); for (let f = 0; f < 18; f++) { u.at = f; await tick(1); } u.anim = 'idle';
+  const mine = alive(u.side), foes = alive(u.side === 'ally' ? 'foe' : 'ally');
+  const boom = (k, el, pow) => { for (const x of foes) { const d = tacDamage(u, x, { el, pow }); hurt(x, d); pop(x, d, '#ffd0a0'); fxs.push({ k, x: x.x + x.dx, y: x.y - 26, t: 0 }); if (el === 'rock') breakWall(x, 'rock'); tryCancel(x, 'el:' + el); } };
+  switch (o.relic) {
+    case 'drum': morale(u.side, 20); for (const v of mine) { v.buf.atk = 3; pop(v, L('攻↑', 'ATK↑'), '#ffe080'); } sfx('buff'); break;
+    case 'fireox': boom('explosion', 'fire', 0.5); sfx('boom'); B.shake = 6; break;
+    case 'bell': for (const v of mine) { let c = false; for (const k of ['confuse', 'fear', 'sleep', 'silence', 'curse']) if (v.st[k]) { delete v.st[k]; c = true; } if (c) pop(v, L('解除', 'Cured'), '#80ffa0'); } sfx('heal'); break;
+    case 'pouch': { const n = Math.min(tpMax() - S.tp, 20); S.tp += n; pop(u, `+${n} ${L('策', 'SP')}`, '#a0e0ff'); sfx('heal'); break; }
+    case 'ox': for (const v of mine) { const h = heal(v, v.max * 0.15 / Math.max(1, v.hpMul || 1)); if (h) pop(v, '+' + h, '#80ffa0'); } sfx('heal'); break;
+    case 'chariot': B.weather = 'clear'; B.fog = 0; for (const v of mine) v.buf.spd = 3; say1(L('指南車破霧而出，天色轉晴！', 'The chariot drives through; the sky clears!')); sfx('buff'); break;
+    case 'catapult': boom('rock', 'rock', 0.55); sfx('quake'); B.shake = 7; break;
+    case 'maze': for (const v of mine) { v.buf.def = 3; pop(v, L('防↑', 'DEF↑'), '#ffe080'); } sfx('buff'); break;
+    case 'incense': { const x = o.target && o.target.troops <= 0 ? o.target : B.units.find((v) => v.side === u.side && v.troops <= 0 && !v.summon); if (x) { x.troops = Math.round(x.max * 0.3); x.dead = false; x.anim = 'idle'; x.st = {}; pop(x, L('重整旗鼓！', 'Rallied!'), '#80ffa0'); morale(u.side, 5); } sfx('heal'); break; }
+    case 'altar': B.weather = 'wind'; if (B.fog > 0) B.fog = 0; say1(L('七星壇上東風大作！', 'An east wind rises over the altar!')); for (const v of foes) if (v.charge && tryCancel(v, 'wind')) say1(L(`${N(v)}的招式被大風吹散了！`, `The wind scatters ${N(v)}'s move!`)); sfx('buff'); break;
+  }
+  await tick(36);
+}
 async function useItem(u, o) {
   const it = ITEMS[o.item];
+  if (it && it.kind === 'relic') { await useRelic(u, o, it); return; }
   if (!take(o.item)) return;
   say1(L(`${N(u)}使用了${it.zh}。`, `${N(u)} uses ${it.en}.`));
   await tick(16);
@@ -1210,6 +1249,7 @@ async function endOfRound() {
     for (const k of ['poison', 'burn', 'curse', 'confuse', 'stun', 'sleep', 'fear', 'silence', 'defdown', 'reflect']) if (u.st[k]) { u.st[k]--; if (u.st[k] <= 0) delete u.st[k]; }
     if (u.st.provoke) { u.st.provokeT--; if (u.st.provokeT <= 0 || u.st.provoke.troops <= 0) { delete u.st.provoke; delete u.st.provokeT; } }
     for (const k of Object.keys(u.buf)) { u.buf[k]--; if (u.buf[k] <= 0) delete u.buf[k]; }
+    if (u.fx && u.fx.regen && u.troops > 0) { const h = heal(u, u.max * u.fx.regen); if (h) pop(u, '+' + h, '#90ffb0'); }
     if (u.g.skills.includes('yinjiang') && u.troops > 0 && !u.summon) { const h = heal(u, u.max * 0.05); if (h) pop(u, '+' + h, '#c080ff'); }
     u.guard = false;
   }
@@ -1250,6 +1290,7 @@ async function victory() {
   for (const f of foes) { exp += Math.round((6 + 3.4 * f.lv * f.lv) * (f.boss ? 4 : 1)); gold += Math.round((8 + f.lv * 6) * (f.boss ? 5 : 1)); }
   if (skillOnSide('ally', 'lueduo')) gold = Math.round(gold * 1.3);
   S.gold += gold; S.wins++;
+  const dropped = rollDrop();
   say1(L(`勝利！得到${gold}金。`, `Victory! ${gold} gold won.`));
   await tick(60);
   const lines = [];
@@ -1269,6 +1310,7 @@ async function victory() {
     }
   }
   for (const u of B.units) if (u.side === 'ally' && u.m) u.m.troops = Math.max(0, Math.min(troopsMax(u.m), u.troops));
+  if (dropped) { const it = ITEMS[dropped]; give(dropped); say1(L(`敵軍丟下了寶物「${it.zh}」！`, `The enemy left behind a treasure: ${it.en}!`)); sfx('chest'); await tick(70); }
   for (const s of lines.slice(0, 8)) { say1(s); sfx('level'); await tick(50); }
   // a beaten general may be taken prisoner
   for (const f of foes) S.met[f.id] = Math.max(S.met[f.id] || 0, 1);
@@ -1281,6 +1323,18 @@ async function victory() {
   }
   await tick(20);
   finish('win');
+}
+function rollDrop() {
+  const rg = B.cfg.region;
+  if (!rg || B.cfg.boss) return null;
+  const pool = TREASURES.filter((id) => SRC[id] && SRC[id].t === 'drop' && SRC[id].region === rg && !S.found[id] && !S.items[id]);
+  if (!pool.length) return null;
+  S.dropPity[rg] = (S.dropPity[rg] || 0) + 1;
+  const scout = alive('ally').reduce((t, u) => t + (u.fx.scout || 0) + (u.fx.steal || 0) * 2, 0);
+  const chance = 0.05 + 0.03 * Math.min(3, scout) + Math.max(0, S.dropPity[rg] - 12) * 0.03;
+  if (Math.random() >= chance) return null;
+  S.dropPity[rg] = 0;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 async function defeat() {
   say1(L('我軍全軍覆沒……', 'Our army is routed...'));
@@ -1411,10 +1465,9 @@ function drawRunners() {
   for (let i = runners.length - 1; i >= 0; i--) {
     const r = runners[i];
     if (r.t > 70) { runners.splice(i, 1); continue; }
-    const hi = IMG['h:' + (r.horse === 'red' ? 'brown' : r.horse)]; if (!hi) continue;
+    const hi = horseImg(r.horse); if (!hi) continue;
     ctx.globalAlpha = r.t < 40 ? 1 : Math.max(0, 1 - (r.t - 40) / 30);
     ctx.save(); ctx.translate(r.x, r.y); ctx.scale(r.away * GSCALE, GSCALE);
-    if (r.horse === 'red') ctx.filter = 'hue-rotate(-18deg) saturate(1.8)';
     ctx.drawImage(hi, (Math.floor(r.t / 3) % 4) * 128, 128, 128, 128, -59, 1 - 90, 128, 128);
     ctx.restore(); ctx.filter = 'none';
   }
@@ -1447,14 +1500,13 @@ function drawUnit(u) {
   ctx.scale((flip !== !!u.fled ? -1 : 1) * GSCALE, GSCALE);
   if (u.berserk && !dead) ctx.filter = 'saturate(1.6) hue-rotate(-12deg) brightness(1.1)';
   if (mounted) {
-    const hi = IMG['h:' + (u.horse === 'red' ? 'brown' : u.horse)];
+    const hi = horseImg(u.horse);
     // horse frames are 128px; facing left the walking horse stands on y 94 with its saddle at (62, 52),
     // galloping on y 87 with the saddle at (60, 50)
     const running = walking;
     const row = running ? 1 : 5, fr = running ? Math.floor(u.at / 4) % 4 : (u.anim === 'idle' ? 0 : 1);
     const feet = running ? 90 : 94, sx = running ? 60 : 62, sy = running ? 50 : 52;
     if (hi) {
-      if (u.horse === 'red') ctx.filter = 'hue-rotate(-18deg) saturate(1.8)';
       ctx.drawImage(hi, fr * 128, row * 128, 128, 128, -59, 1 - feet, 128, 128);
       ctx.filter = u.berserk ? 'saturate(1.6) hue-rotate(-12deg) brightness(1.1)' : 'none';
     }
