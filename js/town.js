@@ -1,21 +1,23 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=6';
-import { sfx } from './audio.js?v=6';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=6';
-import { L } from './i18n.js?v=6';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=6';
-import { ITEMS, itemName, unitName } from './data.js?v=6';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=6';
-import { PLACES, REGIONS } from './world.js?v=6';
-import { itemDesc, drawStatus } from './menu.js?v=6';
-import { drawEquipPanel } from './equipui.js?v=6';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=6';
-import { TREASURES, SRC, RARITY, ONE_HAND } from './data.js?v=6';
-import { canEquip } from './state.js?v=6';
-import { rumour, SHOP_KIND, treasurePrice, owned, gainTreasure } from './treasure_world.js?v=6';
-import { hash } from './gfx.js?v=6';
+import { W, H, text, windowBox } from './gfx.js?v=7';
+import { sfx } from './audio.js?v=7';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=7';
+import { L } from './i18n.js?v=7';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=7';
+import { ITEMS, itemName, unitName } from './data.js?v=7';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat } from './state.js?v=7';
+import { PLACES, REGIONS } from './world.js?v=7';
+import { itemDesc, drawStatus } from './menu.js?v=7';
+import { drawEquipPanel } from './equipui.js?v=7';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=7';
+import { TREASURES, SRC, RARITY, ONE_HAND } from './data.js?v=7';
+import { canEquip } from './state.js?v=7';
+import { rumour, SHOP_KIND, treasurePrice, owned, gainTreasure } from './treasure_world.js?v=7';
+import { hash } from './gfx.js?v=7';
 
+// a Merchant (shangcai) in the army sells for 60% of the price instead of half
+const sellPrice = (id) => Math.floor(ITEMS[id].price * (Object.keys(S.roster).some((g) => (GENERALS[g].traits || []).includes('shangcai')) ? 0.6 : 0.5));
 // what each shop sells, by how far into the story the place's region opens
 const STOCK = {
   weapon: [
@@ -110,10 +112,10 @@ async function sell() {
   for (;;) {
     const ids = Object.keys(S.items).filter((k) => ITEMS[k] && ITEMS[k].kind !== 'key' && ITEMS[k].price > 0 && !ITEMS[k].tr);
     if (!ids.length) { await notice(L('沒有可以賣的東西。', 'Nothing to sell.'), 50); return; }
-    const c = await menu(ids.map((k) => ({ label: itemName(k), right: `${Math.floor(ITEMS[k].price / 2)}×${S.items[k]}` })), { x: 6, y: 4, w: 220, maxRows: 12 });
+    const c = await menu(ids.map((k) => ({ label: itemName(k), right: `${sellPrice(k)}×${S.items[k]}` })), { x: 6, y: 4, w: 220, maxRows: 12 });
     if (c < 0) return;
     const id = ids[c];
-    take(id); S.gold += Math.floor(ITEMS[id].price / 2); sfx('chest');
+    take(id); S.gold += sellPrice(id); sfx('chest');
   }
 }
 export async function inn(place) {
@@ -130,7 +132,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=6');
+  const { save, slotInfo } = await import('./state.js?v=7');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;

@@ -1,7 +1,7 @@
 // Tiny pixel icons for the battle screen: unit types, statuses, buffs, telegraphs, matchup arrows, and a
 // 3x5 digit font for the turns a status has left. Each icon is a small bitmap drawn in a colour with a
 // dark outline, cached on first use.
-import { ctx, canvas } from './gfx.js?v=6';
+import { ctx, canvas } from './gfx.js?v=7';
 
 const G = {
   // unit types (7x7)

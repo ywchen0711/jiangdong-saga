@@ -1,7 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=6';
-import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=6';
+import { L } from './i18n.js?v=7';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=7';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -218,7 +218,7 @@ export function fxText(fx, short = false) {
   void short;
   return p.join(L('，', ', '));
 }
-export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=6';
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=7';
 // the paper doll's slots; the accessory slot keeps its old save name 'treasure'
 export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };
@@ -280,7 +280,7 @@ export const TAC_DESC = {
   jinsuo: ['八門金鎖困住全部敵軍。', 'Locks every enemy in place.'], guwu: ['全軍攻擊力上升。', 'Raises the attack of the whole army.'], jianshou: ['全軍防禦力上升。', 'Raises the defence of the whole army.'],
   jifeng: ['全軍速度上升。', 'Raises the speed of the whole army.'], zhiliao: ['恢復一支部隊的兵力。', 'Restores troops to one unit.'], huifu: ['恢復全軍兵力。', 'Restores troops to the whole army.'],
   dahui: ['大幅恢復全軍兵力。', 'Restores many troops to the whole army.'], fuhuo: ['讓敗走的武將重整旗鼓。', 'A routed general returns to the field.'], dunzou: ['全軍撤離戰場（首領戰無效）。地圖上使用可返回上一座城。', 'The army leaves the battle (not against leaders). On the map: back to the last city.'],
-  zhencha: ['看清敵軍的兵力、弱點與首領的招式，全軍會心率上升。', 'Shows enemy troops, weak points and the leader\'s moves; more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱，能澆熄火船與業火。', 'Brings rain: water and thunder grow, fire weakens; it douses fire ships and hellfire.'],
+  zhencha: ['看清敵軍的弱點、抗性與首領的下一招（情報卡上的？？？），全軍會心率上升。', 'Reveals enemy weak points, resistances and the leader\'s next move (the ??? on the info card); more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱，能澆熄火船與業火。', 'Brings rain: water and thunder grow, fire weakens; it douses fire ships and hellfire.'],
   hufeng: ['喚來東風：火計與弓箭增強，吹散江霧，火船也會被吹回敵陣。', 'Calls a wind: fire and arrows grow stronger, fog blows away, and fire ships turn back on the enemy.'], huolong: ['傑夫的火龍船，水戰中威力倍增。', "Jeff's burning rafts; far stronger on water."],
   guanxing: ['艾琳觀星：天氣轉晴、霧散，全軍速度上升，並解除詛咒、混亂、恐懼與昏睡。', 'Erin reads the stars: clear sky, no fog, a faster army, and curses, confusion, fear and sleep are lifted.'],
   weihe: ['威嚇一支敵軍使其恐懼：攻擊下降三回合。', 'Frightens one enemy: weaker attacks for three turns.'], pojia: ['破壞一支敵軍的甲冑：防禦下降三回合。', 'Breaks one enemy\'s armour: less defence for three turns.'],
@@ -331,6 +331,7 @@ export const STATUS = {
 };
 
 // ---------- skills ----------
+// the old passive skills; every general's passives are now their two traits (traits.js), which reuse these ids
 export const SKILLS = {
   lianji: ['連擊', 'Double Strike', '有機會連續攻擊兩次。', 'May strike twice.'],
   tuji: ['突擊', 'Charge', '首回合攻擊大增。', 'Much stronger on the first turn.'],

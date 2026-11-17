@@ -2,7 +2,8 @@
 // looks and skills of their own), four travellers from beyond the western sea, the sect's own commanders,
 // and the rest made by a seeded name generator from historical surnames and given-name characters.
 // The same seed always gives the same 500.
-import { L } from './i18n.js?v=6';
+import { L } from './i18n.js?v=7';
+import { assignTraits } from './traits.js?v=7';
 
 // ---------- looks ----------
 // a look is a short string: "b=m s=light hd=m h=topknot hc=black bd=beard t=kimono tc=red l=wide lc=navy f=boots fc=black c=solid cc=red hat=tied hatc=red g=patch belt=sash bc=gold"
@@ -264,6 +265,9 @@ export const FAMOUS_COUNT = GEN_LIST.length;
     add({ id, zh, en, str, int, lead, spd, unit, faction, arch, age, wk, look: parseLook(lookStr), lookStr, gear: null, skills, famous: false, female: fem });
   }
 })();
+// the two traits of every general (traits.js); the old skill rolls above still run so the seeded names,
+// stats and looks stay the same as before, but each general's passives are now exactly their two traits
+assignTraits(GEN_LIST);
 export const genName = (g) => (typeof g === 'string' ? (GENERALS[g] ? L(GENERALS[g].zh, GENERALS[g].en) : g) : L(g.zh, g.en));
 // the gear a generated general carries at a given level
 export function gearFor(g, lv) {

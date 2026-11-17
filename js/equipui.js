@@ -1,18 +1,19 @@
 // The paper doll on screen: the equip page (a big figure that turns through four directions, the battle pose
 // beside it, mounted when a horse is worn, each slot with its icon, stats before and after), trying things on
 // from the bag or a shop counter, and the treasure codex (寶物錄) with its 300 entries.
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=6';
-import { input } from './input.js?v=6';
-import { sfx } from './audio.js?v=6';
-import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=6';
-import { L } from './i18n.js?v=6';
-import { GENERALS, genName } from './generals.js?v=6';
-import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=6';
-import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=6';
-import { battleSheet } from './doll.js?v=6';
-import { horseImg } from './horses.js?v=6';
-import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=6';
-import { hintText, owned, setTryOn } from './treasure_world.js?v=6';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=7';
+import { input } from './input.js?v=7';
+import { sfx } from './audio.js?v=7';
+import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=7';
+import { L } from './i18n.js?v=7';
+import { GENERALS, genName } from './generals.js?v=7';
+import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=7';
+import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=7';
+import { battleSheet } from './doll.js?v=7';
+import { horseImg } from './horses.js?v=7';
+import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=7';
+import { hintText, owned, setTryOn } from './treasure_world.js?v=7';
+import { traitName } from './traits.js?v=7';
 
 // ---------- what an item does, in words ----------
 export function itemDesc(id) {
@@ -44,7 +45,7 @@ export function itemDesc(id) {
   if (it.kind === 'key') p.push(L('重要物品', 'Key item'));
   return p.join(L('，', ', '));
 }
-import { parseFx } from './treasures.js?v=6';
+import { parseFx } from './treasures.js?v=7';
 const gearFxOf = (code) => parseFx(code);
 
 // ---------- the doll on stage ----------
@@ -134,7 +135,8 @@ export function drawEquipPanel(id, cand, x0 = 160, hilite = null, note = null) {
     // what the gear does together (effects and sets)
     const fx = fxText(gearFx(eq)), sets = Object.entries(setCount(eq)).filter(([k, n]) => n >= 2 && SETS[k]).map(([k, n]) => L(`${SETS[k].zh}${n}件`, `${SETS[k].en} x${n}`));
     let y = 201;
-    const body = note || [sets.length ? L('套裝：', 'Sets: ') + sets.join(' ') : '', fx ? L('效果：', 'Effects: ') + fx : L('效果：無', 'Effects: none')].filter(Boolean).join('\n');
+    const trs = (g.traits || []).map((t) => traitName(t)).join(L('、', ', '));
+    const body = note || [trs ? L('特性：', 'Traits: ') + trs : '', sets.length ? L('套裝：', 'Sets: ') + sets.join(' ') : '', fx ? L('效果：', 'Effects: ') + fx : L('效果：無', 'Effects: none')].filter(Boolean).join('\n');
     for (const ln of wrap(body, cw).slice(0, 5)) { if (y > H - 20) break; text(ln, cx, y, note ? '#e8e0c8' : '#a8e0b0'); y += 14; }
   }
 }

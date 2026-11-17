@@ -1,21 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=6';
-import { input, lastDevice } from './input.js?v=6';
-import { sfx } from './audio.js?v=6';
-import { UI } from './ui.js?v=6';
-import { L } from './i18n.js?v=6';
-import { IMG, tileset, WOBJ } from './assets.js?v=6';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=6';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=6';
-import { renderMap, solidKind, TILES } from './tiles.js?v=6';
-import { buildMap, placeName } from './maps.js?v=6';
-import { GENERALS, parseLook } from './generals.js?v=6';
-import { fieldSheet } from './doll.js?v=6';
-import { horseImg } from './horses.js?v=6';
-import { ITEMS, gearFx } from './data.js?v=6';
-import { S, member, hasSkill, troopsMax } from './state.js?v=6';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=7';
+import { input, lastDevice } from './input.js?v=7';
+import { sfx } from './audio.js?v=7';
+import { UI } from './ui.js?v=7';
+import { L } from './i18n.js?v=7';
+import { IMG, tileset, WOBJ } from './assets.js?v=7';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=7';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=7';
+import { renderMap, solidKind, TILES } from './tiles.js?v=7';
+import { buildMap, placeName } from './maps.js?v=7';
+import { GENERALS, parseLook } from './generals.js?v=7';
+import { fieldSheet } from './doll.js?v=7';
+import { horseImg } from './horses.js?v=7';
+import { ITEMS, gearFx } from './data.js?v=7';
+import { S, member, hasSkill, troopsMax } from './state.js?v=7';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };

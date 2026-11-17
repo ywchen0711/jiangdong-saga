@@ -1,21 +1,22 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=6';
-import { input } from './input.js?v=6';
-import { sfx, setMusic, music } from './audio.js?v=6';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=6';
-import { L, LANG, setLang } from './i18n.js?v=6';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=6';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=6';
-import { icon, ICON_COL } from './icons.js?v=6';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=6';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=6';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=6';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=6';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=7';
+import { input } from './input.js?v=7';
+import { sfx, setMusic, music } from './audio.js?v=7';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=7';
+import { L, LANG, setLang } from './i18n.js?v=7';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=7';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=7';
+import { icon, ICON_COL } from './icons.js?v=7';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=7';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=7';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=7';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=7';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=7';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=6';
-import { overviewMap } from './worldgfx.js?v=6';
-import { F, tileX, tileY } from './field.js?v=6';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=7';
+import { overviewMap } from './worldgfx.js?v=7';
+import { F, tileX, tileY } from './field.js?v=7';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
@@ -61,17 +62,17 @@ export function drawStatus(id, x = 112, y = 4, w = W - 228, h = 190, cand = null
     text(L(`經驗 ${m.exp}/${expFor(m.lv)}`, `EXP ${m.exp}/${expFor(m.lv)}`), x + 90, y + 56, '#b0b0c0');
     const st = [[L('武力', 'STR'), stat(m, 'str')], [L('智力', 'INT'), stat(m, 'int')], [L('統率', 'LEAD'), stat(m, 'lead')], [L('速度', 'SPD'), stat(m, 'spd')], [L('攻擊', 'ATK'), atkOf(m)], [L('防禦', 'DEF'), defOf(m)]];
     st.forEach(([k, v], i) => { text(k, x + 8 + (i % 3) * 82, y + 88 + Math.floor(i / 3) * 14, '#c8c8d8'); text(String(v), x + 76 + (i % 3) * 82, y + 88 + Math.floor(i / 3) * 14, '#ffffff', { align: 'right' }); });
-    let yy = y + 120;
-    text(L('技能', 'Skills') + ': ' + (g.skills.map(skillName).join(L('、', ', ')) || '-'), x + 8, yy, '#ffd0a0'); yy += 14;
+    let yy = y + 116;
+    yy = traitLines(g, x + 8, yy, w - 16);
     const tl = m.tactics.map(tacName).join(L('、', ', ')) || '-';
-    for (const ln of wrap(L('策略', 'Tactics') + ': ' + tl, w - 16).slice(0, 2)) { text(ln, x + 8, yy, '#a0e0ff'); yy += 14; }
+    for (const ln of wrap(L('策略', 'Tactics') + ': ' + tl, w - 16).slice(0, 2)) { text(ln, x + 8, yy, '#a0e0ff'); yy += 13; }
     const eq = SLOTS.map((s) => (m.equip[s] ? itemName(m.equip[s]) : null)).filter(Boolean).join(L('、', ', '));
-    for (const ln of wrap(L('裝備', 'Gear') + ': ' + (eq || '-'), w - 16).slice(0, 2)) { text(ln, x + 8, yy, '#e0e0e0'); yy += 14; }
+    for (const ln of wrap(L('裝備', 'Gear') + ': ' + (eq || '-'), w - 16).slice(0, 2)) { if (yy > y + h - 16) break; text(ln, x + 8, yy, '#e0e0e0'); yy += 13; }
   } else {
     const st = [[L('武力', 'STR'), g.str], [L('智力', 'INT'), g.int], [L('統率', 'LEAD'), g.lead], [L('速度', 'SPD'), g.spd]];
     st.forEach(([k, v], i) => { text(k, x + 90 + (i % 2) * 70, y + 40 + Math.floor(i / 2) * 14, '#c8c8d8'); text(String(v), x + 150 + (i % 2) * 70, y + 40 + Math.floor(i / 2) * 14, '#ffffff', { align: 'right' }); });
-    let yy = y + 90;
-    text(L('技能', 'Skills') + ': ' + (g.skills.map(skillName).join(L('、', ', ')) || '-'), x + 8, yy, '#ffd0a0'); yy += 14;
+    let yy = y + 86;
+    yy = traitLines(g, x + 8, yy, w - 16) + 1;
     // someone who might join: what they would bring, beside the army's own numbers
     if (joinLv) {
       const tm = maxTroops(joinLv, g.lead, g.skills.includes('haoling')), gear = gearFor(g, joinLv);
@@ -85,6 +86,21 @@ export function drawStatus(id, x = 112, y = 4, w = W - 228, h = 190, cand = null
       }
     }
   }
+}
+// a general's two traits: the name, then what it does, one line each when it fits
+export function traitLines(g, x, y, w, full = false) {
+  for (const id of g.traits || []) {
+    const T = TRAITS[id]; if (!T) continue;
+    const nm = traitName(id), col = T.fam === 'legend' ? '#ffd860' : '#ffe0a0';
+    const one = `${nm}：${traitDesc(id)}`;
+    if (!full && textW(one) <= w) { text(nm, x, y, col); text(L('：', ': ') + traitDesc(id), x + textW(nm), y, '#e8e0d0'); y += 13; continue; }
+    text(nm, x, y, col);
+    const rest = wrap(traitDesc(id), w - textW(nm) - 8);
+    if (!full) { text(fit(rest.join(''), w - textW(nm) - 8), x + textW(nm) + 8, y, '#e8e0d0'); y += 13; continue; }
+    y += 13; for (const ln of wrap(traitDesc(id), w)) { text(ln, x, y, '#e8e0d0'); y += 12; }
+    y += 1;
+  }
+  return y;
 }
 const rowLabel = (id) => { const m = member(id), g = GENERALS[id]; return { label: (S.front.includes(id) ? '◆' : '　') + genName(g) + (S.strategist === id ? L('〔軍師〕', '[Str]') : ''), right: m ? `Lv${m.lv}` : '', color: m && m.troops <= 0 ? '#8888a0' : undefined }; };
 async function generalsMenu() {
@@ -151,7 +167,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=6'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=7'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -213,6 +229,7 @@ const HELP = [
   { t: ['策略', 'Tactics'], s: ['策略值在戰鬥中不會自己恢復，只能靠策略丹、神機丹。每個策略都有成功率（顯示在選單與瞄準時）：取決於施計者（或軍師）與目標的智力。\n火計雨天差、風天強、林中強；水計在江河與雨天強；落石在山地強、水上幾乎無用；雷擊雨天強。首領較能抵抗混亂、昏睡等狀態，有些首領完全免疫。', 'Strategy points do not come back by themselves in battle, only from Strategy and Sage Pills. Every tactic has a chance to work (shown in the menu and when aiming): the caster\'s (or strategist\'s) INT against the target\'s.\nFire is weak in rain, strong in wind and forests; water is strong on rivers and in rain; Rockfall is strong in the mountains and nearly useless at sea; thunder is strong in rain. Leaders resist statuses, and some are immune.'] },
   { t: ['狀態', 'Statuses'], draw: 'status', s: ['', ''] },
   { t: ['裝備與寶物', 'Gear and Treasures'], s: ['每位武將有七個裝備欄：武器、盾牌、鎧甲、頭盔、披風、坐騎、飾品。除了飾品，每件都會改變武將在地圖、城鎮、戰場與選單上的模樣（飾品也常有項鍊、腰帶等小細節）。雙手兵器（戟、弓、弩、雙刀）不能持盾。\n天下藏著三百件寶物，分為普通、精良、稀有、名品、傳說。寶物除了數值，還有效果：對某兵種傷害、某陣形時攻防、策略威力與消耗、抵抗異常、反彈策略、反擊、先制、士氣、策略值上限、水戰、每回合回兵……同一套裝穿兩到四件另有加成。寶物藏在太守府、廟堂、洞窟與街上的紅色寶箱裡、賈斯珀才看得見的野地、首領的戰利品、各地敵軍偶爾掉落、百姓的委託、商店的稀有貨與寶物商人那裡。到酒館打聽，寶物錄會記下線索。', 'Every general has seven slots: weapon, shield, armour, helm, cape, mount and accessory. All but the accessory change how they look on the map, in towns, in battle and in menus (accessories often add a small detail, a pendant or a belt). Two-handed weapons (halberds, bows, crossbows, twin blades) leave no hand for a shield.\nThree hundred treasures lie across the realm: Common, Fine, Rare, Famed and Legendary. Besides their numbers they have effects: damage against a unit type, attack and defence in a formation, tactic power and cost, resisting statuses, reflecting ploys, counters, first strikes, morale, extra strategy points, naval power, troops back each turn... and two to four pieces of one set add more. Look in red chests in governors\' halls, shrines, caves and streets, in the wilds where only Jasper sees, among leaders\' spoils, as rare drops from each land\'s armies, as rewards for townsfolk\'s favours, in shops\' rare stock and at the treasure merchant\'s. Ask in taverns: the Codex notes every rumour.'] },
+  { t: ['雙特性', 'Traits'], draw: 'traits', s: ['五百名武將每人都有兩個特性，沒有兩人的組合相同。特性一直有效，觸發時武將頭上會浮現特性名稱。\n戰鬥中選「情報」、按選單鍵或點一下武將，就能看到他的特性、能力與狀態；敵人的弱點、抗性與首領的下一招要偵察才看得到（賈斯珀的「斥候」與郭嘉的「鬼才」也能看穿）。\n按A打開特性一覽：←→換類別，↑↓選擇。', 'Each of the 500 generals has two traits, and no two share the same pair. Traits always work, and a trait\'s name rises over the general when it triggers.\nIn battle, Info, the Menu key or a tap on a general shows their traits, numbers and statuses; an enemy\'s weak points, resistances and a leader\'s next move need scouting (Jasper\'s Scouts and Guo Jia\'s Ghost Talent see through them too).\nPress A for the trait glossary: left/right for a family, up/down to choose.'] },
   { t: ['首領戰', 'Leaders'], s: ['首領會在畫面上方預告大招，蓄力一回合才出手（頭旁有「!」）。對策一定存在：\n‧ 防禦：受到的大招傷害只剩35%。\n‧ 被盯上（準星）的人防禦，或讓會盾牆／護衛的武將防禦替他擋；挑撥也能把攻擊引到坦克身上。\n‧ 混亂、昏睡、困陣、封策能打斷蓄力；有些招式怕水、怕火、怕雨。\n首領兵力降到六成、三成時會改變戰法。偵察能看清首領的弱點與招式；出戰前也聽聽軍師怎麼說。', 'Leaders announce their big moves at the top of the screen and take a turn to charge them ("!" by the head). There is always an answer:\n- Defend: a big move does only 35%.\n- The marked general (crosshair) defends, or a Shield Wall or Guardian general defends and takes it; Provoke draws it onto a tank.\n- Confusion, sleep, traps and Seal Ploys break off a charge; some moves fear water, fire or rain.\nAt 60% and 30% troops a leader changes how it fights. Scout to learn its weak point and moves, and listen to your advisers before the battle.'] },
 ];
 export async function helpPage(inBattle = false) {
@@ -222,6 +239,7 @@ export async function helpPage(inBattle = false) {
       update() {
         if (input.repeat('right') || input.repeat('down')) { pg = (pg + 1) % HELP.length; sfx('cursor'); }
         if (input.repeat('left') || input.repeat('up')) { pg = (pg + HELP.length - 1) % HELP.length; sfx('cursor'); }
+        if (input.pressed('a') && HELP[pg].draw === 'traits') { sfx('ok'); glossary(); return; }
         if (input.pressed('b') || input.pressed('a') || input.pressed('menu')) { if (input.pressed('a') && pg < HELP.length - 1) { pg++; sfx('cursor'); return; } sfx('cancel'); removeRaw(w); res(); }
       },
       draw() {
@@ -265,7 +283,70 @@ export async function helpPage(inBattle = false) {
           return;
         }
         for (const ln of wrap(L(h.s[0], h.s[1]), W - 64)) { if (y > H - 22) break; text(ln, 20, y, '#e8e8f0'); y += 14; }
+        if (h.draw === 'traits') {
+          const fams = Object.keys(FAMILY).map((f) => `${L(FAMILY[f][0], FAMILY[f][1])} ${TRAIT_IDS.filter((t) => TRAITS[t].fam === f).length}`).join(L('　', '  '));
+          text(fit(L(`共${TRAIT_IDS.length}種：`, `${TRAIT_IDS.length} traits: `) + fams, W - 64), 20, y + 4, '#ffe0a0');
+          text(L('Ａ：特性一覽', 'A: trait glossary'), W - 44, H - 26, '#80ff90', { align: 'right' });
+        }
         void inBattle;
+      },
+    };
+    pushRaw(w);
+  });
+}
+
+// ---------- the trait glossary ----------
+// every trait by family: what it does, who of note has it and how many of the 500 do
+const TABS = ['all', ...Object.keys(FAMILY)];
+function holders(id) { return GEN_LIST.filter((g) => (g.traits || []).includes(id)); }
+export function glossary() {
+  let tab = 0, i = 0, scroll = 0;
+  const listOf = () => TRAIT_IDS.filter((t) => TABS[tab] === 'all' || TRAITS[t].fam === TABS[tab]);
+  return new Promise((res) => {
+    const w = {
+      update() {
+        const list = listOf(), vis = 14;
+        if (input.repeat('right')) { tab = (tab + 1) % TABS.length; i = 0; scroll = 0; sfx('cursor'); }
+        if (input.repeat('left')) { tab = (tab + TABS.length - 1) % TABS.length; i = 0; scroll = 0; sfx('cursor'); }
+        if (input.repeat('down')) { i = (i + 1) % list.length; sfx('cursor'); }
+        if (input.repeat('up')) { i = (i + list.length - 1) % list.length; sfx('cursor'); }
+        if (i < scroll) scroll = i; if (i >= scroll + vis) scroll = i - vis + 1;
+        if (input.pressed('b') || input.pressed('menu')) { sfx('cancel'); removeRaw(w); res(); }
+      },
+      draw() {
+        const list = listOf(), vis = 14;
+        windowBox(6, 4, W - 34, H - 8);
+        // the family tabs
+        let tx = 14;
+        TABS.forEach((f, k) => { const s1 = f === 'all' ? L('全部', 'All') : L(FAMILY[f][0], FAMILY[f][1]); const tw = textW(s1) + 8; if (k === tab) { ctx.fillStyle = 'rgba(248,224,112,0.22)'; ctx.fillRect(tx - 3, 9, tw, 15); } text(s1, tx, 11, k === tab ? '#f8e070' : '#a0a8c0'); tx += tw + 2; });
+        text(`${i + 1}/${list.length}`, W - 40, 11, '#a0a8c0', { align: 'right' });
+        // the list
+        for (let k = scroll; k < Math.min(list.length, scroll + vis); k++) {
+          const id = list[k], yy = 30 + (k - scroll) * 15, T = TRAITS[id];
+          if (k === i) { ctx.fillStyle = 'rgba(248,224,112,0.16)'; ctx.fillRect(12, yy - 2, 134, 15); ctx.drawImage(HAND, 4, yy); }
+          text(fit(traitName(id), 112), 18, yy, T.fam === 'legend' ? '#ffd860' : '#f0f0f0');
+          text(String(holders(id).length), 142, yy, '#8890b0', { align: 'right' });
+        }
+        if (scroll > 0) text('▲', 80, 24, '#f8e070', { align: 'center' });
+        if (scroll + vis < list.length) text('▼', 80, H - 18, '#f8e070', { align: 'center' });
+        // the chosen trait
+        const id = list[i], T = TRAITS[id], X = 158, CW = W - 44 - X;
+        if (!T) return;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(X - 6, 28, CW + 12, H - 40);
+        text(traitName(id), X, 32, T.fam === 'legend' ? '#ffd860' : '#f8e070');
+        text(L(FAMILY[T.fam][0], FAMILY[T.fam][1]) + (T.uniq ? L('・專屬', ', unique') : ''), X + CW, 32, '#a0a8c0', { align: 'right' });
+        text(L(T.zh, T.en) === T.zh ? T.en : T.zh, X, 46, '#c0b8a0');
+        let y = 64;
+        for (const ln of wrap(traitDesc(id), CW)) { text(ln, X, y, '#e8e8f0'); y += 14; }
+        y += 6;
+        const hs = holders(id), fam = hs.filter((g) => g.famous);
+        text(L(`持有者：${hs.length}人`, `Held by ${hs.length}`), X, y, '#ffe0a0'); y += 14;
+        const known = fam.filter((g) => S.met[g.id] || S.roster[g.id]);
+        const names = known.map((g) => genName(g));
+        if (fam.length > known.length) names.push(L(`其他名將${fam.length - known.length}人（未見過）`, `${fam.length - known.length} famous not yet met`));
+        if (hs.length > fam.length) names.push(L(`以及${hs.length - fam.length}名武將`, `and ${hs.length - fam.length} others`));
+        for (const ln of wrap(names.join(L('、', ', ')), CW).slice(0, 7)) { text(ln, X, y, '#c8d0e0'); y += 13; }
+        text(L('←→ 類別　↑↓ 選擇　B 返回', '←→ family  ↑↓ choose  B back'), X + CW, H - 22, '#8890b0', { align: 'right' });
       },
     };
     pushRaw(w);
@@ -286,7 +367,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=6'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=7'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -340,7 +421,8 @@ function drawEntry(g) {
   text(L(fac[0], fac[1]), 250, 46, '#ffb0a0');
   const st = [[L('武力', 'STR'), g.str], [L('智力', 'INT'), g.int], [L('統率', 'LEAD'), g.lead], [L('速度', 'SPD'), g.spd]];
   st.forEach(([k, v], i) => { const y = 96 + i * 14; text(k, 170, y, '#c8c8d8'); text(String(v), 230, y, '#fff', { align: 'right' }); ctx.fillStyle = '#20181c'; ctx.fillRect(236, y + 4, 100, 4); ctx.fillStyle = v >= 90 ? '#ffd040' : v >= 75 ? '#80e080' : '#80a0e0'; ctx.fillRect(236, y + 4, v, 4); });
-  text(L('技能', 'Skills') + ': ' + (g.skills.map(skillName).join(L('、', ', ')) || '-'), 170, 156, '#ffd0a0');
+  traitLines(g, 170, 155, W - 186);
+  text(L('兵法頁有全部特性的一覽', 'All traits: see the Art of War'), 170, 183, '#8890b0');
   if (g.famous) text(L('名將', 'Famous'), W - 14, 14, '#ffe080', { align: 'right' });
 }
 

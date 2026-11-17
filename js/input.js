@@ -30,6 +30,8 @@ export const input = {
   },
   dir() { for (const d of ['up', 'down', 'left', 'right']) if (this.held(d)) return d; return null; },
   anyPressed() { return ['a', 'b', 'menu'].some((k) => this.pressed(k)); },
+  // a tap or click on the picture, in game pixels (480x270), taken by whoever uses it first this frame
+  takeTap() { const t = tapAt; tapAt = null; return t; },
   clear() { was.clear(); for (const k of [...down, ...touch, ...pad]) was.add(k); },
 };
 export function pollInput() {
@@ -52,8 +54,20 @@ export function pollInput() {
   }
   for (const k of ['up', 'down', 'left', 'right', 'a', 'b', 'menu', 'map', 'fast', 'run']) age[k] = input.held(k) ? (age[k] || 0) + 1 : 0;
 }
+// taps on the picture itself (the info card in battle): pointerup works for mouse, pen and touch, and on iOS
+// it fires where a click on a plain canvas would not
+let tapAt = null;
+export function setupCanvasTap() {
+  const c = document.getElementById('screen');
+  if (!c) return;
+  c.addEventListener('pointerup', (e) => {
+    const r = c.getBoundingClientRect(); if (!r.width) return;
+    tapAt = { x: (e.clientX - r.left) / r.width * 480, y: (e.clientY - r.top) / r.height * 270 };
+    if (e.pointerType === 'touch') lastDevice = 'touch';
+  });
+}
 export function endInput() {
-  was.clear(); tap.clear();
+  was.clear(); tap.clear(); tapAt = null;
   for (const k of [...down, ...touch, ...pad]) was.add(k);
 }
 
