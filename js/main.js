@@ -1,26 +1,26 @@
 // 江東霸業傳 Saga of Jiangdong: start-up, the title screen, the main loop, and the glue between walking,
 // battles, menus and the story. window.G exposes hooks for testing.
-import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=9';
-import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=9';
-import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=9';
-import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=9';
-import { L, LANG, setLang } from './i18n.js?v=9';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, GROUND } from './world.js?v=9';
-import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=9';
-import * as FIELD from './field.js?v=9';
-import { overviewMap } from './worldgfx.js?v=9';
-import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=9';
-import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp, party, PARTY_MAX } from './state.js?v=9';
-import { fitParty } from './town.js?v=9';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=9';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=9';
-import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=9';
-import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=9';
-import { buildMap } from './maps.js?v=9';
-import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=9';
-import { banditFor, banditBeaten } from './treasure_world.js?v=9';
-import { SQ, simTrial, cfgOf } from './sidequests.js?v=9';
-import * as EXPLORE from './explore.js?v=9';
+import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=10';
+import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=10';
+import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=10';
+import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=10';
+import { L, LANG, setLang } from './i18n.js?v=10';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, GROUND } from './world.js?v=10';
+import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=10';
+import * as FIELD from './field.js?v=10';
+import { overviewMap } from './worldgfx.js?v=10';
+import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=10';
+import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp, party, PARTY_MAX } from './state.js?v=10';
+import { fitParty } from './town.js?v=10';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=10';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=10';
+import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=10';
+import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=10';
+import { buildMap } from './maps.js?v=10';
+import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=10';
+import { banditFor, banditBeaten } from './treasure_world.js?v=10';
+import { SQ, simTrial, cfgOf } from './sidequests.js?v=10';
+import * as EXPLORE from './explore.js?v=10';
 
 export const G = window.G = { mode: 'boot', S, F, B, UI, GENERALS, GEN_LIST, ITEMS, PLACES, REGIONS };
 G.uiActive = () => UI.active;
@@ -247,7 +247,7 @@ function draw() {
 // ---------- start ----------
 setupTouch();
 setupCanvasTap();
-import { WOBJ, tileset } from './assets.js?v=9';
+import { WOBJ, tileset } from './assets.js?v=10';
 G.WOBJ = WOBJ; G.tileset = tileset;
 requestAnimationFrame(frame);
 // tests can run the game faster than the screen refreshes (and while the page is hidden)

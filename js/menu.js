@@ -1,24 +1,24 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=9';
-import { input } from './input.js?v=9';
-import { sfx, setMusic, music } from './audio.js?v=9';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=9';
-import { L, LANG, setLang } from './i18n.js?v=9';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=9';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=9';
-import { icon, ICON_COL } from './icons.js?v=9';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=9';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=9';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=9';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=9';
-import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=9';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=10';
+import { input } from './input.js?v=10';
+import { sfx, setMusic, music } from './audio.js?v=10';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=10';
+import { L, LANG, setLang } from './i18n.js?v=10';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=10';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=10';
+import { icon, ICON_COL } from './icons.js?v=10';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=10';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=10';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=10';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=10';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=10';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=9';
-import { overviewMap, placeMark } from './worldgfx.js?v=9';
-import { questLog } from './sidequests.js?v=9';
-import { TERRAIN } from './battle.js?v=9';
-import { F, tileX, tileY } from './field.js?v=9';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=10';
+import { overviewMap, placeMark } from './worldgfx.js?v=10';
+import { questLog } from './sidequests.js?v=10';
+import { TERRAIN } from './battle.js?v=10';
+import { F, tileX, tileY } from './field.js?v=10';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...party().filter((id) => !S.front.includes(id))];
@@ -170,7 +170,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=9'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=10'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -233,7 +233,7 @@ const HELP = [
   { t: ['狀態', 'Statuses'], draw: 'status', s: ['', ''] },
   { t: ['裝備與寶物', 'Gear and Treasures'], s: ['每位武將有七個裝備欄：武器、盾牌、鎧甲、頭盔、披風、坐騎、飾品。除了飾品，每件都會改變武將在地圖、城鎮、戰場與選單上的模樣（飾品也常有項鍊、腰帶等小細節）。雙手兵器（戟、弓、弩、雙刀）不能持盾。\n天下藏著三百件寶物，分為普通、精良、稀有、名品、傳說。寶物除了數值，還有效果：對某兵種傷害、某陣形時攻防、策略威力與消耗、抵抗異常、反彈策略、反擊、先制、士氣、策略值上限、水戰、每回合回兵……同一套裝穿兩到四件另有加成。寶物藏在太守府、廟堂、洞窟與街上的紅色寶箱裡、賈斯珀才看得見的野地、首領的戰利品、各地敵軍偶爾掉落、百姓的委託、商店的稀有貨與寶物商人那裡。到酒館打聽，寶物錄會記下線索。', 'Every general has seven slots: weapon, shield, armour, helm, cape, mount and accessory. All but the accessory change how they look on the map, in towns, in battle and in menus (accessories often add a small detail, a pendant or a belt). Two-handed weapons (halberds, bows, crossbows, twin blades) leave no hand for a shield.\nThree hundred treasures lie across the realm: Common, Fine, Rare, Famed and Legendary. Besides their numbers they have effects: damage against a unit type, attack and defence in a formation, tactic power and cost, resisting statuses, reflecting ploys, counters, first strikes, morale, extra strategy points, naval power, troops back each turn... and two to four pieces of one set add more. Look in red chests in governors\' halls, shrines, caves and streets, in the wilds where only Jasper sees, among leaders\' spoils, as rare drops from each land\'s armies, as rewards for townsfolk\'s favours, in shops\' rare stock and at the treasure merchant\'s. Ask in taverns: the Codex notes every rumour.'] },
   { t: ['雙特性', 'Traits'], draw: 'traits', s: ['五百名武將每人都有兩個特性，沒有兩人的組合相同。特性一直有效，觸發時武將頭上會浮現特性名稱。\n戰鬥中選「情報」、按選單鍵或點一下武將，就能看到他的特性、能力與狀態；敵人的弱點、抗性與首領的下一招要偵察才看得到（賈斯珀的「斥候」與郭嘉的「鬼才」也能看穿）。\n按A打開特性一覽：←→換類別，↑↓選擇。', 'Each of the 500 generals has two traits, and no two share the same pair. Traits always work, and a trait\'s name rises over the general when it triggers.\nIn battle, Info, the Menu key or a tap on a general shows their traits, numbers and statuses; an enemy\'s weak points, resistances and a leader\'s next move need scouting (Jasper\'s Scouts and Guo Jia\'s Ghost Talent see through them too).\nPress A for the trait glossary: left/right for a family, up/down to choose.'] },
-  { t: ['首領戰', 'Leaders'], s: ['首領沒有特殊能力，和我們一樣用通用規則作戰。他們強在：\n‧ 等級較高，穿著寶物；名將有自己的兩個特性（傳說特性也一樣）。\n‧ 主將：每支軍隊（包括我們）排在最前面的主將，攻擊與防禦+15%。\n‧ 軍師：敵軍也有策略值（畫面右上「敵軍策略」），由他們最聰明的武將決定，用完就只能攻擊。\n‧ 智力或統率85以上的敵將會看穿我軍陣形，被克制時會變陣反制一次。\n‧ 首領戰中敵軍會集中攻擊兵力少的人與我軍軍師，兵力少時會防禦。任何一方的主將倒下，軍心大跌；首領的軍隊會戰到最後一人。\n對策也是通用的：偵察看清他們的特性、裝備與陣形，用克制的陣形、兵種相剋、狀態、治療與我們自己的特性應戰。出戰前聽聽軍師怎麼說。', 'Leaders have no special powers; they fight by the same rules as we do. What makes them strong:\n- A higher level and treasures; famous generals have their own two traits (legendary ones too).\n- Commander: the general at the head of every army (ours too) gets +15% attack and defence.\n- Strategist: the enemy has strategy points too ("Enemy SP" at the top right), set by its cleverest general; when they run out, they can only fight.\n- An enemy general with INT or LEAD 85+ reads our formation: if ours beats theirs, he changes once to answer it.\n- In a leader\'s battle the enemy goes for the weakened and for our strategist, and stands on guard when low. When either side\'s commander falls its morale plunges; a leader\'s army fights to the last.\nThe answers are the general ones: scout their traits, gear and formation, then counter with formation, the unit triangle, statuses, healing and our own traits. Listen to your advisers before the battle.'] },
+  { t: ['首領戰', 'Leaders'], s: ['首領沒有特殊能力，和我們一樣用通用規則作戰。他們強在：\n‧ 等級較高，穿著寶物；名將有自己的兩個特性（傳說特性也一樣）。\n‧ 主將：每支軍隊（包括我們）排在最前面的主將，攻擊與防禦+15%。\n‧ 軍師：敵軍也有策略值（畫面右上「敵軍策略」），由他們最聰明的武將決定，用完就只能攻擊。\n‧ 智力或統率85以上的敵將會看穿我軍陣形：只要他們的陣形沒有克制我軍，第二回合起就會變陣反制一次。我們可以再變回來。\n‧ 首領戰中敵軍會合力圍攻：每回合主將點名一個我軍最虛弱、刀兵碰得到的人，大半的攻擊都打向他（挑釁的武將能把他們引開）；他們也會盯上我軍軍師，兵力少時會防禦。任何一方的主將倒下，軍心大跌；首領的軍隊會戰到最後一人。\n對策也是通用的：偵察看清他們的特性、裝備與陣形，用克制的陣形、兵種相剋、狀態、治療與我們自己的特性應戰。只會「全軍突擊」的軍隊不換陣、不治療、不用計，通常打不過首領。出戰前聽聽軍師怎麼說。', 'Leaders have no special powers; they fight by the same rules as we do. What makes them strong:\n- A higher level and treasures; famous generals have their own two traits (legendary ones too).\n- Commander: the general at the head of every army (ours too) gets +15% attack and defence.\n- Strategist: the enemy has strategy points too ("Enemy SP" at the top right), set by its cleverest general; when they run out, they can only fight.\n- An enemy general with INT or LEAD 85+ reads our formation: unless theirs already beats ours, from the second round he changes once to one that does. We may change back.\n- In a leader\'s battle the enemy works together: each round its commander names the most worn-down of ours its blades can reach and most blows go there (a Taunt general draws them off); they also go for our strategist, and stand on guard when low. When either side\'s commander falls its morale plunges; a leader\'s army fights to the last.\nThe answers are the general ones: scout their traits, gear and formation, then counter with formation, the unit triangle, statuses, healing and our own traits. An army that only uses All-out Charge never changes formation, heals or uses a ploy, and will usually lose to a leader. Listen to your advisers before the battle.'] },
   { t: ['地形', 'The Ground'], draw: 'terrain', s: ['地形對雙方一視同仁。野戰的地形就是遇敵那一格的地形；首領會挑對自己有利的地方：守隘口、佔高地、隔河以待、據城而守。高地：該方弓兵+20%、防禦+10%、落石+20%。渡河：涉水的一方前兩回合速度−20%、防禦−10%。畫面右上角與情報卡會顯示地形對每個人的影響。', 'The ground is the same for both armies. A field battle is fought on the ground of the tile where it began; leaders pick ground that suits them: a pass, a height, the far bank of a river, their own walls. High ground: that side\'s archers +20%, defence +10%, rockfalls +20%. Wading a ford: 20% slower and 10% weaker in defence for two rounds. The top right of the screen and the info card show what the ground does to each general.'] },
   { t: ['攻城', 'Sieges'], s: ['攻打城池或關隘時，守軍站在城牆上：弓兵+25%、防禦+25%，刀兵只能從垛口刺擊（八成五）。城門有自己的耐久：步兵×1.4、水軍×1.2、騎兵衝撞×1、弓兵×0.3，工匠×1.5，火計×1.5、落石×1.3，火藥與投石車也行。騎兵上不了城牆；步兵可以爬梯直接攻擊城上的人（傷害減半，還要挨一輪箭）。城門一破，城牆就沒有用了，守軍士氣大跌。守將可能開門出城迎戰（出城的人沒有城牆保護）；拖得太久，敵軍援軍會從城後趕到。', 'When you attack a city or a gate, the defenders stand on the walls: their archers +25%, their defence +25%, and their blades can only thrust over the parapet (85%). The gate has its own durability: foot x1.4, navy x1.2, horse ramming x1, archers x0.3, engineers x1.5, fire ploys x1.5, rocks x1.3; gunpowder and the catapult work too. Horse cannot climb walls; foot can take ladders straight at the men on top (half damage, and they take a volley). Once the gate is broken the walls are useless and the defenders lose heart. Their leader may open the gate and ride out (outside, the walls do not protect him); take too long and a relief force arrives from behind the city.'] },
   { t: ['軍議', 'The War Council'], s: ['開戰前會召開軍議，每一項準備都用平常的手段完成：偵察城防（賈斯珀、斥候或會偵察的人：看穿全軍、城門−25%）、斷糧道（打一場仗：守軍兵力八成五、敵策略−25%、沒有援軍）、夜襲（打一場仗：一員敵將帶傷、敵士氣−10）、火燒城門（兩包火藥：城門−40%）、策反（金子與能言善道的人：一員敵將倒戈）。守隘口或高地的敵人可以繞道（山戰的武將帶路，高地反而歸我們）；隔河的敵人可以夜渡上游。做過的準備，之後每一次進攻都有效。', 'Before the battle there is a war council, and every preparation uses the ordinary means: scout the defences (Jasper, a Scout or someone who knows Scout: the enemy seen through, the gate 25% weaker), cut the supply road (a battle: the garrison at 85%, their strategy -25%, no relief), a night raid (a battle: one officer wounded, their morale -10), burn the gate (two kegs of gunpowder: 40% weaker), win over a defender (gold and a persuasive officer: one of them changes sides). An enemy holding a pass or a height can be outflanked by another road (with a mountaineer guiding, the height becomes ours); one behind a river can be crossed upstream by night. What you prepare counts for every later attempt.'] },
@@ -383,7 +383,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=9'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=10'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();

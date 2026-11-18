@@ -8,17 +8,17 @@
 // 0 (not taken), 1..n (on step n) or 99 (done). Each step names the map where its challenge waits, the person
 // who stands there, and the battles fought one after another (a gauntlet: no rest between them).
 // Foes: a general's id, or '#faction:n' for the n-th ordinary officer of that side.
-import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=9';
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=9';
-import { sfx } from './audio.js?v=9';
-import { L } from './i18n.js?v=9';
-import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=9';
-import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=9';
-import { S, recruit, give, have, healAll } from './state.js?v=9';
-import { PLACES, REGIONS } from './world.js?v=9';
-import { F } from './field.js?v=9';
-import { placeName, folkLook } from './maps.js?v=9';
-import { gainTreasure, owned } from './treasure_world.js?v=9';
+import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=10';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=10';
+import { sfx } from './audio.js?v=10';
+import { L } from './i18n.js?v=10';
+import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=10';
+import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=10';
+import { S, recruit, give, have, healAll } from './state.js?v=10';
+import { PLACES, REGIONS } from './world.js?v=10';
+import { F } from './field.js?v=10';
+import { placeName, folkLook } from './maps.js?v=10';
+import { gainTreasure, owned } from './treasure_world.js?v=10';
 
 const DONE = 99;
 // who gives each trial, where, the story, the steps and the reward
@@ -33,7 +33,7 @@ export const SQ = {
     steps: [{
       at: 'wucheng', npc: { who: ['白虎寨的嘍囉', 'White Tiger Lookout'], kind: 'folk' },
       before: ['想上白虎寨？寨主的親兵會用身體替他擋刀，寨牆上的弓手箭如雨下……你們是來送死的吧？', 'Up to the stockade? The chief\'s guards take every blow meant for him and the archers on the palisade loose like rain... you\'ve come to die, then?'],
-      fights: [{ foes: [{ id: '#shanyue:7:yongmeng', lv: 41, boss: true, tr: 4 }, { id: '#shanyue:0:huzhu', lv: 39, tr: 3 }, { id: '#shanyue:0:unit=arc', lv: 39, tr: 3 }, { id: '#shanyue:1:unit=inf', lv: 39, tr: 3 }, { id: '#shanyue:0:sage', lv: 39, tr: 3 }],
+      fights: [{ foes: [{ id: '#shanyue:7:yongmeng', lv: 38, boss: true, tr: 4 }, { id: '#shanyue:0:huzhu', lv: 36, tr: 3 }, { id: '#shanyue:0:unit=arc', lv: 36, tr: 3 }, { id: '#shanyue:1:unit=inf', lv: 36, tr: 3 }, { id: '#shanyue:0:sage', lv: 36, tr: 3 }],
         terrain: 'castle', foeForm: 'fangyuan', intro: ['白虎寨寨主「鐵面虎」{0}率親兵殺出寨門！', 'The Iron-Mask Tiger, {0}, storms out of the gate with his bodyguards!'] }],
     }],
   },
@@ -66,7 +66,7 @@ export const SQ = {
     steps: [{
       at: 'wuling', npc: { who: ['逃出來的孩子', 'An Escaped Child'], kind: 'folk' },
       before: ['船、船快開了！他們說……第五個時辰一到就開船！（限時五回合：打不完，孩子就被帶走了）', 'The boat, the boat\'s about to sail! They said... at the fifth hour they cast off! (Five rounds: if they are not routed by then, the children are gone.)'],
-      fights: [{ foes: [{ id: '#cai_mao:6', lv: 58, boss: true, tr: 6 }, { id: '#cai_mao:0:huwei', lv: 56, tr: 5 }, { id: '#cai_mao:7', lv: 56, tr: 5 }, { id: '#cai_mao:0:sage', lv: 56, tr: 5 }],
+      fights: [{ foes: [{ id: '#cai_mao:6', lv: 51, boss: true, tr: 6 }, { id: '#cai_mao:0:huwei', lv: 49, tr: 5 }, { id: '#cai_mao:7', lv: 49, tr: 5 }, { id: '#cai_mao:0:sage', lv: 49, tr: 5 }],
         terrain: 'river', foeForm: 'fangyuan', maxRounds: 5, timeout: ['船開走了……孩子們被帶走了。', 'The boat pulls away... the children are gone.'], intro: ['逃兵頭子{0}擋在船前！', 'The deserter captain {0} stands before the boat!'] }],
     }],
   },
@@ -80,7 +80,7 @@ export const SQ = {
     steps: [{
       at: 'dongye', npc: { who: ['老船長的水手', 'The Captain\'s Bosun'], kind: 'sailor' },
       before: ['海盜王的人個個是水戰好手，擺水軍陣。帶水軍，擺水軍陣，偵察看他們的裝備。（水戰）', 'Every one of the Pirate King\'s men is a river warrior, and they hold the Naval Line. Bring sailors, take the Naval Line, and scout their gear. (Naval battle.)'],
-      fights: [{ foes: [{ id: '#pirate:3', lv: 65, boss: true, tr: 7 }, { id: '#pirate:0:shuizhan', lv: 63, tr: 6 }, { id: '#pirate:1:shuizhan', lv: 63, tr: 6 }, { id: '#pirate:0:sage', lv: 63, tr: 6 }],
+      fights: [{ foes: [{ id: '#pirate:3', lv: 61, boss: true, tr: 7 }, { id: '#pirate:0:shuizhan', lv: 59, tr: 6 }, { id: '#pirate:1:shuizhan', lv: 59, tr: 6 }, { id: '#pirate:0:sage', lv: 59, tr: 6 }],
         terrain: 'river', naval: true, foeForm: 'shuijun', intro: ['海盜王{0}的樓船艦隊壓了過來！', 'The tower ships of the Pirate King, {0}, bear down!'] }],
     }],
   },
@@ -94,7 +94,7 @@ export const SQ = {
     steps: [{
       at: 'xinye', npc: { gen: 'zhangfei' },
       before: ['燕人張翼德在此！誰敢與我決一死戰！（他開戰便一聲大喝：冷靜、看破的武將不會被嚇住）', 'I am Zhang Yide of Yan! Who dares fight me to the death? (He roars as battle begins: Calm or Clear Mind generals do not flinch.)'],
-      fights: [{ foes: [{ id: 'zhangfei', lv: 62, boss: true, tr: 8 }, { id: '#liu:0:unit=cav', lv: 59, tr: 7 }, { id: '#liu:1:unit=cav', lv: 59, tr: 7 }, { id: '#liu:0:sage', lv: 59, tr: 7 }],
+      fights: [{ foes: [{ id: 'zhangfei', lv: 57, boss: true, tr: 8 }, { id: '#liu:0:unit=cav', lv: 54, tr: 7 }, { id: '#liu:1:unit=cav', lv: 54, tr: 7 }, { id: '#liu:0:sage', lv: 54, tr: 7 }],
         terrain: 'river', foeForm: 'fengshi', intro: ['張飛橫矛立馬，一聲大喝震動長橋！', 'Zhang Fei levels his spear and roars; the bridge shakes!'] }],
       win: ['zhangfei', '痛快！好久沒打得這麼痛快了！俺老張就跟你們走一趟！', 'Ha! I haven\'t had a fight like that in years! Old Zhang will ride with you!'],
     }],
@@ -102,15 +102,15 @@ export const SQ = {
   gates: {
     ch: 7, rec: 48, name: ['八門金鎖', 'The Eight Gates Lock'],
     giver: { place: 'wancheng', who: ['落第的老書生', 'Failed Old Scholar'], kind: 'elder' },
-    ask: ['曹子孝在宛城外擺了八門金鎖陣，說天下無人能破。老朽研究了一輩子……只帶三員大將，八回合內，從生門殺入，或許能破！', 'Cao Zixiao has laid the Eight Gates Lock outside Wancheng and says no one under heaven can break it. I have studied it all my life... with only three generals, inside eight rounds, through the Gate of Life, it might be done!'],
-    goal: ['只帶前列三員武將，八回合內破曹仁的八門金鎖陣。', 'With only the first three of your front line, break Cao Ren\'s Eight Gates Lock within eight rounds.'],
+    ask: ['曹子孝在宛城外擺了八門金鎖陣，說天下無人能破。老朽研究了一輩子……只帶三員大將，十回合內，從生門殺入，或許能破！', 'Cao Zixiao has laid the Eight Gates Lock outside Wancheng and says no one under heaven can break it. I have studied it all my life... with only three generals, inside ten rounds, through the Gate of Life, it might be done!'],
+    goal: ['只帶前列三員武將，十回合內破曹仁的八門金鎖陣。', 'With only the first three of your front line, break Cao Ren\'s Eight Gates Lock within ten rounds.'],
     thanks: ['破了！真的破了！這是老朽一生的心血：三才陣圖。還有這面曹仁的盾。', 'Broken! It truly broke! Here is my life\'s work, the Three Talents chart. And Cao Ren\'s own shield.'],
     reward: { form: 'sancai', tr: ['bamendun'], gold: 5000 },
     steps: [{
       at: 'wancheng', npc: { gen: 'caoren' },
-      before: ['想破我的金鎖陣？只准三人入陣，八回合為限。（只有前列的前三位出戰：先在陣形選單排好順序）', 'You would break my Lock? Three may enter, eight rounds at most. (Only the first three of your front line fight: set the order in the Formation menu first.)'],
-      fights: [{ foes: [{ id: 'caoren', lv: 53, boss: true, tr: 8 }, { id: '#cao:0:unit=inf', lv: 49, tr: 7 }, { id: '#cao:0:unit=arc', lv: 49, tr: 7 }, { id: '#cao:0:sage', lv: 49, tr: 7 }],
-        terrain: 'grass', foeForm: 'bagua', onlyFront: 3, maxRounds: 8, timeout: ['八門重新合攏，三人被困陣外……', 'The eight gates swing shut again; the three are locked out...'], intro: ['曹仁坐鎮八門金鎖陣中央！', 'Cao Ren holds the heart of the Eight Gates Lock!'] }],
+      before: ['想破我的金鎖陣？只准三人入陣，十回合為限。（只有前列的前三位出戰：先在陣形選單排好順序。他的槍兵專擋騎兵，軍師會替他療傷；偃月陣克八卦陣，而曹仁看得穿陣形）', 'You would break my Lock? Three may enter, ten rounds at most. (Only the first three of your front line fight: set the order in the Formation menu first. His spearmen are a wall against horse and his strategist heals him; the Crescent beats the Eight Trigrams, and Cao Ren reads formations.)'],
+      fights: [{ foes: [{ id: 'caoren', lv: 55, boss: true, tr: 8 }, { id: '#cao:0:qiangzhen', lv: 51, tr: 7 }, { id: '#cao:1:qiangzhen', lv: 51, tr: 7 }, { id: '#cao:0:sage', lv: 51, tr: 7 }],
+        terrain: 'grass', foeForm: 'bagua', onlyFront: 3, maxRounds: 10, timeout: ['八門重新合攏，三人被困陣外……', 'The eight gates swing shut again; the three are locked out...'], intro: ['曹仁坐鎮八門金鎖陣中央！', 'Cao Ren holds the heart of the Eight Gates Lock!'] }],
       win: ['caoren', '……八門竟被三人破了。我曹子孝服了。', '...Three men broke the Eight Gates. Cao Zixiao concedes.'],
     }],
   },
@@ -164,7 +164,7 @@ export const SQ = {
     steps: [{
       at: 'jiuyi/f4', goal: true,
       before: ['深淵底部，玄冥睜開了眼睛。「百年了……正好餓了。」（黑蓮最古老的術士與他的弟子：策略多、狀態多。帶不受狀態的武將、清心丹，封住他們的軍師）', 'At the bottom of the abyss, Xuanming opens his eyes. "A hundred years... and I am hungry." (The Black Lotus\'s oldest sorcerer and his disciples: many ploys, many statuses. Bring generals who resist them, Clear-Mind Pills, and seal their strategists.)'],
-      fights: [{ foes: [{ id: '#sect:0:sage', lv: 85, boss: true, tr: 10 }, { id: '#sect:41', lv: 82, tr: 10 }, { id: '#sect:42', lv: 82, tr: 10 }, { id: '#sect:1:sage', lv: 82, tr: 10 }],
+      fights: [{ foes: [{ id: '#sect:0:sage', lv: 87, boss: true, tr: 10 }, { id: '#sect:41', lv: 84, tr: 10 }, { id: '#sect:42', lv: 84, tr: 10 }, { id: '#sect:1:sage', lv: 84, tr: 10 }],
         terrain: 'sect', foeForm: 'bagua', music: 'sectboss', canRun: false, intro: ['黑蓮古老「玄冥」{0}從深淵中升起！', 'Xuanming, eldest of the Black Lotus, {0}, rises from the abyss!'] }],
     }],
   },
@@ -177,8 +177,8 @@ export const SQ = {
     reward: { gen: ['simayi', 60], tr: ['zhonghu'], gold: 12000 },
     steps: [{
       at: 'changan', npc: { gen: 'simayi' },
-      before: ['請。十四手之內，讓我看看你的棋。（狼顧：他的策略不會被反彈，敵計對他也難奏效；三位謀士陪他。他擺八卦陣，突騎陣克制）', 'Please. Within fourteen moves, show me your game. (Wolf\'s Glance: his ploys never bounce and ours struggle against him; three advisers stand with him. He holds the Eight Trigrams; the Cavalry Charge beats it.)'],
-      fights: [{ foes: [{ id: 'simayi', lv: 85, boss: true, tr: 10 }, { id: '#cao:0:sage', lv: 82, tr: 10 }, { id: '#cao:1:sage', lv: 82, tr: 10 }, { id: '#cao:4:huzhu', lv: 82, tr: 10 }],
+      before: ['請。十四手之內，讓我看看你的棋。（狼顧：他的策略不會被反彈，敵計對他也難奏效；三位謀士陪他。他擺八卦陣，偃月陣克制；他看得穿陣形）', 'Please. Within fourteen moves, show me your game. (Wolf\'s Glance: his ploys never bounce and ours struggle against him; three advisers stand with him. He holds the Eight Trigrams; the Crescent beats it, and he reads formations.)'],
+      fights: [{ foes: [{ id: 'simayi', lv: 83, boss: true, tr: 10 }, { id: '#cao:0:sage', lv: 80, tr: 10 }, { id: '#cao:1:sage', lv: 80, tr: 10 }, { id: '#cao:4:huzhu', lv: 80, tr: 10 }],
         terrain: 'castle', foeForm: 'bagua', maxRounds: 14, timeout: ['司馬懿收起棋子：「時候到了。」', 'Sima Yi gathers his stones: "Time."'], intro: ['司馬懿輕搖羽扇，布下天羅地網。', 'Sima Yi waves his feather fan and spreads his net.'] }],
       win: ['simayi', '……輸了。有趣。懿就陪閣下走一段，看看這局棋怎麼收官。', '...I lose. How interesting. Yi will walk a while with you, to see how this game ends.'],
     }],

@@ -11,23 +11,23 @@
 //   softer, a beaten army flees when its heart breaks (a leader's army fights to the last)
 // - tactics may fail: the chance (shown in the menu) depends on INT, element, weather and terrain
 // - statuses with turns, shown as small icons; leaders are strong only by the general rules (level, traits, gear, formation, a strategist)
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=9';
-import { input } from './input.js?v=9';
-import { sfx, playMusic, currentSong } from './audio.js?v=9';
-import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=9';
-import { L } from './i18n.js?v=9';
-import { IMG, FX, tileset } from './assets.js?v=9';
-import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=9';
-import { maxTP } from './data.js?v=9';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=9';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip, party, inCamp } from './state.js?v=9';
-import { battleSheet, fieldSheet } from './doll.js?v=9';
-import { drawPose } from './equipui.js?v=9';
-import { horseImg } from './horses.js?v=9';
-import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=9';
-import { icon, digits, ICON_COL } from './icons.js?v=9';
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=9';
-import { TRAITS, traitName, traitDesc } from './traits.js?v=9';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=10';
+import { input } from './input.js?v=10';
+import { sfx, playMusic, currentSong } from './audio.js?v=10';
+import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=10';
+import { L } from './i18n.js?v=10';
+import { IMG, FX, tileset } from './assets.js?v=10';
+import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=10';
+import { maxTP } from './data.js?v=10';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=10';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip, party, inCamp } from './state.js?v=10';
+import { battleSheet, fieldSheet } from './doll.js?v=10';
+import { drawPose } from './equipui.js?v=10';
+import { horseImg } from './horses.js?v=10';
+import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=10';
+import { icon, digits, ICON_COL } from './icons.js?v=10';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=10';
+import { TRAITS, traitName, traitDesc } from './traits.js?v=10';
 
 export const B = { active: false };
 const waits = [];
@@ -591,7 +591,7 @@ export function startBattle(cfg) {
     if (window.G && G.autoBattle && G.policy === 'brute') S.formation = 'fangyuan';
     Object.assign(B, { active: true, cfg, resolve, units: [], round: 0, weather: cfg.weather || 'clear', naval: !!cfg.naval, terrain: cfg.terrain || 'grass', form: formOk(S.formation) ? S.formation : 'fangyuan',
       height: cfg.height || null, crossing: cfg.crossing || null, siege: cfg.siege || null, gate: null,
-      foeForm: cfg.foeForm || ['fangyuan', 'yulin', 'heyi', 'changshe'][Math.floor(Math.random() * 4)], scouted: false, auto: false, over: false, fade: 30, prevSong: currentSong, ambush: {}, lvgap: 0, cmdDown: null,
+      foeForm: cfg.foeForm || ['fangyuan', 'yulin', 'heyi', 'changshe'][Math.floor(Math.random() * 4)], scouted: false, auto: false, over: false, fade: 30, prevSong: currentSong, ambush: {}, lvgap: 0, cmdDown: null, focus: null, focusR: 0, foeRead: false, sallied: false, reinfCame: false,
       kit: null, morale: { ally: 50, foe: cfg.boss ? 55 : 50 }, fog: 0, pending: [], phaseDone: {}, nextMove: {}, cur: null, picking: null, card: null, stats: { tele: 0, cancel: 0 } });
     nums.length = 0; fxs.length = 0; shots.length = 0; fallers.length = 0; runners.length = 0; msg = '';
     // a trial may allow only the first few of the front line (onlyFront)
@@ -725,10 +725,10 @@ const speedOf = (u) => speedBase(u) * rnd(0.85, 1.15) + (u.guard ? 1000 : 0);
 
 // ---------- boss mechanics ----------
 const mvName = (m) => L(m.name[0], m.name[1]);
-// any army whose commander or cleverest general is sharp enough (INT or LEAD 85+) sees our formation beat theirs
-// and changes to the one that beats ours, once in a battle, from the second round; we may answer in turn
+// any army with a general sharp enough (INT or LEAD 85+) reads our formation: unless theirs already beats ours,
+// they change to the one that beats it, once in a battle, from the second round; we may answer in turn
 async function readFormation() {
-  if (B.round < 2 || B.foeRead || formEdge(B.foeForm, B.form) >= 0) return;
+  if (B.round < 2 || B.foeRead || formEdge(B.foeForm, B.form) > 0) return;
   const r = alive('foe').find((u) => !u.summon && !disabled(u) && !u.st.confuse && (u.int >= 85 || u.g.lead >= 85));
   if (!r) return;
   const nf = beatenBy(B.form);
@@ -1143,22 +1143,12 @@ async function tryRun() {
 }
 
 // ---------- the test bots' generals ----------
-// G.policy 'brute': the whole army charges and the clever ones throw the biggest tactic they can afford.
+// G.policy 'brute': exactly the in-game 全軍突擊 (All-out charge): everyone attacks, no tactics, no items, no
+// defending, no change of formation.
 // G.policy 'smart' (the story bot): picks the formation that beats the enemy's, keeps the strategist in the back,
 // scouts, answers announced moves, works the boss's weak point, heals and cures.
 const weakest = (list) => list.reduce((a, b) => (b.troops < a.troops ? b : a), list[0]);
-function bruteOrder(u) {
-  const foes = alive('foe');
-  if (u.int >= 80 && !u.st.silence) {
-    const opts = tacticsOf(u).map((id) => TACTICS[id]).filter((t) => t && t.pow && (t.t === 'e1' || t.t === 'eall') && tacCost(t.id, u) <= S.tp);
-    if (opts.length) {
-      const score = (t) => t.pow * (t.t === 'eall' ? foes.length : 1.3);
-      const t = opts.sort((a, b) => score(b) - score(a))[0];
-      return { kind: 'tactic', tac: t.id, target: weakest(foes), cost: tacCost(t.id, u) };
-    }
-  }
-  return autoOrder(u);
-}
+const bruteOrder = (u) => autoOrder(u);
 const power = (id) => { const g = GENERALS[id]; return g.str + g.lead + g.int * 0.5; };
 // before the battle: who stands in the line, in which formation, and where
 function smartPrep(cfg) {
@@ -1191,7 +1181,10 @@ function smartPrep(cfg) {
   S.front = arrange(pick, front, must, live) || front;
   // a trial that lets only a few fight (onlyFront): send the strongest, favouring the troops the enemy is weak to
   if (cfg.onlyFront) {
-    const wk = kit && kit.weak && kit.weak.unit, sc = (id) => score(id) * (wk && unitOf(id) === wk ? 1.6 : 1);
+    // and weighing the unit triangle against the army we face (spear walls blunt horse)
+    const fu = cfg.foes.map((f) => GENERALS[f.id]).filter(Boolean);
+    const tri = (id) => { const me = unitOf(id); let k = 0; for (const g of fu) { const wall = (g.traits || []).includes('qiangzhen') && me === 'cav'; k += (unitEdge(me, g.unit, cfg.naval) * (wall ? 0.8 : 1)) / (unitEdge(g.unit, me, cfg.naval) * (wall ? 1.25 : 1)); } return fu.length ? k / fu.length : 1; };
+    const wk = kit && kit.weak && kit.weak.unit, sc = (id) => score(id) * tri(id) * (wk && unitOf(id) === wk ? 1.6 : 1);
     const few = live.slice().sort((a, b) => sc(b) - sc(a)).slice(0, cfg.onlyFront);
     S.front = few.concat(S.front.filter((id) => !few.includes(id))).slice(0, 5);
   }
@@ -1235,6 +1228,8 @@ function smartOrders(fr, orders) {
   const bestCaster = (ids, target, minCh = 0) => { let best = null; for (const u of pool()) for (const id of ids) if (can(u, id)) { const ch = target ? tacChance(u, target, TACTICS[id]) : 1; if (ch >= minCh && (!best || ch > best.ch || (ch === best.ch && u.atk < best.u.atk))) best = { u, id, ch }; } return best; };
   const castOn = (b, target) => assign(b.u, { kind: 'tactic', tac: b.id, target, cost: tacCost(b.id, b.u) });
   let pills = have('qingxin');
+  // a battle against the clock (maxRounds): no time for scouting, seals or rallying the fallen; heal only the dying
+  const race = !!B.cfg.maxRounds && B.cfg.maxRounds <= 10;
   // the enemy changed formation to beat ours: change back to one that beats theirs
   if (B.round > 1 && formEdge(B.form, B.foeForm) < 0 && pool().length) {
     let f = beatenBy(B.foeForm);
@@ -1268,7 +1263,7 @@ function smartOrders(fr, orders) {
     }
   }
   // scout the leader at the start, and whenever an ambush is laid
-  if (B.cfg.boss && ((!B.scouted && B.round === 1) || B.ambush.foe)) { const b = bestCaster(['zhencha'], null); if (b) castOn(b, null); }
+  if (B.cfg.boss && !race && ((!B.scouted && B.round === 1) || B.ambush.foe)) { const b = bestCaster(['zhencha'], null); if (b) castOn(b, null); }
   // curses, confusion and fog
   const troubled = fr.filter((v) => v.st.curse || v.st.confuse);
   if (troubled.length >= 2 || B.fog > 0) { const b = bestCaster(['guanxing'], null); if (b) castOn(b, null); else if (B.fog > 0) { const w = bestCaster(['hufeng'], null); if (w && B.weather !== 'wind') castOn(w, null); } }
@@ -1277,19 +1272,28 @@ function smartOrders(fr, orders) {
     const u = pool().sort((a, b) => a.atk - b.atk)[0]; if (!u) break;
     assign(u, { kind: 'item', item: 'qingxin', target: v }); pills--;
   }
-  // the fallen and the hurt
-  const down = B.units.filter((v) => v.side === 'ally' && v.troops <= 0 && !v.fled);
-  if (down.length) { const b = bestCaster(['fuhuo'], null); if (b) castOn(b, down[0]); else if (have('zhaohun') && pool().length) assign(pool().sort((a, b) => a.atk - b.atk)[0], { kind: 'item', item: 'zhaohun', target: down[0] }); }
-  const low = () => fr.filter((v) => v.troops > 0 && v.troops < v.max * 0.45 && !v.st.curse);
-  if (low().length >= 2) { const b = bestCaster(['dahui', 'huifu'], null); if (b) castOn(b, null); else if (have('rations') && pool().length) assign(pool().sort((a, b) => a.atk - b.atk)[0], { kind: 'item', item: 'rations' }); }
-  for (const v of low()) {
-    if ([...orders.values()].some((o) => o.target === v && (o.kind === 'item' || (o.kind === 'tactic' && TACTICS[o.tac].heal)))) continue;
-    const b = bestCaster(['zhiliao'], null);
+  // the hurt: a group heal when the army as a whole is worn down; one at a time for the badly hurt, the worst
+  // with a Wound Balm while they stand on guard (a guard moves first and takes half)
+  const low = () => fr.filter((v) => v.troops > 0 && v.troops < v.max * (race ? 0.25 : 0.5) && !v.st.curse);
+  const worn = fr.reduce((s, v) => s + (v.troops > 0 && !v.st.curse ? 1 - v.troops / v.max : 0), 0);
+  if (race ? worn >= 2.5 : low().length >= 2 || worn >= 1.5) { const b = bestCaster(['dahui', 'huifu'], null); if (b) castOn(b, null); else if ((have('rations') || have('wine')) && pool().length) assign(pool().sort((a, b) => a.atk - b.atk)[0], { kind: 'item', item: have('rations') ? 'rations' : 'wine' }); }
+  const healed = (v) => [...orders.values()].some((o) => (o.target === v && (o.kind === 'item' || (o.kind === 'tactic' && TACTICS[o.tac].heal))) || (o.kind === 'tactic' && TACTICS[o.tac].heal && TACTICS[o.tac].t === 'aall' && v.troops > v.max * 0.3) || (o.kind === 'item' && o.item === 'rations') || (o.kind === 'item' && o.item === 'wine' && v.troops > v.max * 0.35));
+  for (const v of low().sort((a, b) => a.troops / a.max - b.troops / b.max)) {
+    if (healed(v)) continue;
+    const dire = v.troops < v.max * 0.3;
+    if (dire && pool().includes(v) && pool().length > 1) assign(v, { kind: 'guard' });
+    const it = dire && have('jinchuang') ? 'jinchuang' : null;
+    const b = it ? null : bestCaster(['zhiliao'], null);
     if (b) { castOn(b, v); continue; }
-    const it = have('jinchuang') ? 'jinchuang' : have('salve') ? 'salve' : null;
+    const it2 = it || (have('jinchuang') ? 'jinchuang' : have('salve') ? 'salve' : null);
     const u = pool().sort((a, b) => a.atk - b.atk)[0];
-    if (it && u) { assign(u, { kind: 'item', item: it, target: v }); S.items[it]--; }
+    if (it2 && u) { assign(u, { kind: 'item', item: it2, target: v }); S.items[it2]--; }
   }
+  // the fallen: rally them only while points are plentiful (and each once), after the living are seen to
+  const down = B.units.filter((v) => v.side === 'ally' && v.troops <= 0 && !v.fled && !(v.rallied >= 1));
+  let rallied = false;
+  if (down.length && !race && tp > tpMax() * 0.35) { const b = bestCaster(['fuhuo'], null); if (b) { castOn(b, down[0]); down[0].rallied = (down[0].rallied || 0) + 1; rallied = true; } }
+  if (down.length && !race && !rallied && have('zhaohun') && pool().length) { assign(pool().sort((a, b) => a.atk - b.atk)[0], { kind: 'item', item: 'zhaohun', target: down[0] }); down[0].rallied = (down[0].rallied || 0) + 1; }
   // restore the items count (they are taken when used)
   for (const [, o] of orders) if (o.kind === 'item' && (o.item === 'jinchuang' || o.item === 'salve')) S.items[o.item]++;
   if (tp < tpMax() * 0.2 && B.cfg.boss && have('tpdan') && pool().length > 2) assign(pool().sort((a, b) => a.atk - b.atk)[0], { kind: 'item', item: 'tpdan' });
@@ -1297,11 +1301,29 @@ function smartOrders(fr, orders) {
   if (B.kit && B.kit.healer) { const h = kitBoss(B.kit.healer.who); if (h && h.troops > 0 && !h.st.silence) { const b = bestCaster(['fengce'], h, 0.3); if (b) castOn(b, h); } }
   // an iron wall: break it
   for (const w of foes.filter((v) => v.wall)) { const b = bestCaster(['luoshi', 'shanbeng', 'pojia'], w, 0.3); if (b) castOn(b, w); }
+  // in a leader's battle a careful player answers with the mind, using whoever matters least in the fight:
+  // a seal on the one caster with the most to throw (heals or ploys on the whole army) while their points last,
+  // and confusion (or a trap) on a fierce, dull-witted hitter where it will surely land; sleep only when nothing
+  // else will do, since any blow wakes the sleeper
+  if (B.cfg.boss && !race) {
+    const cheap = (ids, target, minCh) => { let best = null; for (const u of pool()) for (const id of ids) if (can(u, id)) { const ch = tacChance(u, target, TACTICS[id]); if (ch >= minCh && (!best || u.atk < best.u.atk)) best = { u, id, ch }; } return best; };
+    const busy = (v) => disabled(v) || v.st.confuse || v.st.silence || [...orders.values()].some((o) => o.target === v && o.kind === 'tactic' && TACTICS[o.tac].st);
+    const kit = (v) => v.own.map((id) => TACTICS[id]).filter((x) => x && (x.heal || (x.pow && x.t === 'eall')) && foeCost(x, v) <= B.foeTp).reduce((s, x) => s + (x.heal ? x.heal * (x.t === 'aall' ? 3 : 1) : x.pow * 2), 0);
+    const caster = B.foeTp >= 25 ? foes.filter((v) => !v.summon && !busy(v) && kit(v) >= 1).sort((a, b) => kit(b) * b.int - kit(a) * a.int)[0] : null;
+    if (caster) { const b = cheap(['fengce'], caster, 0.5); if (b) castOn(b, caster); }
+    const ourAtk = fr.reduce((s, v) => s + v.atk, 0) / Math.max(1, fr.length);
+    const threat = (v) => v.atk * atkMul(v) * (v.troops / v.max);
+    const top = foes.filter((v) => !v.summon && v.troops > v.max * 0.3 && (v.boss || v.atk > ourAtk * 1.15)).sort((a, b) => threat(b) - threat(a))[0];
+    if (top && !busy(top)) { const b = cheap(['hunluan', 'qimen'], top, 0.7) || cheap(['mihun'], top, 0.8); if (b) castOn(b, top); }
+  }
   // everyone else fights
   for (const u of pool()) { const o = smartFight(u, foes, tp); assign(u, o); }
 }
 // the focus of the attack: things that blow up or heal, then guards, healers, the weaker of a pair, the leader
 function focusFor(u, foes, phys) {
+  // a sleeper is left alone (a blow wakes him) while anyone else stands
+  const awake = foes.filter((v) => !v.st.sleep);
+  if (awake.length) foes = awake;
   const pri = foes.filter((v) => v.bomb || v.petal);
   if (pri.length) return weakest(pri);
   const ill = foes.filter((v) => v.illusion);
@@ -1315,6 +1337,11 @@ function focusFor(u, foes, phys) {
   }
   const nearly = foes.filter((v) => !v.boss && v.troops < v.max * 0.2);
   if (nearly.length) return weakest(nearly);
+  // in a leader's battle the casters who can still throw ploys at our whole army go first (unless sealed)
+  if (B.cfg && B.cfg.boss && phys) {
+    const aoe = foes.filter((v) => !v.st.silence && !v.summon && v.own.some((id) => TACTICS[id] && TACTICS[id].pow && TACTICS[id].t === 'eall' && foeCost(TACTICS[id], v) <= B.foeTp));
+    if (aoe.length >= 2) return aoe.reduce((p, q) => (q.troops / q.max < p.troops / p.max ? q : p));
+  }
   if (list.length) return list.reduce((a, b) => (b.troops / b.max < a.troops / a.max ? b : a));
   const rest = phys ? foes.filter((v) => !v.wall && !iceStance(v) && !(k && k.evade && v.kidx === 0 && !ranged(u))) : foes;
   return weakest(rest.length ? rest : foes);
@@ -1335,15 +1362,21 @@ function smartFight(u, foes, tp) {
   let phys = 0;
   for (let k = 0; k < 3; k++) { const r = physDamage(u, ft, 1); phys += Math.min(ft.troops, r.dmg) / 3; }
   if (guardOf(ft)) phys *= 0.8;
+  // a leader nearly down is finished off with blades: his fall breaks his army's heart and ends his healing
+  if ((ft.boss || ft.cmd) && ft.troops <= phys * 2.5) return { kind: 'attack', target: ft };
   const clever = !u.st.silence && (u.int >= 70 || u.int > u.str + 10);
+  // in a leader's battle a careful player keeps points back for healing and seals, and spends the rest
+  const reserve = B.cfg.boss && !(B.cfg.maxRounds <= 10) ? Math.min(tpMax() * 0.3, 30) : 0;
   if (clever && tp > tpMax() * 0.12) {
     let best = null;
+    const healers = foes.some((x) => !x.st.silence && x.own.some((id) => TACTICS[id] && TACTICS[id].heal && foeCost(TACTICS[id], x) <= B.foeTp));
     for (const id of tacticsOf(u)) {
       const t = TACTICS[id];
-      if (!t || !t.pow || !(t.t === 'e1' || t.t === 'eall') || tacCost(id, u) > tp) continue;
+      if (!t || !t.pow || !(t.t === 'e1' || t.t === 'eall') || tacCost(id, u) > tp - reserve) continue;
       const val = (x) => { if (mirrored(x)) return -tacDamage(u, u, t); if (kitImmuneEl(x, t.el)) return -tacDamage(u, x, t) * 0.5; return Math.min(x.troops, tacDamage(u, x, t)) * tacChance(u, x, t) * (x.bomb || x.petal ? 1.5 : 1); };
       let v, target = null;
-      if (t.t === 'eall') v = foes.reduce((sum, x) => sum + val(x), 0);
+      // damage spread over an army with healers is soon healed back: only what lands on the focus counts in full
+      if (t.t === 'eall') v = foes.reduce((sum, x) => sum + val(x) * (healers && x !== ft ? 0.5 : 1), 0);
       else {
         const focus = focusFor(u, foes, false);
         for (const x of new Set([focus, ...foes.filter((y) => y.boss || y.illusion || y.bomb)])) { const vx = val(x) * (x === focus ? 1.15 : 1); if (v === undefined || vx > v) { v = vx; target = x; } }
@@ -1352,7 +1385,7 @@ function smartFight(u, foes, tp) {
       const worth = v / (1 + tacCost(id, u) / 40);
       if (!best || worth > best.w) best = { w: worth, v, id, target };
     }
-    if (best && best.v > phys * 1.2) return { kind: 'tactic', tac: best.id, target: best.target, cost: tacCost(best.id, u) };
+    if (best && best.v > phys * (B.cfg.maxRounds <= 10 ? 1 : 1.2)) return { kind: 'tactic', tac: best.id, target: best.target, cost: tacCost(best.id, u) };
   }
   return { kind: 'attack', target: ft };
 }
@@ -1375,16 +1408,21 @@ function enemyOrder(u) {
   // when hard pressed, a general who is not the leader stands on guard; the leader too, when his army is still strong
   if (full && u.troops < u.max * 0.22 && !u.summon && alive('foe').length > 1 && Math.random() < (u.boss ? 0.2 : 0.4)) return { kind: 'guard' };
   const tacs = u.st.silence ? [] : u.own.map((t) => TACTICS[t]).filter((t) => t && !t.escape && !t.scout && !t.weather && foeCost(t, u) <= B.foeTp && (full || !['sleep', 'silence', 'fear', 'defdown'].includes(t.st)));
-  if (tacs.length && Math.random() < Math.min(0.6, u.int / 150 + (u.boss ? 0.1 : 0))) {
+  // the cleverer the general, the more often he fights with his mind
+  if (tacs.length && Math.random() < Math.min(0.7, u.int / 140 + (u.boss ? 0.1 : 0))) {
     const hurtFriend = alive('foe').filter((v) => v.troops < v.max * 0.4 && !v.summon).sort((a, b) => a.troops / a.max - b.troops / b.max)[0];
     const heal = tacs.find((t) => t.heal && t.t === 'aall') || tacs.find((t) => t.heal);
     if (hurtFriend && heal) return { kind: 'tactic', tac: heal.id, target: hurtFriend, free: true };
     if (full) {
-      const buff = tacs.find((t) => t.buff && !alive('foe').some((v) => v.buf[t.buff] > 0));
-      if (buff && Math.random() < 0.5) return { kind: 'tactic', tac: buff.id, target: u, free: true };
+      // in a leader's battle: the biggest ploy on our whole army while we stand three or more, else a status on
+      // our hardest hitter, else a buff nobody has yet
+      const big = tacs.filter((t) => t.pow && t.t === 'eall').sort((a, b) => b.pow - a.pow);
+      if (big.length && allies.length >= 3 && Math.random() < 0.45) return { kind: 'tactic', tac: big[0].id, free: true };
       const stt = tacs.filter((t) => t.st && t.t === 'e1');
       if (stt.length && Math.random() < 0.4) { const t = stt[Math.floor(Math.random() * stt.length)]; const strong = allies.filter((v) => !v.st[t.st]).sort((a, b) => b.atk - a.atk)[0]; if (strong) return { kind: 'tactic', tac: t.id, target: strong, free: true }; }
-      const big = tacs.filter((t) => t.pow && t.t === 'eall'); if (big.length && allies.length >= 3) return { kind: 'tactic', tac: big[big.length - 1].id, free: true };
+      const buff = tacs.find((t) => t.buff && !alive('foe').some((v) => v.buf[t.buff] > 0));
+      if (buff && Math.random() < 0.3) return { kind: 'tactic', tac: buff.id, target: u, free: true };
+      if (big.length && allies.length >= 3) return { kind: 'tactic', tac: big[0].id, free: true };
     }
     const atk = tacs.filter((t) => t.pow || (t.st && t.st !== 'ambush'));
     if (atk.length) {
@@ -1399,8 +1437,23 @@ function enemyOrder(u) {
 const foeCost = (t, u) => Math.max(1, Math.round(t.cost * (B.foeSage && has(B.foeSage, 'shensuan') ? 0.75 : 1) * (has(u, 'jieyue') ? 0.7 : 1)));
 // enemies aim by the formation's exposure, avoid the back rows with blades, like a good matchup; in leader
 // fights they also go for the weak and for our strategist
+// in a leader's battle the enemy works together: each round its commander names one of ours to bring down (the
+// most worn-down one its blades can reach) and most blows go there; a taunter still draws the eye
+function foeFocus(a) {
+  const list = alive('ally');
+  if (!list.length) return null;
+  if (B.focusR !== B.round || !B.focus || B.focus.troops <= 0) {
+    const reach = list.filter((v) => !isBack(v) || !frontHolds('ally'));
+    B.focus = (reach.length ? reach : list).reduce((p, q) => (q.troops / q.max < p.troops / p.max ? q : p)); B.focusR = B.round;
+  }
+  const f = B.focus;
+  if (a && !ranged(a) && !has(a, 'qishe') && isBack(f) && frontHolds('ally')) return null;
+  return f;
+}
+const FOCUS = 0.5;
 function pickWeighted(list, a) {
   const f = formOf('ally'), full = B.cfg && B.cfg.boss, s = stratUnit();
+  if (full && a && a.side === 'foe' && !list.some((v) => has(v, 'tiaoxin')) && Math.random() < FOCUS) { const t = foeFocus(a); if (t && list.includes(t)) return t; }
   const wts = list.map((v) => {
     let w = f.hit[v.slot] || 1;
     if (a && !ranged(a) && !has(a, 'qishe') && isBack(v) && frontHolds(v.side)) w *= 0.25;
@@ -1935,8 +1988,8 @@ function bossLines(u) {
   const out = [], foe = u.side === 'foe';
   if (u.cmd) out.push([L('主將：攻擊與防禦+15%', 'Commander: attack and defence +15%'), '#ffc8a0']);
   if (foe && B.foeSage === u) out.push([L(`敵軍軍師：策略值 ${B.foeTp}/${B.foeTpMax}，用完就只能攻擊`, `Enemy strategist: SP ${B.foeTp}/${B.foeTpMax}; when it runs out they can only fight`), '#a0d0ff']);
-  if (foe && !u.summon && (u.int >= 85 || u.g.lead >= 85)) out.push([L(B.foeRead ? '已看穿過我軍陣形' : '善觀陣形：我軍陣形克制敵陣時，會變陣反制一次', B.foeRead ? 'Has already read our formation' : 'Reads formations: if ours beats theirs, he changes to answer it (once)'), '#ffe8a0']);
-  if (foe && u.cmd && B.cfg.boss) out.push([L('首領戰：敵軍集中攻擊兵力少的人與我軍軍師，兵力少時防禦，戰到最後一人', 'A leader\'s army: they go for the weakened and for our strategist, stand on guard when low, and fight to the last'), '#d0c0b0']);
+  if (foe && !u.summon && (u.int >= 85 || u.g.lead >= 85)) out.push([L(B.foeRead ? '已看穿過我軍陣形' : '善觀陣形：敵陣沒有克制我軍時，會變陣反制一次', B.foeRead ? 'Has already read our formation' : 'Reads formations: unless theirs beats ours, he changes to one that does (once)'), '#ffe8a0']);
+  if (foe && u.cmd && B.cfg.boss) out.push([L('首領戰：每回合合力圍攻我軍一人（最虛弱的），也盯上軍師；兵力少時防禦，戰到最後一人', 'A leader\'s army: each round they gang up on one of ours (the most worn-down) and go for our strategist; they stand on guard when low and fight to the last'), '#d0c0b0']);
   return out;
 }
 function drawCard(u, i, n) {

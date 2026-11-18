@@ -3,7 +3,7 @@
 // generals get seeded pairs weighted by their stats, unit type and side, so the same id always gives the same
 // pair and old saves need nothing stored. battle.js runs the effects (each trait id has its own code path)
 // and shows the trait's name over the general whenever it triggers.
-import { L } from './i18n.js?v=9';
+import { L } from './i18n.js?v=10';
 
 // families, in the order the glossary shows them
 export const FAMILY = {

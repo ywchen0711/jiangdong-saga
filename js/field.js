@@ -1,21 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=9';
-import { input, lastDevice } from './input.js?v=9';
-import { sfx } from './audio.js?v=9';
-import { UI } from './ui.js?v=9';
-import { L } from './i18n.js?v=9';
-import { IMG, tileset, WOBJ } from './assets.js?v=9';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER, sceneOf } from './world.js?v=9';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind, placeMark } from './worldgfx.js?v=9';
-import { renderMap, solidKind, TILES } from './tiles.js?v=9';
-import { buildMap, placeName } from './maps.js?v=9';
-import { GENERALS, parseLook } from './generals.js?v=9';
-import { fieldSheet } from './doll.js?v=9';
-import { horseImg } from './horses.js?v=9';
-import { ITEMS, gearFx } from './data.js?v=9';
-import { S, member, hasSkill, troopsMax } from './state.js?v=9';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=10';
+import { input, lastDevice } from './input.js?v=10';
+import { sfx } from './audio.js?v=10';
+import { UI } from './ui.js?v=10';
+import { L } from './i18n.js?v=10';
+import { IMG, tileset, WOBJ } from './assets.js?v=10';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER, sceneOf } from './world.js?v=10';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind, placeMark } from './worldgfx.js?v=10';
+import { renderMap, solidKind, TILES } from './tiles.js?v=10';
+import { buildMap, placeName } from './maps.js?v=10';
+import { GENERALS, parseLook } from './generals.js?v=10';
+import { fieldSheet } from './doll.js?v=10';
+import { horseImg } from './horses.js?v=10';
+import { ITEMS, gearFx } from './data.js?v=10';
+import { S, member, hasSkill, troopsMax } from './state.js?v=10';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };

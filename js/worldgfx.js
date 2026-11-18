@@ -2,9 +2,9 @@
 // wobble so coasts, deserts and snowfields have soft natural edges; shores get foam. Trees, hills, mountains,
 // walls, bridges and places are sprites drawn on top. The map is drawn in 32x32-tile chunks, made when first
 // seen and forgotten when far away.
-import { canvas } from './gfx.js?v=9';
-import { tileset, wsprite, WOBJ } from './assets.js?v=9';
-import { WW, WH, K, PLACES, WATER, sceneOf } from './world.js?v=9';
+import { canvas } from './gfx.js?v=10';
+import { tileset, wsprite, WOBJ } from './assets.js?v=10';
+import { WW, WH, K, PLACES, WATER, sceneOf } from './world.js?v=10';
 
 export const CH = 16; // tiles per chunk side
 let WD = null; // the generated world
