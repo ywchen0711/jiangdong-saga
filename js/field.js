@@ -1,21 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=7';
-import { input, lastDevice } from './input.js?v=7';
-import { sfx } from './audio.js?v=7';
-import { UI } from './ui.js?v=7';
-import { L } from './i18n.js?v=7';
-import { IMG, tileset, WOBJ } from './assets.js?v=7';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=7';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=7';
-import { renderMap, solidKind, TILES } from './tiles.js?v=7';
-import { buildMap, placeName } from './maps.js?v=7';
-import { GENERALS, parseLook } from './generals.js?v=7';
-import { fieldSheet } from './doll.js?v=7';
-import { horseImg } from './horses.js?v=7';
-import { ITEMS, gearFx } from './data.js?v=7';
-import { S, member, hasSkill, troopsMax } from './state.js?v=7';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=8';
+import { input, lastDevice } from './input.js?v=8';
+import { sfx } from './audio.js?v=8';
+import { UI } from './ui.js?v=8';
+import { L } from './i18n.js?v=8';
+import { IMG, tileset, WOBJ } from './assets.js?v=8';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=8';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=8';
+import { renderMap, solidKind, TILES } from './tiles.js?v=8';
+import { buildMap, placeName } from './maps.js?v=8';
+import { GENERALS, parseLook } from './generals.js?v=8';
+import { fieldSheet } from './doll.js?v=8';
+import { horseImg } from './horses.js?v=8';
+import { ITEMS, gearFx } from './data.js?v=8';
+import { S, member, hasSkill, troopsMax } from './state.js?v=8';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };
@@ -183,7 +183,7 @@ function encounterTick(k, x, y, inside = false) {
   F.enc += d;
   if (F.enc >= F.encAt) {
     F.enc = 0; F.encAt = 16 + Math.floor(Math.random() * 22);
-    if (FH.encounter) FH.encounter(inside ? { place: F.map.place, cave: true } : { region: regionAt(x, y), tile: k, naval: S.vehicle === 'ship' });
+    if (FH.encounter) FH.encounter(inside ? { place: F.map.place, cave: true, floor: F.map.floor } : { region: regionAt(x, y), tile: k, naval: S.vehicle === 'ship' });
   }
 }
 function facing() { const [dx, dy] = DIRV[F.dir]; return [tileX() + dx, tileY() + dy]; }
@@ -193,7 +193,8 @@ function interact() {
   // across a counter
   const at = (x, y) => F.ents.find((e) => (e.type === 'npc' && Math.round(e.px / T) === x && Math.round(e.py / T) === y) || ((e.type === 'chest' || e.type === 'sprite' || e.type === 'solid' || e.type === 'cavegoal' || e.type === 'lordseat') && e.x === x && e.y === y && (e.type !== 'sprite' || e.talk) && (e.type !== 'solid' || e.talk)));
   let e = at(fx, fy);
-  if (!e || (e.type === 'sprite' && !e.talk)) { const [dx, dy] = DIRV[F.dir]; const e2 = at(fx + dx, fy + dy); if (e2 && e2.type === 'npc') e = e2; }
+  // a counter is two rows deep (its top and its legs), so look past both
+  if (!e || (e.type === 'sprite' && !e.talk)) { const [dx, dy] = DIRV[F.dir]; let e2 = at(fx + dx, fy + dy); if (!(e2 && e2.type === 'npc') && solidLocal(fx, fy) && solidLocal(fx + dx, fy + dy)) e2 = at(fx + dx * 2, fy + dy * 2); if (e2 && e2.type === 'npc') e = e2; }
   if (!e) return;
   if (e.type === 'npc') { const back = { u: 'd', d: 'u', l: 'r', r: 'l' }[F.dir]; e.dir = back; if (FH.talk) FH.talk(e); return; }
   if (e.type === 'chest' && FH.chest) { FH.chest(e); return; }
@@ -258,7 +259,8 @@ export function fieldDraw() {
     if (e.type === 'sprite') list.push({ y: e.y * T + 15, d: () => e.draw(ctx, Math.round(e.x * T - camX), Math.round(e.y * T - camY), F.frame) });
     else if (e.type === 'npc') list.push({ y: e.py + 14, d: () => drawNpc(e) });
     else if (e.type === 'chest') list.push({ y: e.y * T + 10, d: () => drawChest(e) });
-    else if (e.type === 'stairs') list.push({ y: e.y * T, d: () => drawStairs(e) });
+    else if (e.type === 'stairs') list.push({ y: -1e6, d: () => drawStairs(e) });
+    else if (e.type === 'exit' && m.kind === 'cave') list.push({ y: -1e6, d: () => drawDaylight(e) });
     else if (e.type === 'cavegoal') list.push({ y: e.y * T + 8, d: () => drawGoal(e) });
     else if (e.type === 'horsepen') list.push({ y: e.y * T + 8, d: () => drawPen(e) });
   }
@@ -269,6 +271,7 @@ export function fieldDraw() {
   list.sort((a, b) => a.y - b.y);
   for (const o of list) o.d();
   if (m.dark) { const g = ctx.createRadialGradient(F.px - camX + 8, F.py - camY + 8, 30, F.px - camX + 8, F.py - camY + 8, 200); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.7)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  if (m.kind === 'cave') drawWayMarks();
   if (F.bannerT > 0 && F.banner) { const w = textW(F.banner) + 24; windowBox((W - w) / 2, 8, w, 22); text(F.banner, W / 2, 13, '#f8e070', { align: 'center' }); }
 }
 function drawNpc(e) {
@@ -292,7 +295,34 @@ function drawChest(e) {
   if (!open) { ctx.fillStyle = '#f0c040'; ctx.fillRect(X + 2, Y + 7, 12, 1); ctx.fillRect(X + 7, Y + 6, 2, 3); }
   else { ctx.fillStyle = '#784018'; ctx.fillRect(X + 2, Y + 8, 12, 6); }
 }
-function drawStairs(e) { const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY); ctx.fillStyle = '#100808'; ctx.fillRect(X + 1, Y + 1, 14, 14); ctx.fillStyle = e.up ? '#8a7a68' : '#5a4a40'; for (let i = 0; i < 4; i++) ctx.fillRect(X + 2, Y + 2 + i * 3, 12 - i * (e.up ? 0 : 2), 2); }
+// the ways out of a cave: stone stairs up and down (from the sheet), and the opening to daylight on the first floor
+function drawStairs(e) { const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY), im = tileset('element'); if (im) ctx.drawImage(im, 9 * T, (e.up ? 12 : 11) * T, T, T, X, Y, T, T); }
+function drawDaylight(e) {
+  const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY);
+  const g = ctx.createLinearGradient(0, Y, 0, Y + T); g.addColorStop(0, '#fffbe8'); g.addColorStop(1, '#e0cc90');
+  ctx.fillStyle = '#2a1c14'; ctx.fillRect(X, Y, T, T); ctx.fillStyle = g; ctx.fillRect(X + 2, Y, 12, T);
+  ctx.fillStyle = '#8ac860'; ctx.fillRect(X + 2, Y + 11, 12, 5); ctx.fillStyle = '#a8e078'; ctx.fillRect(X + 3, Y + 11, 3, 1); ctx.fillRect(X + 9, Y + 12, 4, 1);
+  // light spilling in across the floor
+  ctx.fillStyle = 'rgba(255,240,180,0.22)'; ctx.beginPath(); ctx.moveTo(X + 2, Y + T); ctx.lineTo(X + 14, Y + T); ctx.lineTo(X + 22, Y + 44); ctx.lineTo(X - 6, Y + 44); ctx.closePath(); ctx.fill();
+}
+// glows and bobbing arrows over every way out, drawn over the darkness so they show from afar
+function drawWayMarks() {
+  for (const e of F.ents) {
+    const out = e.type === 'exit', st = e.type === 'stairs';
+    if (!out && !st) continue;
+    const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY);
+    if (X < -40 || Y < -40 || X > W + 40 || Y > H + 40) continue;
+    const up = out || e.up, k = 0.75 + 0.25 * Math.sin(F.frame / 10);
+    const col = out ? [255, 240, 170] : up ? [150, 210, 255] : [255, 180, 80];
+    const g = ctx.createRadialGradient(X + 8, Y + 8, 2, X + 8, Y + 8, 26);
+    g.addColorStop(0, `rgba(${col},${(0.55 * k).toFixed(2)})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(X - 20, Y - 20, 56, 56);
+    // the arrow points the way the stairs go
+    const ay = Y - 9 + Math.round(Math.sin(F.frame / 7) * 2), c2 = out ? '#fff4c0' : up ? '#c8ecff' : '#ffd080';
+    for (let i = 0; i < 4; i++) { const w = up ? 1 + i * 2 : 7 - i * 2, yy = ay + i; ctx.fillStyle = '#140c08'; ctx.fillRect(X + 8 - (w >> 1) - 1, yy - 1, w + 2, 3); }
+    for (let i = 0; i < 4; i++) { const w = up ? 1 + i * 2 : 7 - i * 2; ctx.fillStyle = c2; ctx.fillRect(X + 8 - (w >> 1), ay + i, w, 1); }
+  }
+}
 function drawGoal(e) { const X = Math.round(e.x * T - camX), Y = Math.round(e.y * T - camY), f = (F.frame >> 3) % 2; ctx.fillStyle = f ? '#a040c0' : '#d070f0'; ctx.beginPath(); ctx.arc(X + 8, Y + 8, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff0ff'; ctx.fillRect(X + 7, Y + 5, 2, 6); }
 function drawPen(e) {
   const X = Math.round((e.x - 1) * T - camX), Y = Math.round((e.y - 1) * T - camY);
@@ -325,6 +355,7 @@ function drawWorldMode() {
     list.sort((a, b) => a.y - b.y);
     for (const o of list) o.d();
   }
+  drawWorldMarks();
   drawMinimap();
   const k = WD.t[tileY() * WW + tileX()];
   if (k === K.PLACE) { const id = WD.placeAt[tileY() * WW + tileX()]; if (id) { const s = placeName(id), w = textW(s) + 20; windowBox((W - w) / 2, 8, w, 22); text(s, W / 2, 13, '#f8e070', { align: 'center' }); } }
@@ -349,6 +380,39 @@ function drawRider(x, y, id, dir, moving, at) {
   if (hi) ctx.drawImage(hi, fr * 128, A[0] * 128, 128, 128, hx, hy, 64, 64);
   man();
 }
+// what kind of place each is, for the name over it
+const KIND_NAME = { cave: ['洞窟', 'Cave'], temple: ['寺廟', 'Temple'], gate: ['關隘', 'Pass'], fort: ['營寨', 'Fort'], port: ['港口', 'Port'], village: ['村落', 'Village'], town: ['城鎮', 'Town'], castle: ['城池', 'Castle'], capital: ['都城', 'Capital'], camp: ['營地', 'Camp'] };
+const isMouth = (id) => PLACES[id] && (PLACES[id][4] === 'cave' || id === 'wuxia');
+// on the world map: torches flicker at every cave mouth in view, and the nearest place within a few steps
+// shows its name and kind over it, so an entrance is never missed
+function drawWorldMarks() {
+  const px = tileX(), py = tileY();
+  let best = null, bd = 6;
+  for (const [id, p] of Object.entries(PLACES)) {
+    const sx = p[2] * T - camX, sy = p[3] * T - camY;
+    if (sx < -40 || sy < -40 || sx > W + 40 || sy > H + 40) continue;
+    if (isMouth(id)) {
+      const sect = id === 'wuxia', fl = (F.frame >> 3) + p[2];
+      for (const [tx, k] of [[3, 0], [29, 1]]) {
+        const fx = Math.round(sx + 8 - 17 + tx), fy = Math.round(sy + 17 - 28);
+        const tall = (fl + k) % 3;
+        ctx.fillStyle = sect ? '#a040e0' : '#f07818'; ctx.fillRect(fx - 1, fy + 9 - tall, 4, 5 + tall);
+        ctx.fillStyle = sect ? '#e8a0ff' : '#ffd040'; ctx.fillRect(fx, fy + 10 - tall + (k ? 1 : 0), 2, 3 + tall);
+        ctx.fillStyle = 'rgba(255,200,90,0.16)'; if (!sect) { ctx.beginPath(); ctx.arc(fx + 1, fy + 11, 7 + (tall & 1), 0, 7); ctx.fill(); }
+      }
+    }
+    const d = Math.max(Math.abs(p[2] - px), Math.abs(p[3] - py));
+    if (d > 0 && d < bd) { bd = d; best = id; }
+  }
+  if (!best) return;
+  const p = PLACES[best], kn = best === 'wuxia' ? ['魔宮', 'Lair'] : KIND_NAME[p[4]] || ['', ''];
+  const s = `${placeName(best)}・${L(kn[0], kn[1])}`, w = textW(s) + 10;
+  const tall = isMouth(best) ? 30 : ['capital', 'castle'].includes(p[4]) ? 34 : p[4] === 'temple' ? 26 : 20;
+  const lx = Math.round(Math.max(2, Math.min(W - w - 2, p[2] * T - camX + 8 - w / 2))), ly = Math.round(p[3] * T - camY + 16 - tall - 18);
+  ctx.fillStyle = 'rgba(16,8,10,0.78)'; ctx.fillRect(lx, ly, w, 16);
+  ctx.fillStyle = isMouth(best) ? '#b070e0' : '#e0b858'; ctx.fillRect(lx, ly + 15, w, 1);
+  text(s, lx + w / 2, ly + 2, isMouth(best) ? '#f0d8ff' : '#fff0c0', { align: 'center' });
+}
 // the little map in the corner
 function drawMinimap() {
   const ov = overviewMap(1);
@@ -357,6 +421,12 @@ function drawMinimap() {
   ctx.fillStyle = '#100808'; ctx.fillRect(x0 - 2, y0 - 2, mw + 4, mh + 4);
   ctx.fillStyle = '#e0b858'; ctx.fillRect(x0 - 1, y0 - 1, mw + 2, 1); ctx.fillRect(x0 - 1, y0 + mh, mw + 2, 1); ctx.fillRect(x0 - 1, y0 - 1, 1, mh + 2); ctx.fillRect(x0 + mw, y0 - 1, 1, mh + 2);
   ctx.drawImage(ov, sx, sy, mw, mh, x0, y0, mw, mh);
+  for (const [id, p] of Object.entries(PLACES)) {
+    const mx = p[2] - sx, my = p[3] - sy;
+    if (mx < 1 || my < 1 || mx >= mw - 1 || my >= mh - 1) continue;
+    if (isMouth(id)) { ctx.fillStyle = '#f0e0c0'; ctx.fillRect(x0 + mx - 1, y0 + my - 1, 3, 3); ctx.fillStyle = id === 'wuxia' ? '#7020a0' : '#100808'; ctx.fillRect(x0 + mx, y0 + my, 1, 1); }
+    else if (p[4] === 'temple') { ctx.fillStyle = '#ffe070'; ctx.fillRect(x0 + mx - 1, y0 + my, 3, 1); ctx.fillRect(x0 + mx, y0 + my - 1, 1, 3); }
+  }
   if ((F.frame >> 4) % 2) { ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 + tileX() - sx - 1, y0 + tileY() - sy - 1, 3, 3); }
 }
 export function setBanner(s, t = 150) { F.banner = s; F.bannerT = t; }

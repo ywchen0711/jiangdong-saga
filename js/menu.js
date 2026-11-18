@@ -1,22 +1,23 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=7';
-import { input } from './input.js?v=7';
-import { sfx, setMusic, music } from './audio.js?v=7';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=7';
-import { L, LANG, setLang } from './i18n.js?v=7';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=7';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=7';
-import { icon, ICON_COL } from './icons.js?v=7';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=7';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=7';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=7';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=7';
-import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=7';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=8';
+import { input } from './input.js?v=8';
+import { sfx, setMusic, music } from './audio.js?v=8';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=8';
+import { L, LANG, setLang } from './i18n.js?v=8';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=8';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=8';
+import { icon, ICON_COL } from './icons.js?v=8';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=8';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=8';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=8';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=8';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=8';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=7';
-import { overviewMap } from './worldgfx.js?v=7';
-import { F, tileX, tileY } from './field.js?v=7';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=8';
+import { overviewMap } from './worldgfx.js?v=8';
+import { questLog } from './sidequests.js?v=8';
+import { F, tileX, tileY } from './field.js?v=8';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
@@ -26,8 +27,8 @@ export async function openMenu() {
   const close = gold();
   let last = 0;
   for (;;) {
-    const opts = [L('武將', 'Generals'), L('裝備', 'Equip'), L('策略', 'Tactics'), L('陣形', 'Formation'), L('道具', 'Items'), L('武將錄', 'Who\'s Who'), L('寶物錄', 'Treasures'), L('兵法', 'Art of War'), L('地圖', 'Map'), L('記錄', 'Save'), L('設定', 'Settings')];
-    const dis = [false, false, false, false, false, false, false, false, F.mode !== 'world', !(F.mode === 'world' || S.flags.canSave), false];
+    const opts = [L('武將', 'Generals'), L('裝備', 'Equip'), L('策略', 'Tactics'), L('陣形', 'Formation'), L('道具', 'Items'), L('武將錄', 'Who\'s Who'), L('寶物錄', 'Treasures'), L('任務', 'Quests'), L('兵法', 'Art of War'), L('地圖', 'Map'), L('記錄', 'Save'), L('設定', 'Settings')];
+    const dis = [false, false, false, false, false, false, false, false, false, F.mode !== 'world', !(F.mode === 'world' || S.flags.canSave), false];
     const c = await menu(opts.map((s, i) => ({ label: s, disabled: dis[i] })), { x: 6, y: 4, w: 100, start: last });
     if (c < 0) break;
     last = c;
@@ -38,10 +39,11 @@ export async function openMenu() {
     if (c === 4) await itemsMenu();
     if (c === 5) await encyclopedia();
     if (c === 6) await codex();
-    if (c === 7) await helpPage();
-    if (c === 8) { close(); await fullMap(); return; }
-    if (c === 9) await saveMenu();
-    if (c === 10) await settings();
+    if (c === 7) await questLog();
+    if (c === 8) await helpPage();
+    if (c === 9) { close(); await fullMap(); return; }
+    if (c === 10) await saveMenu();
+    if (c === 11) await settings();
   }
   close();
 }
@@ -167,7 +169,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=7'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=8'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -230,7 +232,8 @@ const HELP = [
   { t: ['狀態', 'Statuses'], draw: 'status', s: ['', ''] },
   { t: ['裝備與寶物', 'Gear and Treasures'], s: ['每位武將有七個裝備欄：武器、盾牌、鎧甲、頭盔、披風、坐騎、飾品。除了飾品，每件都會改變武將在地圖、城鎮、戰場與選單上的模樣（飾品也常有項鍊、腰帶等小細節）。雙手兵器（戟、弓、弩、雙刀）不能持盾。\n天下藏著三百件寶物，分為普通、精良、稀有、名品、傳說。寶物除了數值，還有效果：對某兵種傷害、某陣形時攻防、策略威力與消耗、抵抗異常、反彈策略、反擊、先制、士氣、策略值上限、水戰、每回合回兵……同一套裝穿兩到四件另有加成。寶物藏在太守府、廟堂、洞窟與街上的紅色寶箱裡、賈斯珀才看得見的野地、首領的戰利品、各地敵軍偶爾掉落、百姓的委託、商店的稀有貨與寶物商人那裡。到酒館打聽，寶物錄會記下線索。', 'Every general has seven slots: weapon, shield, armour, helm, cape, mount and accessory. All but the accessory change how they look on the map, in towns, in battle and in menus (accessories often add a small detail, a pendant or a belt). Two-handed weapons (halberds, bows, crossbows, twin blades) leave no hand for a shield.\nThree hundred treasures lie across the realm: Common, Fine, Rare, Famed and Legendary. Besides their numbers they have effects: damage against a unit type, attack and defence in a formation, tactic power and cost, resisting statuses, reflecting ploys, counters, first strikes, morale, extra strategy points, naval power, troops back each turn... and two to four pieces of one set add more. Look in red chests in governors\' halls, shrines, caves and streets, in the wilds where only Jasper sees, among leaders\' spoils, as rare drops from each land\'s armies, as rewards for townsfolk\'s favours, in shops\' rare stock and at the treasure merchant\'s. Ask in taverns: the Codex notes every rumour.'] },
   { t: ['雙特性', 'Traits'], draw: 'traits', s: ['五百名武將每人都有兩個特性，沒有兩人的組合相同。特性一直有效，觸發時武將頭上會浮現特性名稱。\n戰鬥中選「情報」、按選單鍵或點一下武將，就能看到他的特性、能力與狀態；敵人的弱點、抗性與首領的下一招要偵察才看得到（賈斯珀的「斥候」與郭嘉的「鬼才」也能看穿）。\n按A打開特性一覽：←→換類別，↑↓選擇。', 'Each of the 500 generals has two traits, and no two share the same pair. Traits always work, and a trait\'s name rises over the general when it triggers.\nIn battle, Info, the Menu key or a tap on a general shows their traits, numbers and statuses; an enemy\'s weak points, resistances and a leader\'s next move need scouting (Jasper\'s Scouts and Guo Jia\'s Ghost Talent see through them too).\nPress A for the trait glossary: left/right for a family, up/down to choose.'] },
-  { t: ['首領戰', 'Leaders'], s: ['首領會在畫面上方預告大招，蓄力一回合才出手（頭旁有「!」）。對策一定存在：\n‧ 防禦：受到的大招傷害只剩35%。\n‧ 被盯上（準星）的人防禦，或讓會盾牆／護衛的武將防禦替他擋；挑撥也能把攻擊引到坦克身上。\n‧ 混亂、昏睡、困陣、封策能打斷蓄力；有些招式怕水、怕火、怕雨。\n首領兵力降到六成、三成時會改變戰法。偵察能看清首領的弱點與招式；出戰前也聽聽軍師怎麼說。', 'Leaders announce their big moves at the top of the screen and take a turn to charge them ("!" by the head). There is always an answer:\n- Defend: a big move does only 35%.\n- The marked general (crosshair) defends, or a Shield Wall or Guardian general defends and takes it; Provoke draws it onto a tank.\n- Confusion, sleep, traps and Seal Ploys break off a charge; some moves fear water, fire or rain.\nAt 60% and 30% troops a leader changes how it fights. Scout to learn its weak point and moves, and listen to your advisers before the battle.'] },
+  { t: ['首領戰', 'Leaders'], s: ['首領沒有特殊能力，和我們一樣用通用規則作戰。他們強在：\n‧ 等級較高，穿著寶物；名將有自己的兩個特性（傳說特性也一樣）。\n‧ 主將：每支軍隊（包括我們）排在最前面的主將，攻擊與防禦+15%。\n‧ 軍師：敵軍也有策略值（畫面右上「敵軍策略」），由他們最聰明的武將決定，用完就只能攻擊。\n‧ 智力或統率85以上的敵將會看穿我軍陣形，被克制時會變陣反制一次。\n‧ 首領戰中敵軍會集中攻擊兵力少的人與我軍軍師，兵力少時會防禦。任何一方的主將倒下，軍心大跌；首領的軍隊會戰到最後一人。\n對策也是通用的：偵察看清他們的特性、裝備與陣形，用克制的陣形、兵種相剋、狀態、治療與我們自己的特性應戰。出戰前聽聽軍師怎麼說。', 'Leaders have no special powers; they fight by the same rules as we do. What makes them strong:\n- A higher level and treasures; famous generals have their own two traits (legendary ones too).\n- Commander: the general at the head of every army (ours too) gets +15% attack and defence.\n- Strategist: the enemy has strategy points too ("Enemy SP" at the top right), set by its cleverest general; when they run out, they can only fight.\n- An enemy general with INT or LEAD 85+ reads our formation: if ours beats theirs, he changes once to answer it.\n- In a leader\'s battle the enemy goes for the weakened and for our strategist, and stands on guard when low. When either side\'s commander falls its morale plunges; a leader\'s army fights to the last.\nThe answers are the general ones: scout their traits, gear and formation, then counter with formation, the unit triangle, statuses, healing and our own traits. Listen to your advisers before the battle.'] },
+  { t: ['試煉', 'Trials'], s: ['各地有人委託「試煉」：頭上有「！」的人。試煉的敵軍強度固定，比同一章的首領更強，委託時會告訴你建議等級與報酬。選單的「任務」頁記下每個委託的地點、目標與進度。\n‧ 有的限時（畫面左上角顯示剩餘回合），有的連戰不准休整，有的只准前列三人出戰。\n‧ 每個試煉都有對策：先偵察，看情報卡上敵將的特性、裝備與陣形。\n‧ 輸了不會結束遊戲，整頓兵馬隨時可以再來。', 'People with a "!" over them ask for Trials. A trial\'s army is fixed in strength and stronger than the leaders of the same chapter; you are told the recommended level and the reward when you are asked. The Quests page in the menu keeps the place, goal and progress of every request.\n- Some are against the clock (rounds left show at the top left), some are gauntlets with no rest, and one lets only the first three of your front line fight.\n- Every trial has an answer: scout first and read the enemy\'s traits, gear and formation on the info card.\n- Losing a trial does not end the game; regroup and come back any time.'] },
 ];
 export async function helpPage(inBattle = false) {
   let pg = 0;
@@ -367,7 +370,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=7'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=8'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -481,9 +484,14 @@ export async function fullMap() {
       for (const [id, p] of Object.entries(PLACES)) {
         const open = REGIONS[p[5]] && REGIONS[p[5]][4] <= S.chapter;
         const X = x0 + p[2] * s, Y = y0 + p[3] * s;
-        ctx.fillStyle = S.visited[id] ? '#ffe070' : open ? '#e05a40' : '#6a5a5a';
-        ctx.fillRect(Math.round(X) - 1, Math.round(Y) - 1, 3, 3);
-        if (s === 2 && (S.visited[id] || (open && ['capital', 'castle'].includes(p[4])))) text(L(p[0], p[1]), Math.round(X) + 3, Math.round(Y) - 6, S.visited[id] ? '#fff0c0' : '#e0c0b0');
+        const col = S.visited[id] ? '#ffe070' : open ? '#e05a40' : '#6a5a5a', rx = Math.round(X), ry = Math.round(Y);
+        // a mark by kind: a black mouth in a ring for caves (and the sect's gate), a diamond for temples, a bar for passes
+        ctx.fillStyle = col;
+        if (p[4] === 'cave' || id === 'wuxia') { ctx.fillRect(rx - 2, ry - 2, 5, 5); ctx.fillStyle = id === 'wuxia' ? '#40104a' : '#100808'; ctx.fillRect(rx - 1, ry - 1, 3, 3); }
+        else if (p[4] === 'temple') { ctx.fillRect(rx, ry - 2, 1, 5); ctx.fillRect(rx - 2, ry, 5, 1); ctx.fillRect(rx - 1, ry - 1, 3, 3); }
+        else if (p[4] === 'gate') { ctx.fillRect(rx - 2, ry - 1, 5, 3); ctx.fillStyle = '#100808'; ctx.fillRect(rx, ry, 1, 2); }
+        else ctx.fillRect(rx - 1, ry - 1, 3, 3);
+        if (s === 2 && (S.visited[id] || (open && ['capital', 'castle', 'cave', 'temple', 'gate'].includes(p[4])))) text(L(p[0], p[1]), Math.round(X) + 3, Math.round(Y) - 6, S.visited[id] ? '#fff0c0' : '#e0c0b0');
       }
       if ((w.t >> 4) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x0 + tileX() * s) - 2, Math.round(y0 + tileY() * s) - 2, 5, 5); }
       if (s === 1) {

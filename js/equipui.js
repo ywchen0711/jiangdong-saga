@@ -1,19 +1,19 @@
 // The paper doll on screen: the equip page (a big figure that turns through four directions, the battle pose
 // beside it, mounted when a horse is worn, each slot with its icon, stats before and after), trying things on
 // from the bag or a shop counter, and the treasure codex (寶物錄) with its 300 entries.
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=7';
-import { input } from './input.js?v=7';
-import { sfx } from './audio.js?v=7';
-import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=7';
-import { L } from './i18n.js?v=7';
-import { GENERALS, genName } from './generals.js?v=7';
-import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=7';
-import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=7';
-import { battleSheet } from './doll.js?v=7';
-import { horseImg } from './horses.js?v=7';
-import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=7';
-import { hintText, owned, setTryOn } from './treasure_world.js?v=7';
-import { traitName } from './traits.js?v=7';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=8';
+import { input } from './input.js?v=8';
+import { sfx } from './audio.js?v=8';
+import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=8';
+import { L } from './i18n.js?v=8';
+import { GENERALS, genName } from './generals.js?v=8';
+import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=8';
+import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=8';
+import { battleSheet } from './doll.js?v=8';
+import { horseImg } from './horses.js?v=8';
+import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=8';
+import { hintText, owned, setTryOn } from './treasure_world.js?v=8';
+import { traitName } from './traits.js?v=8';
 
 // ---------- what an item does, in words ----------
 export function itemDesc(id) {
@@ -45,7 +45,7 @@ export function itemDesc(id) {
   if (it.kind === 'key') p.push(L('重要物品', 'Key item'));
   return p.join(L('，', ', '));
 }
-import { parseFx } from './treasures.js?v=7';
+import { parseFx } from './treasures.js?v=8';
 const gearFxOf = (code) => parseFx(code);
 
 // ---------- the doll on stage ----------
@@ -198,15 +198,16 @@ export async function codex() {
 function codexSummary(got) {
   windowBox(160, 4, W - 166, H - 8);
   text(L('寶物錄', 'Treasure Codex'), 172, 12, '#f8e070');
-  text(L(`收集 ${got}/300（${Math.floor(got / 3)}%）`, `Found ${got}/300 (${Math.floor(got / 3)}%)`), 172, 30, '#ffffff');
-  ctx.fillStyle = '#20181c'; ctx.fillRect(172, 46, 280, 6); ctx.fillStyle = '#e0b858'; ctx.fillRect(172, 46, Math.round(280 * got / 300), 6);
+  const all = TREASURES.length, pc = Math.floor(got * 100 / all);
+  text(L(`收集 ${got}/${all}（${pc}%）`, `Found ${got}/${all} (${pc}%)`), 172, 30, '#ffffff');
+  ctx.fillStyle = '#20181c'; ctx.fillRect(172, 46, 280, 6); ctx.fillStyle = '#e0b858'; ctx.fillRect(172, 46, Math.round(280 * got / all), 6);
   RARITY.forEach((r, i) => { const all = TREASURES.filter((id) => ITEMS[id].rar === i), n = all.filter(owned).length; text(`${L(r[0], r[1])} ${n}/${all.length}`, 172 + (i % 3) * 96, 60 + Math.floor(i / 3) * 14, r[2]); });
   let y = 96;
   text(L('套裝', 'Sets'), 172, y, '#f8e070'); y += 14;
   const sets = Object.entries(SETS);
   sets.forEach(([k, st], i) => { const ids = TREASURES.filter((id) => ITEMS[id].set === k), n = ids.filter(owned).length; text(fit(`${L(st.zh, st.en)} ${n}/${ids.length}`, 140), 172 + (i % 2) * 146, y + Math.floor(i / 2) * 13, n === ids.length ? '#ffe080' : '#c8c8d8'); });
   y += Math.ceil(sets.length / 2) * 13 + 6;
-  for (const ln of wrap(L('收集達50、100、150、200、250、300件，或集齊一套，都有獎賞。酒館可以打聽寶物的下落。', 'Rewards at 50, 100, 150, 200, 250 and 300 found, and for each full set. Ask in taverns for rumours of where treasures lie.'), W - 190).slice(0, 3)) { text(ln, 172, y, '#a0a8c0'); y += 13; }
+  for (const ln of wrap(L(`收集達50、100、150、200、250、300件與全部${TREASURES.length}件，或集齊一套，都有獎賞。試煉的傳說寶物只在試煉中得到。酒館可以打聽寶物的下落。`, `Rewards at 50, 100, 150, 200, 250, 300 and all ${TREASURES.length} found, and for each full set. The trials' legendary pieces come only from the trials. Ask in taverns for rumours of where treasures lie.`), W - 190).slice(0, 4)) { text(ln, 172, y, '#a0a8c0'); y += 13; }
 }
 function codexGrid(kind) {
   const ids = TREASURES.filter((id) => ITEMS[id].kind === kind).sort((a, b) => ITEMS[a].ch - ITEMS[b].ch || ITEMS[a].rar - ITEMS[b].rar);

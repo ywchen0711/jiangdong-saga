@@ -1,7 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=7';
-import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=7';
+import { L } from './i18n.js?v=8';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=8';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -138,6 +138,7 @@ item('bk_revive', '還魂術', 'Rite of Rallying', 'book', 3000, { teach: 'fuhuo
 item('bk_stun', '奇門遁甲', 'Qimen Dunjia', 'book', 0, { teach: 'qimen', rare: true });
 item('bk_bagua', '八門金鎖', 'Eight Gates Lock', 'book', 0, { teach: 'jinsuo', rare: true });
 item('bk_inferno', '業火篇', 'On Hellfire', 'book', 0, { teach: 'yehuo', rare: true });
+item('bk_leiting', '雷霆萬鈞訣', 'Rite of the Thunderclap', 'book', 0, { teach: 'leiting', rare: true });
 item('bk_wind', '呼風術', 'Calling the Wind', 'book', 1800, { teach: 'hufeng' });
 item('mn_yulin', '魚鱗陣圖', 'Fish-Scale Manual', 'book', 0, { form: 'yulin' });
 item('mn_heyi', '鶴翼陣圖', 'Crane-Wing Manual', 'book', 0, { form: 'heyi' });
@@ -218,7 +219,7 @@ export function fxText(fx, short = false) {
   void short;
   return p.join(L('，', ', '));
 }
-export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=7';
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=8';
 // the paper doll's slots; the accessory slot keeps its old save name 'treasure'
 export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };
@@ -244,6 +245,8 @@ tac('luoshi', '落石', 'Rockfall', 5, 'e1', { el: 'rock', pow: 1.15, int: 50, l
 tac('shanbeng', '山崩', 'Landslide', 22, 'eall', { el: 'rock', pow: 0.75, int: 0, lv: 99, fx: 'spike' });
 tac('leiji', '雷擊', 'Thunderbolt', 7, 'e1', { el: 'thunder', pow: 1.3, int: 75, lv: 12, fx: 'thunder' });
 tac('tianlei', '天雷', 'Wrath of Heaven', 28, 'eall', { el: 'thunder', pow: 0.9, int: 0, lv: 99, fx: 'thunder' });
+// taught only by the scroll from the Jiuyi abyss (a trial)
+tac('leiting', '雷霆萬鈞', 'Thunderclap of Heaven', 32, 'eall', { el: 'thunder', pow: 1.15, int: 0, lv: 99, fx: 'thunder' });
 tac('duyan', '毒煙', 'Poison Smoke', 8, 'eall', { st: 'poison', int: 60, lv: 10, fx: 'smoke' });
 tac('hunluan', '混亂', 'Confusion', 5, 'e1', { st: 'confuse', int: 55, lv: 5, fx: 'spirit' });
 tac('tiaobo', '挑撥', 'Provoke', 4, 'e1', { st: 'provoke', int: 50, lv: 4, fx: 'spark' });
@@ -277,7 +280,7 @@ export const TAC_DESC = {
   leiji: ['引雷劈向一支敵軍。雨天更強。', 'Lightning on one enemy. Stronger in rain.'], tianlei: ['天雷轟擊全部敵軍。', 'Thunder on all enemies.'], duyan: ['毒煙使敵軍每回合損兵。', 'Smoke that bleeds the enemy each turn.'],
   hunluan: ['使一支敵軍陷入混亂，亂打一通。能打斷蓄力。', 'Throws one enemy into confusion. Breaks off a charge.'], tiaobo: ['激怒敵將：攻擊上升但防禦大降，只會攻擊施計者。', 'Goads a foe: more attack, far less defence, and it only attacks the caster.'],
   maifu: ['設下伏兵，下一個攻擊我軍的敵人會中伏。', 'Hidden troops strike the next enemy who attacks.'], qimen: ['以奇門之陣困住一支敵軍，使其無法行動。能打斷蓄力。', 'Traps one enemy so it cannot act. Breaks off a charge.'],
-  jinsuo: ['八門金鎖困住全部敵軍。', 'Locks every enemy in place.'], guwu: ['全軍攻擊力上升。', 'Raises the attack of the whole army.'], jianshou: ['全軍防禦力上升。', 'Raises the defence of the whole army.'],
+  jinsuo: ['八門金鎖困住全部敵軍。', 'Locks every enemy in place.'], leiting: ['引九天之雷轟擊全部敵軍，比天雷更猛烈。', 'Calls the thunder of the nine heavens down on every enemy, fiercer than the Wrath of Heaven.'], guwu: ['全軍攻擊力上升。', 'Raises the attack of the whole army.'], jianshou: ['全軍防禦力上升。', 'Raises the defence of the whole army.'],
   jifeng: ['全軍速度上升。', 'Raises the speed of the whole army.'], zhiliao: ['恢復一支部隊的兵力。', 'Restores troops to one unit.'], huifu: ['恢復全軍兵力。', 'Restores troops to the whole army.'],
   dahui: ['大幅恢復全軍兵力。', 'Restores many troops to the whole army.'], fuhuo: ['讓敗走的武將重整旗鼓。', 'A routed general returns to the field.'], dunzou: ['全軍撤離戰場（首領戰無效）。地圖上使用可返回上一座城。', 'The army leaves the battle (not against leaders). On the map: back to the last city.'],
   zhencha: ['看清敵軍的弱點、抗性與首領的下一招（情報卡上的？？？），全軍會心率上升。', 'Reveals enemy weak points, resistances and the leader\'s next move (the ??? on the info card); more critical hits.'], tianbian: ['使天降大雨：水計、雷擊增強，火計減弱，能澆熄火船與業火。', 'Brings rain: water and thunder grow, fire weakens; it douses fire ships and hellfire.'],
@@ -299,6 +302,8 @@ export const FORMS = {
   yanyue: { zh: '偃月陣', en: 'Crescent', pos: [[0, 1], [1, 0], [1, 2], [2, 0], [2, 2]], hit: [1.4, 1, 1, 0.8, 0.8], atk: 1.15, def: 1.1, spd: 1, tac: 1, cond: 'lead_lead85', desc: ['主將親臨陣前，攻守俱佳。條件：主將統率85以上。', 'The leader at the front: strong in attack and defence. Needs LEAD 85+.'] },
   bagua: { zh: '八卦陣', en: 'Eight Trigrams', pos: [[1, 1], [0, 1], [1, 0], [1, 2], [2, 1]], hit: [0.6, 1.2, 1.1, 1.1, 1], atk: 1, def: 1.25, spd: 0.95, tac: 1.15, resist: 0.3, cond: 'str_int95', desc: ['變化無窮：防禦大增，計策更強，敵計易失。條件：軍師智力95以上。', 'Endless change: much defence, stronger tactics, enemy ploys fail more. Needs a strategist with INT 95+.'] },
   shuijun: { zh: '水軍陣', en: 'Naval Line', pos: [[0, 0], [0, 2], [1, 1], [2, 0], [2, 2]], hit: [1, 1, 1, 1, 1], atk: 1, def: 1, spd: 1, tac: 1, naval: 1.25, cond: 'nav3', desc: ['戰船列陣，水戰時攻守大增。條件：水軍三隊以上。', 'Ships in line: far stronger in naval battles. Needs 3+ navy units.'] },
+  // the Three Talents (a trial's reward): heaven, earth and man in step; it neither beats nor is beaten by any
+  sancai: { zh: '三才陣', en: 'Three Talents', pos: [[1, 1], [0, 1], [1, 0], [1, 2], [2, 1]], hit: [0.8, 1.2, 1.05, 1.05, 0.9], atk: 1.1, def: 1.1, spd: 1.05, tac: 1.08, desc: ['天、地、人三才相應：攻、守、速度與計策俱升。不克制任何陣形，也不被任何陣形克制。', 'Heaven, earth and man in step: attack, defence, speed and ploys all rise. It beats no formation and none beats it.'] },
   tuzhen: { zh: '突騎陣', en: 'Cavalry Charge', pos: [[0, 0], [0, 1], [0, 2], [2, 0], [2, 2]], hit: [1.2, 1.2, 1.2, 0.7, 0.7], atk: 1.1, def: 0.95, spd: 1.25, tac: 1, charge: 1.4, cond: 'cav3', desc: ['騎兵一齊衝鋒，首回合攻擊大增。條件：前三位皆為騎兵。', 'All horse charge together: huge first-turn attack. Needs the first three to be cavalry.'] },
 };
 export const formName = (id) => L(FORMS[id].zh, FORMS[id].en);

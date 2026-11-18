@@ -1,23 +1,24 @@
 // 江東霸業傳 Saga of Jiangdong: start-up, the title screen, the main loop, and the glue between walking,
 // battles, menus and the story. window.G exposes hooks for testing.
-import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=7';
-import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=7';
-import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=7';
-import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=7';
-import { L, LANG, setLang } from './i18n.js?v=7';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=7';
-import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=7';
-import * as FIELD from './field.js?v=7';
-import { overviewMap } from './worldgfx.js?v=7';
-import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=7';
-import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=7';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=7';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=7';
-import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=7';
-import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=7';
-import { buildMap } from './maps.js?v=7';
-import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=7';
-import { banditFor, banditBeaten } from './treasure_world.js?v=7';
+import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=8';
+import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=8';
+import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=8';
+import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=8';
+import { L, LANG, setLang } from './i18n.js?v=8';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=8';
+import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=8';
+import * as FIELD from './field.js?v=8';
+import { overviewMap } from './worldgfx.js?v=8';
+import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=8';
+import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=8';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=8';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=8';
+import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=8';
+import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=8';
+import { buildMap } from './maps.js?v=8';
+import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=8';
+import { banditFor, banditBeaten } from './treasure_world.js?v=8';
+import { SQ, simTrial, cfgOf } from './sidequests.js?v=8';
 
 export const G = window.G = { mode: 'boot', S, F, B, UI, GENERALS, GEN_LIST, ITEMS, PLACES, REGIONS };
 G.uiActive = () => UI.active;
@@ -69,6 +70,8 @@ async function exitPlace() {
 }
 async function onEnterMap() {
   if (F.mode === 'local') playMusic(F.map.music || worldSong());
+  // a cave says which floor this is as you come in
+  if (F.mode === 'local' && F.map.kind === 'cave') setBanner(F.map.name, 150);
   if (STORY.onMap) await STORY.onMap(F.mapId);
 }
 export function worldSong() {
@@ -232,7 +235,7 @@ function draw() {
 // ---------- start ----------
 setupTouch();
 setupCanvasTap();
-import { WOBJ, tileset } from './assets.js?v=7';
+import { WOBJ, tileset } from './assets.js?v=8';
 G.WOBJ = WOBJ; G.tileset = tileset;
 requestAnimationFrame(frame);
 // tests can run the game faster than the screen refreshes (and while the page is hidden)
@@ -240,7 +243,7 @@ setInterval(() => { if (G.turbo) for (let i = 0; i < G.turbo; i++) update(); }, 
 await document.fonts.load('12px Cubic11').catch(() => {});
 initWorld();
 G.WD = FIELD.WD;
-Object.assign(G, { BOT_NEED: (m, a) => STORY.need(m, a), UI, FH, toWorld, toMap, recruit, member, healAll, give, save, load, gainExp, setBanner, buildMap, portrait, fieldSheet, battleSheet, dollReady, overviewMap, menuOpen: openMenu, help: helpPage, STORY, F, fieldUpdate, troopsMax, tpMax, enterPlace: (id) => run(() => enterPlace(id)), exitPlace: () => run(exitPlace), setChapter: (n) => { S.chapter = n; }, itemDesc });
+Object.assign(G, { BOT_NEED: (m, a) => STORY.need(m, a), UI, FH, toWorld, toMap, recruit, member, healAll, give, save, load, gainExp, setBanner, buildMap, portrait, fieldSheet, battleSheet, dollReady, overviewMap, menuOpen: openMenu, help: helpPage, STORY, F, fieldUpdate, troopsMax, tpMax, enterPlace: (id) => run(() => enterPlace(id)), exitPlace: () => run(exitPlace), setChapter: (n) => { S.chapter = n; }, itemDesc, SQ: { SQ, simTrial, cfgOf } });
 // for tests: skip the title and start with an army at a given chapter
 G.debugStart = (ch = 1, ids = ['sunquan', 'zhoutai', 'shangxiang', 'jeff', 'erin', 'josh', 'jasper'], lv = 8) => {
   abortUI(); newGame(); scene = 'game'; G.mode = 'game';

@@ -1,4 +1,4 @@
-// The 300 treasures (寶物). Each line below is one treasure: id | 中文 | English | rarity 0-4 | chapter | codes.
+// The 311 treasures (寶物): the first 300, and eleven legendary rewards of the trials (sidequests.js). Each line below is one treasure: id | 中文 | English | rarity 0-4 | chapter | codes.
 // Its numbers come from its kind, chapter and rarity (a little above what the shops of that chapter sell, never
 // far above), its look on the paper doll from the codes, and where it is found is worked out at the end of this
 // file from the chapter (chests in halls, caves, shrines and streets, Jasper's hidden spots, leaders' rewards,
@@ -8,7 +8,7 @@
 // h= helmet layer, p= plume layer, pc= plume colour, hc= cloth of a headband, cp= cape layer, cc= cape colour,
 // sh= shield layer, hs= horse colour, n= neck layer, bl= belt layer, bc= belt colour, br bracers, cu cuffs, sc scarf,
 // ic= icon, fx= effects (comma list), set= set, st= extra stats, src= fixed source, gen= carried by a general
-import { PLACES, REGIONS } from './world.js?v=7';
+import { PLACES, REGIONS } from './world.js?v=8';
 export const RARITY = [['普通', 'Common', '#c8c8c8'], ['精良', 'Fine', '#78d878'], ['稀有', 'Rare', '#68a8ff'], ['名品', 'Famed', '#d080ff'], ['傳說', 'Legendary', '#ffb838']];
 const RMUL = [1, 1.04, 1.08, 1.12, 1.18];
 const W_ATK = [0, 9, 11, 16, 20, 25, 27, 30, 34, 37, 38];
@@ -37,6 +37,7 @@ yuanyang|鴛鴦刀|Mandarin-Duck Blades|2|4|c=twin w=w_katana m=silver fx=ctr:10
 shuanggu|雙股劍|Twin-Strand Swords|3|5|c=twin w=w_sword m=gold fx=mor:6,ctr:10
 zhuque|朱雀雙刀|Vermilion Bird Blades|3|8|c=twin w=w_scimitar m=copper glow=#ff9040 fx=el:fire:12,first:10
 ganmo|干將莫邪|Ganjiang and Moye|4|10|c=twin w=w_longsword m=ceramic glow=#c0f0ff fx=crit:8,ctr:15
+tianwen|天問劍|Sword of Heaven's Question|4|10|c=sword w=w_glowsword_b glow=#b0a0ff fx=crit:8,el:thunder:15,ctr:10 src=sq:abyss
 baila|白蠟槍|Waxwood Spear|0|1|c=spear w=w_spear m=iron wd=maple
 huntie|渾鐵槍|Solid Iron Spear|1|2|c=spear w=w_spear m=iron wd=walnut fx=vs:cav:8
 dianjin|點金槍|Gold-Tipped Spear|2|3|c=spear w=w_longspear m=gold fx=crit:5
@@ -60,6 +61,7 @@ lengyan|冷艷鋸|Cold Beauty Saw|3|7|c=halberd w=w_scythe m=silver wd=ebony fx=
 sanjian|三尖兩刃刀|Three-Point Twin-Edge Blade|3|8|c=halberd w=w_trident m=steel wd=mahogany fx=crit:6,vs:cav:10
 longya|龍牙戟|Dragon-Fang Halberd|2|9|c=halberd w=w_halberd m=steel
 tianji|天戟|Heaven's Halberd|4|10|c=halberd w=w_halberd m=gold glow=#ffe070 fx=vs:all:10,first:12
+baihudao|白虎吞天刀|White Tiger Sky-Eater|4|5|c=halberd w=w_scythe m=silver wd=ebony glow=#f0f0ff fx=crit:8,vs:inf:12 src=sq:tiger
 qingtongyue|青銅鉞|Bronze Yue Axe|0|1|c=axe w=w_waraxe m=bronze
 gangbian|鋼鞭|Steel Whip-Mace|1|3|c=mace w=w_mace m=steel fx=ctr:8
 shutongchui|熟銅錘|Bronze Hammer|1|4|c=mace w=w_mace m=bronze fx=vs:inf:8
@@ -131,6 +133,7 @@ wuge|烏戈藤甲|Wuge Rattan Armour|3|9|a=rattan set=nanman fx=resel:water:30
 mingguangyin|明光銀鎧|Silver Bright Plate|3|9|a=plate m=silver fx=refl:8
 heilianyi|黑蓮法衣|Black Lotus Vestments|3|10|a=robe set=lotus st=int:8
 longlin|龍鱗甲|Dragon-Scale Armour|4|10|a=scale m=gold glow=#ffd060 fx=resel:all:20,regen:2
+haiwangjia|海王鱗甲|Sea King's Scale Armour|4|8|a=water m=gold ac=teal glow=#80e0ff fx=nav:15,resel:fire:20 src=sq:sea
 `;
 const HELMS = `
 chize|赤幘|Red Headscarf|1|1|h=hb_tied hc=red set=jdtiger
@@ -166,6 +169,7 @@ qixingguan|七星冠|Seven-Star Crown|3|9|h=hb_crown m=silver set=qixing st=int:
 longshou|龍首盔|Dragon-Head Helm|4|9|h=hm_maximus m=silver p=hx_crest_c pc=blue glow=#a0d8ff fx=res:confuse:60,mor:8
 heilianguan|黑蓮冠|Black Lotus Hood|3|10|h=hb_hood hc=black set=lotus
 fenghuang|鳳凰盔|Phoenix Helm|4|10|h=hm_legion m=gold p=hx_wings glow=#ffd060 fx=res:all:40,mor:8
+yanyunkui|燕雲虎盔|Yanyun Tiger Helm|4|8|h=hm_horned m=iron glow=#ffb070 fx=mor:8,res:fear:80 src=sq:bridge
 `;
 const CAPES = `
 chise|赤色披風|Red Cloak|0|1|cp=c_solid cc=red
@@ -193,6 +197,8 @@ bawangpi|霸王披風|Overlord's Cloak|3|9|cp=c_trim cc=black set=bawang
 heiliandou|黑蓮斗篷|Black Lotus Mantle|3|10|cp=c_tattered cc=black set=lotus
 xinghuang|杏黃旗|Apricot-Yellow Banner|4|10|cp=c_trim cc=yellow glow=#ffe080 set=taigong fx=res:all:30
 hanshi|漢室錦袍|Han Imperial Cloak|4|10|cp=c_trim cc=maroon glow=#ffd060 set=han fx=mor:8
+cangbo|滄波戰旗|Banner of the Blue Waves|4|7|cp=c_trim cc=navy glow=#80c0ff fx=nav:10,first:10 src=sq:sea
+zhonghu|冢虎玄袍|Crouching Tiger's Robe|4|10|cp=c_solid cc=purple glow=#c080ff fx=refl:15,tac:10 src=sq:wolf
 `;
 const SHIELDS = `
 voyager|遠洋圓盾|Voyager's Round Shield|0|1|sh=s_round m=iron wd=oak gen=josh
@@ -216,6 +222,7 @@ xiangpidun|象皮盾|Elephant-Hide Shield|2|9|sh=s_round m=bronze wd=ebony fx=re
 wugepai|烏戈藤牌|Wuge Rattan Shield|2|9|sh=s_round m=brass wd=maple set=nanman
 jiugong|九宮盾|Nine-Palace Shield|3|9|sh=s_kite m=gold fx=refl:10
 xuanwu|玄武盾|Black Tortoise Shield|4|10|sh=s_spartan m=ceramic glow=#80ffd0 fx=resel:all:20,guard:25
+bamendun|八門金鎖盾|Eight Gates Shield|4|8|sh=s_kite m=gold glow=#ffe070 fx=ctr:12,res:all:25 src=sq:gates
 `;
 const HORSES = `
 shanyuema|山越矮馬|Shanyue Pony|0|1|hs=brown
@@ -240,6 +247,7 @@ lüer|綠耳|Green Ear|3|9|hs=sage fx=vs:inf:10
 wuzhui|烏騅|Wuzhui|4|9|hs=black glow=#c080ff set=bawang
 daoli|盜驪|Daoli|3|10|hs=black fx=first:10,crit:4
 feihuang|飛黃|Feihuang|4|10|hs=golden glow=#ffe070 fx=first:15,as:cav:10
+tayun|踏雲駒|Cloud-Treader|4|7|hs=white glow=#c8f0ff fx=first:18,eva:6 src=sq:rescue
 `;
 const ACCS = `
 zhujian|竹簡|Bamboo Slips|0|1|ic=Scroll st=int:2
@@ -280,6 +288,8 @@ jiangjunyin|將軍印|General's Seal|3|8|ic=Stamp st=lead:8
 huangshi|黃石天書|Yellow Stone Book|4|9|ic=ScrollThunder st=int:8 fx=tac:10,cost:10
 suihou|隋侯珠|Marquis Sui's Pearl|4|9|ic=SilverCoin n=n_pearl glow=#e0f0ff fx=regen:3,res:all:25
 qixingdeng|七星燈|Seven-Star Lamp|4|9|ic=Hourglass set=qixing fx=sp:8
+leizhuyao|擂主金腰帶|Champion's Golden Belt|4|6|ic=BarGold bl=belt_formal bc=gold glow=#ffe070 st=atk:4,def:4 fx=mor:8,ctr:10 src=sq:arena
+huchijing|虎癡護心鏡|Tiger Fool's Heart Mirror|4|9|ic=SilverCoin n=n_amulet glow=#e0e0ff st=def:8 fx=res:all:30,ctr:10 src=sq:tigers
 fengyu|鳳凰羽|Phoenix Feather|3|9|ic=Feather fx=eva:6,first:8
 heilianzhu|黑蓮珠|Black Lotus Pearl|3|10|ic=GemPurple n=n_pearl set=lotus
 zhaoyao|照妖鏡|Demon-Revealing Mirror|3|10|ic=GoldCup fx=refl:12,res:curse:70
@@ -298,6 +308,7 @@ sanlue|三略|The Three Strategies|3|8|ic=ScrollIce boost=int:2,lead:2
 huangdi|黃帝內經|The Yellow Emperor's Classic|3|9|ic=ScrollPlant boost=str:2,spd:2
 dunjia|遁甲天書|Book of the Hidden Stems|3|9|ic=ScrollIce boost=int:3,spd:2
 taipingys|太平要術|Essentials of the Great Peace|4|10|ic=ScrollThunder boost=int:5
+chunqiu|春秋左傳|Zuo's Spring and Autumn|4|9|ic=Book boost=lead:5,str:3 src=sq:guanyu
 `;
 // war relics: used once in each battle from the Item order, never used up
 const RELICS = `
@@ -423,6 +434,8 @@ export function addTreasures(item, I) {
       }
       for (const [s, v] of Object.entries(st)) it[s] = (it[s] || 0) + v;
       if (o.gen) it.gen = o.gen;
+      // a fixed source written in the line: src=sq:<trial> is the reward of that trial (sidequests.js)
+      if (o.src && o.src.startsWith('sq:')) it.fixedSrc = { t: 'sq', q: o.src.slice(3) };
       item(id, zh, en, kind, 0, it);
     }
   }

@@ -3,7 +3,7 @@
 // generals get seeded pairs weighted by their stats, unit type and side, so the same id always gives the same
 // pair and old saves need nothing stored. battle.js runs the effects (each trait id has its own code path)
 // and shows the trait's name over the general whenever it triggers.
-import { L } from './i18n.js?v=7';
+import { L } from './i18n.js?v=8';
 
 // families, in the order the glossary shows them
 export const FAMILY = {
@@ -137,7 +137,7 @@ export const FAMOUS_PAIRS = {
   yujin: 'zhenfa jianren', yuejin: 'xiandeng yongmeng', guojia: 'guicai guimou', xunyu: 'shensuan tuntian', jiaxu: 'fanjian duji',
   simayi: 'langgu guimou', chengyu: 'guimou tuntian', caohong: 'huzhu shangcai', pangde: 'buqu mengjin', yuanshao: 'haoling gushi',
   yanliang: 'zhanjiang xiandeng', wenchou: 'lianji tieqi', shenpei: 'tiebi lengjing', tianfeng: 'fanji guimou', jushou: 'zhenfa fanji',
-  gaolan: 'yongmeng tiebi', yuanshu: 'haoling lueduo', jiling: 'huzhu qiangzhen', dongzhuo: 'weiya haoling', lubu: 'guishen mengjin',
+  gaolan: 'yongmeng tiebi', yuanshu: 'haoling lueduo', jiling: 'huzhu qiangzhen', dongzhuo: 'tiebi weiya', lubu: 'guishen mengjin',
   diaochan: 'fanjian yaoshu', liru: 'duji huoshen', huaxiong: 'zhanjiang mengzhui', lijue: 'lueduo tieqi', guosi: 'lueduo qishe',
   zhangxiu: 'tuji qixi', gaoshun: 'xianfeng pozhen', chengong: 'guimou lianhuan', liuzhang: 'tuntian haoling', zhangren: 'shenfa shenshe',
   yanyan: 'buqu jianren', fazheng: 'guimou qixi', jiangwei: 'lianji guimou', mateng: 'tieqi weifeng', madai: 'jisu mengzhui',

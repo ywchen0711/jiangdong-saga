@@ -350,6 +350,8 @@ export function generate() {
       if (t[ii] === K.MTN || t[ii] === K.SNOWMTN || t[ii] === K.WALL || (t[ii] === K.SHOAL && (i || j) === 0)) t[ii] = K.GRASS;
     }
     if (WATER.has(t[I(x, y)])) t[I(x, y)] = K.GRASS;
+    // a cave mouth (and the sect's gate) stands in a clearing, so nothing hides it
+    if (p[4] === 'cave' || id === 'wuxia') for (let j = -1; j <= 1; j++) for (let i = -2; i <= 2; i++) { const ii = I(x + i, y + j); if ([K.FOREST, K.PINE, K.PALM, K.HILL, K.MARSH, K.SNOWMTN].includes(t[ii])) t[ii] = K.GRASS; }
     t[I(x, y)] = K.PLACE;
     placeAt[I(x, y)] = id;
     // a place's tile and the ring round it belong to its own region

@@ -1,11 +1,11 @@
 // Towns, castles, villages, ports, forts, temples, caves and the rooms inside them. Every place on the world
 // map gets its own layout, made from a template for its kind and a seed from its name, so the same place always
 // looks the same. Ground is laid out as letters; houses, trees and furniture are objects placed on top.
-import { hash, canvas } from './gfx.js?v=7';
-import { tileset } from './assets.js?v=7';
-import { TILES } from './tiles.js?v=7';
-import { PLACES } from './world.js?v=7';
-import { L } from './i18n.js?v=7';
+import { hash, canvas } from './gfx.js?v=8';
+import { tileset } from './assets.js?v=8';
+import { TILES } from './tiles.js?v=8';
+import { PLACES } from './world.js?v=8';
+import { L } from './i18n.js?v=8';
 
 // ---------- extra tiles ----------
 // a 16-piece floor autotile (3x3 patch, a column, a row and a single), as in tiles.js
@@ -50,6 +50,12 @@ TILES.cavewall = { solid: true, draw(g, X, Y, n) {
   if (open(0, 1)) { g.fillStyle = '#4a3a30'; g.fillRect(0, 4, 16, 12); g.fillStyle = '#6a5444'; g.fillRect(0, 4, 16, 2); g.fillStyle = '#3a2c24'; for (let x = (X * 5) % 6; x < 16; x += 6) g.fillRect(x, 7, 1, 8); }
   else if (open(0, -1) || open(1, 0) || open(-1, 0)) { g.fillStyle = '#2a201a'; g.fillRect(0, 0, 16, 16); }
 } };
+// the way out of a room: a threshold and a red mat with an arrow pointing out
+TILES.doormat = { draw(g, X, Y) {
+  g.fillStyle = '#3a2416'; g.fillRect(0, 0, 16, 16); g.fillStyle = '#6a4426'; g.fillRect(0, 0, 16, 3);
+  g.fillStyle = '#8a2418'; g.fillRect(2, 4, 12, 11); g.fillStyle = '#c03828'; g.fillRect(3, 5, 10, 9);
+  g.fillStyle = '#f8e0a0'; g.fillRect(7, 6, 2, 4); g.fillRect(5, 9, 6, 1); g.fillRect(6, 10, 4, 1); g.fillRect(7, 11, 2, 1);
+} };
 TILES.deck = { draw(g, X, Y) { g.fillStyle = '#7e5230'; g.fillRect(0, 0, 16, 16); g.fillStyle = '#5a3820'; g.fillRect(0, 7, 16, 1); g.fillRect(0, 15, 16, 1); g.fillRect((X * 7) % 16, 0, 1, 7); g.fillRect((X * 7 + 8) % 16, 8, 1, 7); } };
 TILES.blackstone = { draw(g, X, Y) { g.fillStyle = '#2a2230'; g.fillRect(0, 0, 16, 16); g.fillStyle = '#3a3044'; g.fillRect(1, 1, 14, 14); g.fillStyle = '#4a3c56'; g.fillRect(1, 1, 14, 1); if ((X + Y) % 3 === 0) { g.fillStyle = '#6a2a6a'; g.fillRect(7, 7, 2, 2); } } };
 TILES.lotuswall = { solid: true, draw(g, X, Y, n) { const open = n(0, 1) && n(0, 1) !== 'lotuswall'; g.fillStyle = '#100a14'; g.fillRect(0, 0, 16, 16); if (open) { g.fillStyle = '#3a2440'; g.fillRect(0, 3, 16, 13); g.fillStyle = '#5a3a64'; g.fillRect(0, 3, 16, 2); g.fillStyle = '#8a3a8a'; if (X % 3 === 0) { g.fillRect(6, 8, 4, 4); g.fillStyle = '#d0a0e0'; g.fillRect(7, 9, 2, 2); } } } };
@@ -75,25 +81,40 @@ export const OBJ = {
   house: ['house', 0, 0, 4, 3, { door: 1 }], cottage: ['house', 4, 0, 4, 3, { door: 1 }], farmhouse: ['house', 8, 0, 4, 3, { door: 1 }], redhall: ['house', 12, 0, 4, 3, { door: 1 }],
   shop: ['house', 16, 0, 3, 3, { door: 1 }], inn: ['house', 19, 0, 4, 3, { door: 2 }], hut: ['house', 23, 0, 3, 3, { door: 1 }], lodge: ['house', 26, 0, 3, 3, { door: 1 }],
   torii: ['house', 0, 5, 3, 2, { posts: true }], cavemouth: ['house', 0, 7, 3, 3, { door: 1 }], straw: ['house', 3, 7, 3, 3, { door: 1 }],
-  keep: ['house', 25, 7, 4, 7, { door: 1 }], greathall: ['house', 25, 14, 4, 5, { door: 1 }], tower: ['house', 30, 4, 3, 4, { door: 1 }],
+  keep: ['house', 25, 7, 4, 7, { door: 1 }], greathall: ['house', 25, 14, 4, 5, { door: 1 }], tower: ['house', 29, 4, 3, 4, { door: 1 }],
   tree: ['nature', 16, 0, 2, 2], tree2: ['nature', 18, 0, 2, 2], blossom: ['nature', 14, 0, 2, 2], pine: ['nature', 2, 0, 2, 2], oak: ['nature', 6, 0, 2, 2],
   grove: ['nature', 4, 2, 4, 3], pinegrove: ['nature', 0, 2, 4, 3], bigtree: ['nature', 3, 18, 3, 3], deadtree: ['nature', 4, 0, 2, 2], bamboo: ['nature', 11, 8, 1, 3],
   boulder: ['nature', 13, 8, 2, 2, { foot: 2 }], greyrock: ['nature', 16, 8, 2, 2, { foot: 2 }], stump: ['nature', 0, 8, 2, 2, { foot: 2 }],
   stall: ['desert', 2, 10, 2, 2, { foot: 1 }], stall2: ['desert', 4, 10, 2, 2, { foot: 1 }], stall3: ['desert', 6, 7, 2, 2, { foot: 1 }], well: ['desert', 0, 3, 2, 2, { foot: 1 }],
   lantern: ['element', 6, 3, 1, 2], barrel: ['element', 1, 0, 1, 1], crate: ['element', 0, 0, 1, 1], cart: ['element', 0, 3, 2, 2, { foot: 1 }],
-  statue: ['house', 1, 15, 2, 3, { foot: 2 }], lion: ['house', 2, 16, 2, 2, { foot: 1 }],
-  // furniture
-  counter: ['house', 16, 16, 2, 1, { foot: 1 }], counter2: ['house', 18, 16, 2, 1, { foot: 1 }], shelf: ['house', 16, 18, 1, 2, { foot: 1 }], bench: ['house', 18, 18, 2, 1, { foot: 1 }],
-  screen: ['house', 22, 16, 2, 2, { foot: 1 }], jars: ['house', 16, 20, 1, 1, { foot: 1 }], pots: ['house', 18, 20, 1, 1, { foot: 1 }], baskets: ['house', 16, 12, 2, 1, { foot: 1 }],
-  barrels: ['house', 16, 14, 2, 1, { foot: 1 }], goods: ['house', 18, 14, 2, 1, { foot: 1 }], potions: ['house', 20, 14, 1, 2, { foot: 1 }], desk: ['house', 30, 8, 2, 1, { foot: 1 }],
+  statue: ['house', 1, 15, 2, 3, { foot: 2 }], lion: ['house', 7, 15, 1, 2, { foot: 1 }],
+  // furniture (rects checked against the sheets: every piece whole, nothing cut by the tile grid)
+  counter: ['house', 16, 16, 3, 2, { foot: 2 }], counter2: ['house', 19, 16, 3, 2, { foot: 2 }], bench: ['house', 17, 18, 3, 1, { foot: 1 }],
+  shelf: ['element', 3, 7, 1, 2, { foot: 2 }], shelf2: ['element', 4, 7, 1, 2, { foot: 2 }], bookcase: ['element', 8, 7, 2, 2, { foot: 2 }], dresser: ['element', 1, 7, 1, 2, { foot: 2 }],
+  drawers: ['element', 6, 7, 2, 2, { foot: 2 }], plant: ['element', 0, 7, 1, 2, { foot: 1 }], stool: ['element', 5, 7, 1, 1], table: ['element', 2, 10, 3, 1, { foot: 1 }],
+  jars: ['house', 17, 20, 1, 1], pots: ['house', 18, 20, 1, 1], sack: ['house', 16, 11, 2, 2, { foot: 1 }], baskets: ['house', 16, 13, 3, 1, { foot: 1 }],
+  barrels: ['house', 16, 14, 3, 2, { foot: 1 }], goods: ['house', 19, 14, 2, 2, { foot: 2 }], potions: ['house', 21, 14, 1, 2, { foot: 2 }], desk: ['house', 29, 8, 2, 2, { foot: 1 }],
   tent: ['camp', 4, 0, 3, 3, { foot: 2 }], tent2: ['camp', 7, 0, 3, 3, { foot: 2 }], campfire: ['camp', 8, 3, 2, 2, { foot: 1 }], firepit: ['camp', 10, 3, 2, 2, { foot: 2 }],
-  table: ['house', 22, 6, 2, 2, { foot: 2 }], bed: ['house', 16, 6, 2, 2, { foot: 2 }], rack: ['house', 14, 10, 2, 2, { foot: 1 }],
+  bed: [null, 0, 0, 1, 2, { foot: 2, draw: 'bed' }], rack: ['house', 14, 10, 2, 2, { foot: 1 }],
   banner_r: ['house', 22, 20, 1, 2, { foot: 1 }], banner_red: ['house', 23, 20, 1, 2, { foot: 1 }], banner_g: ['house', 25, 20, 1, 2, { foot: 1 }], banner_p: ['house', 27, 20, 1, 2, { foot: 1 }], banner_y: ['house', 28, 20, 1, 2, { foot: 1 }],
+};
+// pieces the sheets have no whole picture of, drawn here in the same style: (g, left, top)
+const PROC = {
+  // a bed seen from above: wooden frame, white pillow, quilt folded back
+  bed(g, X, Y) {
+    g.fillStyle = '#3a2010'; g.fillRect(X + 1, Y + 1, 14, 30);
+    g.fillStyle = '#9a5a2c'; g.fillRect(X + 2, Y + 2, 12, 28); g.fillStyle = '#c07a3c'; g.fillRect(X + 2, Y + 2, 12, 3);
+    g.fillStyle = '#f0ece0'; g.fillRect(X + 3, Y + 5, 10, 6); g.fillStyle = '#c8c0b0'; g.fillRect(X + 3, Y + 10, 10, 1);
+    g.fillStyle = '#2c4a8a'; g.fillRect(X + 3, Y + 12, 10, 16); g.fillStyle = '#4a70b8'; g.fillRect(X + 3, Y + 12, 10, 3);
+    g.fillStyle = '#e0c060'; for (let i = 0; i < 3; i++) g.fillRect(X + 5 + i * 3, Y + 19 + (i % 2) * 4, 2, 2);
+    g.fillStyle = '#5a3418'; g.fillRect(X + 2, Y + 28, 12, 2);
+  },
 };
 export function obj(m, name, x, y, extra = {}) {
   const [img, sx, sy, w, h, o = {}] = OBJ[name], by = y + h - 1, foot = o.foot || 1;
-  const draw = (g, X, Y) => g.drawImage(tileset(img), sx * 16, sy * 16, w * 16, h * 16, X, Y - (h - 1) * 16, w * 16, h * 16);
+  const draw = o.draw ? (g, X, Y) => PROC[o.draw](g, X, Y - (h - 1) * 16) : (g, X, Y) => g.drawImage(tileset(img), sx * 16, sy * 16, w * 16, h * 16, X, Y - (h - 1) * 16, w * 16, h * 16);
   m.ents.push({ type: 'sprite', x, y: by, solid: true, draw, cond: extra.cond, obj: name });
+  mark(m, x, y, w, h);
   for (let j = 0; j < (o.door !== undefined ? h : foot); j++) for (let i = 0; i < w; i++) {
     const tx = x + i, ty = by - j;
     if (tx === x && ty === by) continue;
@@ -104,7 +125,10 @@ export function obj(m, name, x, y, extra = {}) {
   return o.door !== undefined ? [x + o.door, by] : null;
 }
 // a procedurally drawn thing on one tile (throne, brazier, chest...) with optional talk
-function thing(m, x, y, draw, o = {}) { m.ents.push({ type: 'sprite', x, y, solid: o.solid !== false, draw, talk: o.talk }); }
+function thing(m, x, y, draw, o = {}) { m.ents.push({ type: 'sprite', x, y, solid: o.solid !== false, draw, talk: o.talk }); mark(m, x, y, 1, 1); }
+// every tile a picture covers (roofs and treetops too), so later pieces never stand inside it
+function mark(m, x, y, w, h) { const o = m.occ || (m.occ = new Set()); for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) o.add((x + i) + ',' + (y + j)); }
+const taken = (m, x, y) => !!(m.occ && m.occ.has(x + ',' + y));
 const throne = (g, X, Y) => { g.fillStyle = '#2a1408'; g.fillRect(X + 1, Y - 10, 14, 26); g.fillStyle = '#b8862e'; g.fillRect(X + 2, Y - 9, 12, 24); g.fillStyle = '#e0b858'; g.fillRect(X + 2, Y - 9, 12, 2); g.fillStyle = '#9a2418'; g.fillRect(X + 4, Y - 5, 8, 10); g.fillRect(X + 3, Y + 6, 10, 6); };
 const brazier = (g, X, Y, f) => { g.fillStyle = '#3a2a20'; g.fillRect(X + 4, Y + 8, 8, 8); g.fillStyle = '#6a4a30'; g.fillRect(X + 3, Y + 6, 10, 3); g.fillStyle = (f >> 3) % 2 ? '#f8a030' : '#f8d050'; g.fillRect(X + 5, Y + 1, 6, 5); g.fillStyle = '#ffe890'; g.fillRect(X + 7, Y + 2, 2, 3); };
 const pillar = (g, X, Y) => { g.fillStyle = '#4a0c08'; g.fillRect(X + 4, Y - 18, 8, 34); g.fillStyle = '#a8281c'; g.fillRect(X + 5, Y - 18, 6, 34); g.fillStyle = '#d84a30'; g.fillRect(X + 5, Y - 18, 2, 34); g.fillStyle = '#e0b858'; g.fillRect(X + 3, Y - 20, 10, 3); g.fillRect(X + 3, Y + 13, 10, 3); };
@@ -186,7 +210,7 @@ function buildOutside(id, extraEnts) {
     const d = obj(m, hb, cx - 2, top, {});
     doors.hall = d;
     for (const dx of [-4, 3]) thing(m, cx + dx, top + 5, brazier);
-    if (kind !== 'fort') { obj(m, 'lion', cx - 5, top + 4); obj(m, 'lion', cx + 3, top + 4); }
+    if (kind !== 'fort') { obj(m, 'lion', cx - 5, top + 4); obj(m, 'lion', cx + 4, top + 4); }
     for (let y = top + 6; y < midY; y++) { b.set(cx, y, 'path'); b.set(cx - 1, y, 'path'); }
   }
   let li = 0;
@@ -226,13 +250,16 @@ function buildOutside(id, extraEnts) {
   } else {
     for (let x = 2; x < W - 2; x += 3) if (Math.abs(x - cx) > 3) obj(m, 'tree2', x, 0);
   }
-  if (kind !== 'temple' && kind !== 'gate') { obj(m, 'well', cx + 2, midY + 1); }
   // lanterns along the main street, barrels and crates by the shops, trees inside the walls
-  const freeTile = (x, y) => b.get(x, y) && !['rampart', 'rgate', 'sea', 'plank', 'path'].includes(b.get(x, y)) && !m.ents.some((e) => (e.type === 'solid' || e.type === 'sprite') && e.x === x && Math.abs(e.y - y) <= 1);
+  const freeTile = (x, y) => b.get(x, y) && !['rampart', 'rgate', 'sea', 'plank', 'path'].includes(b.get(x, y)) && !taken(m, x, y) && !taken(m, x, y + 1) && !Object.values(doors).some((d) => d && d[0] === x && d[1] + 1 === y);
+  // a piece goes where its whole picture fits on open ground, as near the wanted spot as it can
+  const fits = (x, y, w, h) => { if (x < 1 || y < 0 || x + w > W - 1 || y + h > H - 1) return false; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (!freeTile(x + i, y + j)) return false; return true; };
+  const place = (name, x, y, r = 3) => { const [, , , w, h] = OBJ[name]; for (let d = 0; d <= r; d++) for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === d && fits(x + dx, y + dy, w, h)) { obj(m, name, x + dx, y + dy); return true; } return false; };
   for (let y = midY + 2; y < H - 4; y += 4) for (const x of [cx - 2, cx + 1]) if (freeTile(x, y) && freeTile(x, y - 1)) obj(m, 'lantern', x, y - 1);
   for (const [role, d] of Object.entries(doors)) if (d && role !== 'hall' && !role.startsWith('house')) { const x = d[0] + 2, y = d[1]; if (freeTile(x, y)) obj(m, R(x * 3 + y) < 0.5 ? 'barrel' : 'crate', x, y); }
   if (walled) for (let x = 3; x < W - 4; x += 4) { if (Math.abs(x - cx) < 4) continue; if (freeTile(x, 3) && freeTile(x + 1, 3) && freeTile(x, 4) && freeTile(x + 1, 4) && R(300 + x) < 0.7) obj(m, R(301 + x) < 0.5 ? 'pine' : 'tree2', x, 3); }
-  if (kind === 'capital' || kind === 'castle' || kind === 'port') { obj(m, 'stall', cx - 5, midY + 1); obj(m, 'stall2', cx + 4, midY - 2); }
+  if (kind !== 'temple' && kind !== 'gate') place('well', cx + 2, midY + 1);
+  if (kind === 'capital' || kind === 'castle' || kind === 'port') { place('stall', cx - 5, midY + 1, 4); place('stall2', cx + 4, midY + 1, 4); }
   if (kind === 'port') {
     // docks along the bottom edge: water and a pier
     b.rect(0, H - 4, W, 4, 'sea'); b.rect(cx + 3, H - 6, 2, 5, 'plank'); b.rect(cx + 3, H - 6, 8, 1, 'plank');
@@ -279,7 +306,7 @@ function buildRoom(id, role) {
   const floor = role === 'hall' ? 'darkfloor' : role === 'shrine' ? 'jadefloor' : role === 'inn' || role === 'tavern' ? 'tanfloor' : role.startsWith('house') ? 'ornfloor' : 'brickfloor';
   b.room(0, 0, W, H, role === 'hall' ? 'owall' : 'iwall', floor);
   const cx = Math.floor(W / 2);
-  b.set(cx, H - 1, floor);
+  b.set(cx, H - 1, 'doormat');
   const m = { ents: [] };
   m.ents.push({ ...warp(id, 0, 0, 'd', { out: true }), x: cx, y: H - 1 });
   const keeper = (r, x, y, extra = {}) => m.ents.push(npc(`${r}_${id}`, folkLook(seed + 3, 'merchant'), 'shop_' + r, { x, y, dir: 'd', role: r, ...extra }));
@@ -292,10 +319,11 @@ function buildRoom(id, role) {
     obj(m, 'banner_red', cx - 2, 1); obj(m, 'banner_red', cx + 2, 1);
     m.ents.push({ type: 'lordseat', x: cx, y: 3 });
   } else if (role === 'inn') {
-    obj(m, 'counter', 2, 2); obj(m, 'bed', W - 4, 2); obj(m, 'bed', W - 4, 5); obj(m, 'jars', 1, 1);
-    keeper('inn', 2, 1);
+    obj(m, 'counter', 2, 2); for (const [bx, by] of [[W - 4, 1], [W - 2, 1], [W - 4, 5], [W - 2, 5]]) obj(m, 'bed', bx, by); obj(m, 'jars', 1, 1); obj(m, 'plant', 1, H - 3);
+    keeper('inn', 3, 1);
   } else if (role === 'tavern') {
-    obj(m, 'table', 2, 4); obj(m, 'table', 8, 4); obj(m, 'barrels', 1, 1); obj(m, 'counter2', 5, 2); obj(m, 'jars', W - 2, 1);
+    for (const tx of [2, 8]) { obj(m, 'table', tx, 5); obj(m, 'stool', tx, 6); obj(m, 'stool', tx + 2, 6); }
+    obj(m, 'barrels', 1, 1); obj(m, 'counter2', 5, 2); obj(m, 'jars', W - 2, 1); obj(m, 'pots', W - 3, 1);
     keeper('tavern', 6, 1);
     m.ents.push({ type: 'recruits', x: 0, y: 0 });
   } else if (role === 'shrine') {
@@ -305,13 +333,13 @@ function buildRoom(id, role) {
   } else if (!role.startsWith('house')) {
     obj(m, 'counter', cx - 1, 2);
     if (role === 'weapon') { obj(m, 'rack', 1, 1); obj(m, 'rack', W - 3, 1); }
-    else if (role === 'armour') { obj(m, 'shelf', 1, 1); obj(m, 'shelf', W - 2, 1); obj(m, 'goods', 1, 4); }
-    else if (role === 'book') { obj(m, 'shelf', 1, 1); obj(m, 'shelf', 2, 1); obj(m, 'shelf', W - 2, 1); obj(m, 'screen', W - 4, 4); }
-    else { obj(m, 'potions', 1, 1); obj(m, 'baskets', W - 3, 1); obj(m, 'barrels', 1, 5); }
+    else if (role === 'armour') { obj(m, 'dresser', 1, 1); obj(m, 'shelf2', 2, 1); obj(m, 'drawers', W - 3, 1); obj(m, 'goods', 1, 4); }
+    else if (role === 'book') { obj(m, 'bookcase', 1, 1); obj(m, 'shelf', W - 3, 1); obj(m, 'shelf', W - 2, 1); obj(m, 'bookcase', W - 3, H - 3); }
+    else { obj(m, 'potions', 1, 1); obj(m, 'potions', 2, 1); obj(m, 'sack', W - 3, 1); obj(m, 'barrels', 1, H - 3); }
     keeper(role, cx, 1);
   }
   if (role.startsWith('house')) {
-    obj(m, 'bed', 1, 1); obj(m, 'table', W - 3, 3); obj(m, 'jars', W - 2, 1);
+    obj(m, 'bed', 1, 1); obj(m, 'dresser', 2, 1); obj(m, 'table', W - 4, 3); obj(m, 'stool', W - 4, 4); obj(m, 'jars', W - 2, 1);
     m.ents.push(npc(`home_${id}_${role}`, folkLook(seed + 11, hash(seed, 1, 2) < 0.5 ? 'woman' : 'elder'), `home:${id}:${role}`, { x: cx, y: 3, dir: 'd' }));
     if (hash(seed, 3, 4) < 0.45) m.ents.push({ type: 'chest', x: 1, y: H - 2, id: `${id}_${role}`, item: null });
   }
@@ -339,7 +367,9 @@ function buildCave(id, floor) {
   const first = rooms[0], last = rooms[rooms.length - 1];
   const ex = [first[0] + 1, first[1] + first[2] - 1];
   // the way out (or up), and the way down
-  const upX = first[0] + 1, upY = first[1] + 1;
+  // the way up sits in a notch in the first room's north wall, where daylight (or the stair) shows clearly
+  const upX = first[0] + 1, upY = first[1] - 1;
+  b.set(upX, upY, 'cavefloor');
   m.ents.push({ type: floor === 1 ? 'exit' : 'stairs', x: upX, y: upY, to: floor === 1 ? null : `${id}/f${floor - 1}`, up: true });
   const deep = (CAVE_FLOORS[id] || 2);
   if (id === 'wuxia') {
@@ -349,13 +379,19 @@ function buildCave(id, floor) {
     const need = { 1: 'won_lotus1', 2: 'won_lotus2' }[floor];
     if (floor < deep) m.ents.push({ type: 'stairs', x: last[0] + last[2] - 1, y: last[1] + last[3] - 1, to: `${id}/f${floor + 1}`, cond: need ? (f) => !!f[need] : undefined });
   } else if (floor < deep) m.ents.push({ type: 'stairs', x: last[0] + last[2] - 2, y: last[1] + last[3] - 2, to: `${id}/f${floor + 1}` });
+  else if (floor > deep) m.ents.push({ type: 'cavegoal', x: last[0] + (last[2] >> 1), y: last[1] + (last[3] >> 1), place: id, sq: DEEP[id].sq });
   else m.ents.push({ type: 'cavegoal', x: last[0] + (last[2] >> 1), y: last[1] + (last[3] >> 1), place: id });
+  // a trial opens a way down past the altar, into a hidden floor below the last
+  if (floor === deep && DEEP[id]) { const r = rooms[rooms.length - 2]; m.ents.push({ type: 'stairs', x: r[0] + r[2] - 1, y: r[1] + r[3] - 1, to: `${id}/f${floor + 1}`, cond: (f) => !!f[DEEP[id].flag] }); }
   // chests
   for (let i = 1; i < rooms.length - 1; i += 2) { const r = rooms[i]; m.ents.push({ type: 'chest', x: r[0] + r[2] - 1, y: r[1], id: `${id}_f${floor}_${i}`, item: null }); }
   void ex;
-  return finish(b, { id: floor === 1 ? id : `${id}/f${floor}`, name: L(`${PLACES[id][0]}・第${floor}層`, `${PLACES[id][1]} - Floor ${floor}`), music: id === 'wuxia' ? 'sect' : 'cave', safe: false, enc: true, ents: m.ents, entry: [upX, upY + 1, 'd'], kind: 'cave', place: id, dark: true, floor });
+  const deepName = floor > deep && DEEP[id] ? DEEP[id].name : null;
+  return finish(b, { id: floor === 1 ? id : `${id}/f${floor}`, name: deepName ? L(`${deepName[0]}　B${floor}`, `${deepName[1]} B${floor}`) : L(`${PLACES[id][0]}　B${floor}`, `${PLACES[id][1]} B${floor}`), music: id === 'wuxia' ? 'sect' : 'cave', safe: false, enc: true, ents: m.ents, entry: [upX, upY + 1, 'd'], kind: 'cave', place: id, dark: true, floor });
 }
 export const CAVE_FLOORS = { shanyue: 2, tianzhu: 2, jiuyi: 3, wuxia: 4 };
+// hidden floors a trial opens (sidequests.js): below Mount Jiuyi lies the abyss
+export const DEEP = { jiuyi: { flag: 'sq_abyss', sq: 'abyss', name: ['九嶷深淵', 'The Jiuyi Abyss'] } };
 
 // story hooks may add people or things to a place: (id) -> fn(m, b, info)
 export const EXTRA = {};

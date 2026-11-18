@@ -2,9 +2,9 @@
 // wobble so coasts, deserts and snowfields have soft natural edges; shores get foam. Trees, hills, mountains,
 // walls, bridges and places are sprites drawn on top. The map is drawn in 32x32-tile chunks, made when first
 // seen and forgotten when far away.
-import { canvas } from './gfx.js?v=7';
-import { tileset, wsprite, WOBJ } from './assets.js?v=7';
-import { WW, WH, K, PLACES, WATER } from './world.js?v=7';
+import { canvas } from './gfx.js?v=8';
+import { tileset, wsprite, WOBJ } from './assets.js?v=8';
+import { WW, WH, K, PLACES, WATER } from './world.js?v=8';
 
 export const CH = 16; // tiles per chunk side
 let WD = null; // the generated world
@@ -179,12 +179,60 @@ function drawThing(g, X, Y, x, y, k) {
       const id = WD.placeAt[y * WW + x], p = PLACES[id];
       if (!p) break;
       const spr = PLACE_SPRITE[p[4]] || 'town';
+      if (p[4] === 'cave' || id === 'wuxia') { const c = caveMouth(id === 'wuxia'); g.drawImage(c, X + 8 - (c.width >> 1), Y + 17 - c.height); break; }
       if (spr === 'capital' || spr === 'castle') wsprite(g, spr, X + 8, Y + 18);
       else wsprite(g, spr, X + 8, Y + 16 + (spr === 'temple' ? 2 : 0));
       if (p[4] === 'fort') { wsprite(g, 'flag_red', X + 2, Y + 8); }
       break;
     }
   }
+}
+
+// a cave's mouth on the world map: a rocky outcrop with a black arched opening under a pale stone lintel and a
+// torch on either side, big enough to pick out among forests and mountains at a glance. The sect's palace in the
+// Wu Gorge is the same in black rock, with a violet glow round the gate and a lotus above it.
+const mouthCache = {};
+export function caveMouth(sect) {
+  if (mouthCache[sect]) return mouthCache[sect];
+  const Wd = 34, Ht = 28, c = canvas(Wd, Ht), g = c.x;
+  const pal = sect ? ['#0e0812', '#2a2032', '#3e3248', '#584a64', '#76668a'] : ['#1a1210', '#54473c', '#76685a', '#9a8a72', '#bcae92'];
+  const blobs = [[17, 18, 16, 10], [9, 19, 9, 8], [25, 18, 9, 9], [15, 10, 9, 8], [22, 12, 6, 6]];
+  const inRock = (x, y) => x >= 0 && y >= 0 && x < Wd && y < Ht && blobs.some(([bx, by, rx, ry]) => ((x + 0.5 - bx) / rx) ** 2 + ((y + 0.5 - by) / ry) ** 2 <= 1);
+  const mouth = (x, y) => { const dx = x + 0.5 - 17; return y >= 20 ? Math.abs(dx) <= 6.5 : dx * dx / 42 + (y + 0.5 - 20) ** 2 / 36 <= 1; };
+  const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+  for (let y = 0; y < Ht; y++) for (let x = 0; x < Wd; x++) {
+    if (!inRock(x, y)) { if (inRock(x + 1, y) || inRock(x - 1, y) || inRock(x, y + 1) || inRock(x, y - 1)) px(x, y, pal[0]); continue; }
+    // light from the top left; cracks and speckles from a hash
+    let k = 2;
+    if (!inRock(x, y - 1) || !inRock(x, y - 2)) k = 4; else if (!inRock(x - 1, y) || !inRock(x - 2, y - 1)) k = 3;
+    if (!inRock(x + 1, y) || !inRock(x + 2, y + 1) || y > Ht - 3) k = 1;
+    const h = hsh(x, y, sect ? 77 : 71);
+    if (h < 0.08) k = Math.max(1, k - 1); else if (h > 0.95) k = Math.min(4, k + 1);
+    px(x, y, pal[k]);
+  }
+  // a few crevices between the boulders
+  for (const [x0, y0, n] of [[8, 13, 4], [25, 10, 5], [13, 6, 3], [29, 17, 4]]) for (let i = 0; i < n; i++) if (inRock(x0 + (i >> 1), y0 + i)) px(x0 + (i >> 1), y0 + i, pal[1]);
+  // the mouth: a lintel of dressed stone round a black opening that fades in from the edge
+  const rim = sect ? '#b070e0' : '#d8c8a4', rim2 = sect ? '#6a3a90' : '#9a8a6a';
+  for (let y = 10; y < Ht; y++) for (let x = 8; x < 27; x++) {
+    if (mouth(x, y)) { const edge = !mouth(x - 1, y) || !mouth(x + 1, y) || !mouth(x, y - 1); px(x, y, edge ? (sect ? '#2a0a3a' : '#2a1c16') : '#050304'); }
+    else if (mouth(x - 1, y) || mouth(x + 1, y) || mouth(x, y + 1) || mouth(x - 1, y + 1) || mouth(x + 1, y + 1)) px(x, y, y < 18 ? rim : rim2);
+  }
+  // keystone
+  g.fillStyle = rim; g.fillRect(16, 11, 3, 2); g.fillStyle = pal[0]; g.fillRect(16, 13, 3, 1);
+  if (sect) {
+    // a lotus over the gate, and the violet glow inside it
+    g.fillStyle = '#e080f0'; g.fillRect(16, 5, 3, 4); g.fillRect(13, 7, 3, 2); g.fillRect(19, 7, 3, 2); g.fillStyle = '#ffd0ff'; g.fillRect(17, 6, 1, 2);
+    g.fillStyle = 'rgba(176,80,230,0.45)'; g.fillRect(14, 22, 7, 6);
+  }
+  // torches either side: a post with a cup and a flame
+  for (const tx of [3, 29]) {
+    g.fillStyle = '#20140c'; g.fillRect(tx - 1, 15, 4, 13); g.fillStyle = '#6a4424'; g.fillRect(tx, 16, 2, 12); g.fillStyle = '#8a5a30'; g.fillRect(tx, 16, 1, 12);
+    g.fillStyle = '#3a2a1a'; g.fillRect(tx - 1, 14, 4, 2);
+    g.fillStyle = sect ? '#a040e0' : '#f07818'; g.fillRect(tx - 1, 9, 4, 5); g.fillStyle = sect ? '#e8a0ff' : '#ffd040'; g.fillRect(tx, 10, 2, 4); g.fillStyle = '#fffbe0'; g.fillRect(tx, 12, 1, 2);
+  }
+  mouthCache[sect] = c;
+  return c;
 }
 
 // pairs of pairs of mountain tiles sometimes make one big mountain

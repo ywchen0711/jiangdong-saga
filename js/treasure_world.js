@@ -1,18 +1,18 @@
 // The treasures out in the world: chests holding them in halls, shrines, caves and streets, the treasure merchant's
 // stall, the townsfolk with a favour to ask, tavern rumours, leaders' rewards and the codex rewards for finding
 // many. The table of where each one is lives in treasures.js (SRC); this file puts it into the game.
-import { say, ask, menu, notice, descBox, panel } from './ui.js?v=7';
-import { W, text, windowBox } from './gfx.js?v=7';
-import { sfx } from './audio.js?v=7';
-import { L } from './i18n.js?v=7';
-import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=7';
-import { S, give, take, have, markFound } from './state.js?v=7';
-import { PLACES, REGIONS } from './world.js?v=7';
-import { F } from './field.js?v=7';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=7';
-import { placeName, folkLook } from './maps.js?v=7';
-import { hash } from './gfx.js?v=7';
-import { drawItemIcon } from './itemicons.js?v=7';
+import { say, ask, menu, notice, descBox, panel } from './ui.js?v=8';
+import { W, text, windowBox } from './gfx.js?v=8';
+import { sfx } from './audio.js?v=8';
+import { L } from './i18n.js?v=8';
+import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=8';
+import { S, give, take, have, markFound } from './state.js?v=8';
+import { PLACES, REGIONS } from './world.js?v=8';
+import { F } from './field.js?v=8';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=8';
+import { placeName, folkLook } from './maps.js?v=8';
+import { hash } from './gfx.js?v=8';
+import { drawItemIcon } from './itemicons.js?v=8';
 const GEAR = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 let tryOnPanel = null;
 export const setTryOn = (f) => { tryOnPanel = f; };
@@ -41,6 +41,7 @@ export function hintText(id) {
   if (s.t === 'merchant') return L(`第${it.ch}章起，雲遊的寶物商人有貨。`, `From chapter ${it.ch}, the wandering treasure merchant has it.`);
   if (s.t === 'gen') return L(`${genName(s.id)}隨身帶著。`, `${genName(s.id)} carries it.`);
   if (s.t === 'story') return L(s.zh + '。', s.en.charAt(0).toUpperCase() + s.en.slice(1) + '.');
+  if (s.t === 'sq') { const Q = window.G && G.SQ && G.SQ.SQ[s.q]; return Q ? L(`完成試煉「${Q.name[0]}」的謝禮（${placeName(Q.giver.place)}的${Q.giver.who[0]}）。`, `The reward for the trial "${Q.name[1]}" (the ${Q.giver.who[1].toLowerCase()} in ${placeName(Q.giver.place)}).`) : ''; }
   return '';
 }
 const SHOP_OF = { weapon: ['武器店', 'weapon shops'], armour: ['防具店', 'armour shops'], helm: ['防具店', 'armour shops'], shield: ['防具店', 'armour shops'], cape: ['防具店', 'armour shops'], horse: ['馬市', 'horse fairs'], treasure: ['道具店', 'supply shops'], relic: ['道具店', 'supply shops'], book: ['書肆', 'bookshops'] };
@@ -62,7 +63,8 @@ export async function gainTreasure(id, how) {
   await codexRewards();
 }
 // rewards for finding many, and for each full set
-const MILESTONES = [[50, 'tpbig', 3, 3000], [100, 'pearl', 2, 6000], [150, 'tpbig', 5, 9000], [200, 'zhaohun', 5, 15000], [250, 'tpbig', 8, 20000], [300, 'pearl', 5, 50000]];
+// the last one is every treasure there is (311 with the trials' rewards)
+const MILESTONES = [[50, 'tpbig', 3, 3000], [100, 'pearl', 2, 6000], [150, 'tpbig', 5, 9000], [200, 'zhaohun', 5, 15000], [250, 'tpbig', 8, 20000], [300, 'pearl', 5, 50000], [TREASURES.length, 'tpbig', 10, 80000]];
 export async function codexRewards() {
   const n = TREASURES.filter((id) => owned(id)).length;
   for (const [k, item, cnt, gold] of MILESTONES) {

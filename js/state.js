@@ -1,8 +1,8 @@
 // The game state: the army (generals, their levels, troops and gear), gold, items, flags, where you are,
 // and saving and loading. A general's numbers are worked out here from their base stats and gear.
-import { GENERALS, gearFor, genName } from './generals.js?v=7';
-import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=7';
-import { L } from './i18n.js?v=7';
+import { GENERALS, gearFor, genName } from './generals.js?v=8';
+import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=8';
+import { L } from './i18n.js?v=8';
 
 export const S = {};
 export function newGame() {
@@ -12,7 +12,7 @@ export function newGame() {
     roster: {}, front: [], strategist: null, formation: 'fangyuan', forms: ['fangyuan'], tp: 0,
     pos: { map: 'world', x: 238, y: 99, dir: 'd' }, vehicle: 'foot', ship: null, horse: false,
     met: {}, lastTown: 'haiyan', steps: 0, repel: 0, time: 0, battles: 0, wins: 0, captured: 0, chests: {}, visited: {},
-    found: {}, rumours: {}, quests: {}, codex: {}, dropPity: {},
+    found: {}, rumours: {}, quests: {}, codex: {}, dropPity: {}, sq: {},
   });
 }
 newGame();
@@ -139,7 +139,7 @@ export function load(slot) {
 // saves from before the seven slots: capes worn as treasures move to the cape slot, Josh takes up his shield,
 // and every treasure already owned counts as found
 export function migrate() {
-  for (const k of ['found', 'rumours', 'quests', 'codex', 'dropPity']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
+  for (const k of ['found', 'rumours', 'quests', 'codex', 'dropPity', 'sq']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
   for (const m of Object.values(S.roster || {})) {
     const old = m.equip || {};
     m.equip = fullEquip(old);
