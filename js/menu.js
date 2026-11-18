@@ -1,26 +1,27 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=8';
-import { input } from './input.js?v=8';
-import { sfx, setMusic, music } from './audio.js?v=8';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=8';
-import { L, LANG, setLang } from './i18n.js?v=8';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=8';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=8';
-import { icon, ICON_COL } from './icons.js?v=8';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss } from './state.js?v=8';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=8';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=8';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=8';
-import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=8';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=9';
+import { input } from './input.js?v=9';
+import { sfx, setMusic, music } from './audio.js?v=9';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=9';
+import { L, LANG, setLang } from './i18n.js?v=9';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=9';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=9';
+import { icon, ICON_COL } from './icons.js?v=9';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=9';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=9';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=9';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=9';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=9';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=8';
-import { overviewMap } from './worldgfx.js?v=8';
-import { questLog } from './sidequests.js?v=8';
-import { F, tileX, tileY } from './field.js?v=8';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=9';
+import { overviewMap, placeMark } from './worldgfx.js?v=9';
+import { questLog } from './sidequests.js?v=9';
+import { TERRAIN } from './battle.js?v=9';
+import { F, tileX, tileY } from './field.js?v=9';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
-const allIds = () => [...S.front, ...Object.keys(S.roster).filter((id) => !S.front.includes(id))];
+const allIds = () => [...S.front, ...party().filter((id) => !S.front.includes(id))];
 
 export async function openMenu() {
   sfx('ok');
@@ -110,7 +111,7 @@ async function generalsMenu() {
   for (;;) {
     const ids = allIds();
     let cur = start;
-    const c = await menu(ids.map(rowLabel), { x: 6, y: 4, w: 150, maxRows: 15, start, onMove: (i) => { cur = i; }, drawExtra: () => drawStatus(ids[cur], 160, 4, W - 166, 196) });
+    const c = await menu(ids.map(rowLabel), { x: 6, y: 4, w: 150, maxRows: 15, start, title: L(`隊伍 ${ids.length}/${PARTY_MAX}　營帳 ${(S.camp || []).length}`, `Party ${ids.length}/${PARTY_MAX}  camp ${(S.camp || []).length}`), onMove: (i) => { cur = i; }, drawExtra: () => drawStatus(ids[cur], 160, 4, W - 166, 196) });
     if (c < 0) return;
     start = c;
     const id = ids[c];
@@ -169,7 +170,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=8'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=9'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -233,6 +234,11 @@ const HELP = [
   { t: ['裝備與寶物', 'Gear and Treasures'], s: ['每位武將有七個裝備欄：武器、盾牌、鎧甲、頭盔、披風、坐騎、飾品。除了飾品，每件都會改變武將在地圖、城鎮、戰場與選單上的模樣（飾品也常有項鍊、腰帶等小細節）。雙手兵器（戟、弓、弩、雙刀）不能持盾。\n天下藏著三百件寶物，分為普通、精良、稀有、名品、傳說。寶物除了數值，還有效果：對某兵種傷害、某陣形時攻防、策略威力與消耗、抵抗異常、反彈策略、反擊、先制、士氣、策略值上限、水戰、每回合回兵……同一套裝穿兩到四件另有加成。寶物藏在太守府、廟堂、洞窟與街上的紅色寶箱裡、賈斯珀才看得見的野地、首領的戰利品、各地敵軍偶爾掉落、百姓的委託、商店的稀有貨與寶物商人那裡。到酒館打聽，寶物錄會記下線索。', 'Every general has seven slots: weapon, shield, armour, helm, cape, mount and accessory. All but the accessory change how they look on the map, in towns, in battle and in menus (accessories often add a small detail, a pendant or a belt). Two-handed weapons (halberds, bows, crossbows, twin blades) leave no hand for a shield.\nThree hundred treasures lie across the realm: Common, Fine, Rare, Famed and Legendary. Besides their numbers they have effects: damage against a unit type, attack and defence in a formation, tactic power and cost, resisting statuses, reflecting ploys, counters, first strikes, morale, extra strategy points, naval power, troops back each turn... and two to four pieces of one set add more. Look in red chests in governors\' halls, shrines, caves and streets, in the wilds where only Jasper sees, among leaders\' spoils, as rare drops from each land\'s armies, as rewards for townsfolk\'s favours, in shops\' rare stock and at the treasure merchant\'s. Ask in taverns: the Codex notes every rumour.'] },
   { t: ['雙特性', 'Traits'], draw: 'traits', s: ['五百名武將每人都有兩個特性，沒有兩人的組合相同。特性一直有效，觸發時武將頭上會浮現特性名稱。\n戰鬥中選「情報」、按選單鍵或點一下武將，就能看到他的特性、能力與狀態；敵人的弱點、抗性與首領的下一招要偵察才看得到（賈斯珀的「斥候」與郭嘉的「鬼才」也能看穿）。\n按A打開特性一覽：←→換類別，↑↓選擇。', 'Each of the 500 generals has two traits, and no two share the same pair. Traits always work, and a trait\'s name rises over the general when it triggers.\nIn battle, Info, the Menu key or a tap on a general shows their traits, numbers and statuses; an enemy\'s weak points, resistances and a leader\'s next move need scouting (Jasper\'s Scouts and Guo Jia\'s Ghost Talent see through them too).\nPress A for the trait glossary: left/right for a family, up/down to choose.'] },
   { t: ['首領戰', 'Leaders'], s: ['首領沒有特殊能力，和我們一樣用通用規則作戰。他們強在：\n‧ 等級較高，穿著寶物；名將有自己的兩個特性（傳說特性也一樣）。\n‧ 主將：每支軍隊（包括我們）排在最前面的主將，攻擊與防禦+15%。\n‧ 軍師：敵軍也有策略值（畫面右上「敵軍策略」），由他們最聰明的武將決定，用完就只能攻擊。\n‧ 智力或統率85以上的敵將會看穿我軍陣形，被克制時會變陣反制一次。\n‧ 首領戰中敵軍會集中攻擊兵力少的人與我軍軍師，兵力少時會防禦。任何一方的主將倒下，軍心大跌；首領的軍隊會戰到最後一人。\n對策也是通用的：偵察看清他們的特性、裝備與陣形，用克制的陣形、兵種相剋、狀態、治療與我們自己的特性應戰。出戰前聽聽軍師怎麼說。', 'Leaders have no special powers; they fight by the same rules as we do. What makes them strong:\n- A higher level and treasures; famous generals have their own two traits (legendary ones too).\n- Commander: the general at the head of every army (ours too) gets +15% attack and defence.\n- Strategist: the enemy has strategy points too ("Enemy SP" at the top right), set by its cleverest general; when they run out, they can only fight.\n- An enemy general with INT or LEAD 85+ reads our formation: if ours beats theirs, he changes once to answer it.\n- In a leader\'s battle the enemy goes for the weakened and for our strategist, and stands on guard when low. When either side\'s commander falls its morale plunges; a leader\'s army fights to the last.\nThe answers are the general ones: scout their traits, gear and formation, then counter with formation, the unit triangle, statuses, healing and our own traits. Listen to your advisers before the battle.'] },
+  { t: ['地形', 'The Ground'], draw: 'terrain', s: ['地形對雙方一視同仁。野戰的地形就是遇敵那一格的地形；首領會挑對自己有利的地方：守隘口、佔高地、隔河以待、據城而守。高地：該方弓兵+20%、防禦+10%、落石+20%。渡河：涉水的一方前兩回合速度−20%、防禦−10%。畫面右上角與情報卡會顯示地形對每個人的影響。', 'The ground is the same for both armies. A field battle is fought on the ground of the tile where it began; leaders pick ground that suits them: a pass, a height, the far bank of a river, their own walls. High ground: that side\'s archers +20%, defence +10%, rockfalls +20%. Wading a ford: 20% slower and 10% weaker in defence for two rounds. The top right of the screen and the info card show what the ground does to each general.'] },
+  { t: ['攻城', 'Sieges'], s: ['攻打城池或關隘時，守軍站在城牆上：弓兵+25%、防禦+25%，刀兵只能從垛口刺擊（八成五）。城門有自己的耐久：步兵×1.4、水軍×1.2、騎兵衝撞×1、弓兵×0.3，工匠×1.5，火計×1.5、落石×1.3，火藥與投石車也行。騎兵上不了城牆；步兵可以爬梯直接攻擊城上的人（傷害減半，還要挨一輪箭）。城門一破，城牆就沒有用了，守軍士氣大跌。守將可能開門出城迎戰（出城的人沒有城牆保護）；拖得太久，敵軍援軍會從城後趕到。', 'When you attack a city or a gate, the defenders stand on the walls: their archers +25%, their defence +25%, and their blades can only thrust over the parapet (85%). The gate has its own durability: foot x1.4, navy x1.2, horse ramming x1, archers x0.3, engineers x1.5, fire ploys x1.5, rocks x1.3; gunpowder and the catapult work too. Horse cannot climb walls; foot can take ladders straight at the men on top (half damage, and they take a volley). Once the gate is broken the walls are useless and the defenders lose heart. Their leader may open the gate and ride out (outside, the walls do not protect him); take too long and a relief force arrives from behind the city.'] },
+  { t: ['軍議', 'The War Council'], s: ['開戰前會召開軍議，每一項準備都用平常的手段完成：偵察城防（賈斯珀、斥候或會偵察的人：看穿全軍、城門−25%）、斷糧道（打一場仗：守軍兵力八成五、敵策略−25%、沒有援軍）、夜襲（打一場仗：一員敵將帶傷、敵士氣−10）、火燒城門（兩包火藥：城門−40%）、策反（金子與能言善道的人：一員敵將倒戈）。守隘口或高地的敵人可以繞道（山戰的武將帶路，高地反而歸我們）；隔河的敵人可以夜渡上游。做過的準備，之後每一次進攻都有效。', 'Before the battle there is a war council, and every preparation uses the ordinary means: scout the defences (Jasper, a Scout or someone who knows Scout: the enemy seen through, the gate 25% weaker), cut the supply road (a battle: the garrison at 85%, their strategy -25%, no relief), a night raid (a battle: one officer wounded, their morale -10), burn the gate (two kegs of gunpowder: 40% weaker), win over a defender (gold and a persuasive officer: one of them changes sides). An enemy holding a pass or a height can be outflanked by another road (with a mountaineer guiding, the height becomes ours); one behind a river can be crossed upstream by night. What you prepare counts for every later attempt.'] },
+  { t: ['隊伍與營帳', 'The Party and the Camp'], s: ['最多八名武將隨軍：前列五人、後備三人，軍師也在其中。第九名武將加入時，要選一位回營帳等候（孫權，以及故事需要時的四位旅人不能離開）。任何一間酒館，或大本營（建業）的客棧，都能打開「營帳名冊」：換人、看情報與特性、換裝備、卸下裝備。營帳裡的武將保有自己的裝備，每場勝仗也分到兩成經驗；花錢「訓練」能讓他們追上隊伍平均等級減二。', 'At most eight generals march with you: the front line of five and three in reserve, the strategist among them. When a ninth joins, choose one to wait at the camp (Sun Quan, and the four travellers when the story needs them, cannot be sent away). Any tavern, or the inn of your home city (Jianye), opens the camp roster: swap generals, read their card and traits, change or take off their gear. Generals in camp keep their gear and get a fifth of the experience of every victory; paid training brings them up to the party\'s average level less two.'] },
+  { t: ['秘境與渡船', 'Exploring and Ferries'], s: ['天下比從前大了四倍。路上有許多可以探索的地方：石灰岩洞、海蝕洞、銅礦、冰洞、玄武岩窟；漁村、山村、農村與渡口；坐船才到得了的島嶼；有之字形山道與山頂景色的名山；藏著洞穴的瀑布（走進水簾試試）；竹海、雲夢澤、子午谷；遺跡下的地宮；山寨、燈塔、長城上的烽火臺、溫泉與蓬萊的隱士。每個地方都有人、有故事或秘密、有守著它的強敵與寶物。有了戰船之前，港口的船夫可以載你到島上。敵人的強度由地區固定，沿著故事的路走、順路探索，等級自然就跟得上首領。', 'The realm is four times larger than before, and the road passes many places to explore: limestone and sea caves, a copper mine, an ice cave and a basalt grotto; fishing, mountain and farming villages and ferry crossings; islands reached by boat; famous peaks climbed by switchbacks to a summit view; waterfalls hiding a cave (walk into the water); the Bamboo Sea, the Yunmeng marsh and the Ziwu gorge; crypts under ruins; bandit camps, a lighthouse, a beacon tower on the Wall, a hot spring and the hermit of Penglai. Each has its people, a story or a secret, a strong guardian and something to find. Before you have a warship, harbour boatmen take you to the islands. Enemy strength is fixed by land: follow the story\'s road, explore what you pass, and your levels keep pace with the leaders.'] },
   { t: ['試煉', 'Trials'], s: ['各地有人委託「試煉」：頭上有「！」的人。試煉的敵軍強度固定，比同一章的首領更強，委託時會告訴你建議等級與報酬。選單的「任務」頁記下每個委託的地點、目標與進度。\n‧ 有的限時（畫面左上角顯示剩餘回合），有的連戰不准休整，有的只准前列三人出戰。\n‧ 每個試煉都有對策：先偵察，看情報卡上敵將的特性、裝備與陣形。\n‧ 輸了不會結束遊戲，整頓兵馬隨時可以再來。', 'People with a "!" over them ask for Trials. A trial\'s army is fixed in strength and stronger than the leaders of the same chapter; you are told the recommended level and the reward when you are asked. The Quests page in the menu keeps the place, goal and progress of every request.\n- Some are against the clock (rounds left show at the top left), some are gauntlets with no rest, and one lets only the first three of your front line fight.\n- Every trial has an answer: scout first and read the enemy\'s traits, gear and formation on the info card.\n- Losing a trial does not end the game; regroup and come back any time.'] },
 ];
 export async function helpPage(inBattle = false) {
@@ -271,6 +277,13 @@ export async function helpPage(inBattle = false) {
           cyc.forEach((c, i) => { text(c.map((f) => FORMS[f][L('zh', 'en') === 'zh' ? 'zh' : 'en']).join(' → ') + ' → ' + FORMS[c[0]][L('zh', 'en') === 'zh' ? 'zh' : 'en'], 24, 30 + i * 14, '#e0e8ff'); });
           text(L('（箭頭指向被克制的陣形）', '(each beats the next)'), 24, 72, '#a0a8c0');
           y = 92;
+        }
+        if (h.draw === 'terrain') {
+          // the kinds of ground: name and what it does, one line each
+          for (const ln of wrap(L(h.s[0], h.s[1]), W - 64).slice(0, 4)) { text(ln, 20, y, '#e8e8f0'); y += 13; }
+          y += 2;
+          for (const [k, T] of Object.entries(TERRAIN)) { if (y > H - 22) break; text(L(T.zh, T.en), 20, y, '#d0e8c0'); text(fit(L(T.d[0], T.d[1]), W - 150), 100, y, '#e0e0e8'); y += 13; void k; }
+          return;
         }
         if (h.draw === 'status') {
           const keys = Object.keys(STATUS);
@@ -370,7 +383,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=8'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=9'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -446,10 +459,12 @@ async function settings() {
 }
 
 // ---------- the full map ----------
+// three zooms: the whole realm at half a pixel a tile, then one and two pixels a tile, panned with the pad.
+// Places are marked by kind (caves, temples, passes, peaks, waterfalls, groves, islands...), names from zoom 2.
 export async function fullMap() {
   sfx('ok');
-  let zoom = 1, sx = 0, sy = 0;
-  const ov1 = overviewMap(1);
+  let zoom = 0;
+  const S_OF = [0.5, 1, 2];
   let ox = tileX(), oy = tileY();
   return new Promise((res) => {
     const w = {
@@ -458,45 +473,62 @@ export async function fullMap() {
         this.t++;
         if (this.t < 3) return;
         if (input.pressed('b') || input.pressed('map') || input.pressed('menu')) { sfx('cancel'); removeRaw(w); res(); return; }
-        if (input.pressed('a')) { zoom = zoom === 1 ? 2 : 1; sfx('cursor'); }
-        const d = input.dir(); const sp = 3;
-        if (zoom === 2 && d) { if (d === 'left') ox -= sp / 2; if (d === 'right') ox += sp / 2; if (d === 'up') oy -= sp / 2; if (d === 'down') oy += sp / 2; }
+        if (input.pressed('a')) { zoom = (zoom + 1) % 3; sfx('cursor'); }
+        const d = input.dir(), sp = zoom === 1 ? 3 : 1.5;
+        if (zoom > 0 && d) { if (d === 'left') ox -= sp; if (d === 'right') ox += sp; if (d === 'up') oy -= sp; if (d === 'down') oy += sp; }
+        ox = Math.max(0, Math.min(WW, ox)); oy = Math.max(0, Math.min(WH, oy));
+        // a tap pans to that spot (or zooms in on the whole map)
+        const tp = input.takeTap && input.takeTap();
+        if (tp && tp.y > 20) { const s = S_OF[zoom]; if (zoom === 0) { ox = (tp.x - (W - WW * s) / 2) / s; oy = (tp.y - 24 - (H - 24 - WH * s) / 2) / s; zoom = 1; } else { ox += (tp.x - W / 2) / s; oy += (tp.y - (20 + (H - 20) / 2)) / s; } sfx('cursor'); }
       },
       draw() {
         ctx.fillStyle = '#0a0808'; ctx.fillRect(0, 0, W, H);
-        if (zoom === 1) {
-          // the whole land at one pixel per tile
-          const x0 = (W - WW) / 2, y0 = (H - WH) / 2 + 4;
-          ctx.drawImage(ov1, x0, y0);
-          drawMarks(x0, y0, 1, 0, 0);
+        const s = S_OF[zoom];
+        if (zoom === 0) {
+          // the whole land at half a pixel per tile
+          const ov = overviewMap(0.5), x0 = Math.round((W - ov.width) / 2), y0 = 24 + Math.round((H - 24 - ov.height) / 2);
+          ctx.drawImage(ov, x0, y0);
+          drawMarks(x0, y0, s);
         } else {
-          const ov2 = overviewMap(2);
+          const ov = overviewMap(s === 2 ? 1 : 1);
           const vw = W, vh = H - 20;
-          sx = Math.max(0, Math.min(WW * 2 - vw, ox * 2 - vw / 2)); sy = Math.max(0, Math.min(WH * 2 - vh, oy * 2 - vh / 2));
-          ctx.drawImage(ov2, sx, sy, vw, vh, 0, 20, vw, vh);
-          drawMarks(-sx, 20 - sy, 2, 0, 0);
+          // at two pixels a tile the one-pixel picture is drawn doubled (crisp: smoothing is off on the screen)
+          const sx = Math.max(0, Math.min(WW * s - vw, ox * s - vw / 2)), sy = Math.max(0, Math.min(WH * s - vh, oy * s - vh / 2));
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(ov, sx / s, sy / s, vw / s, vh / s, 0, 20, vw, vh);
+          drawMarks(-sx, 20 - sy, s);
         }
         windowBox(0, 0, W, 20);
-        text(L('天下全圖　A：放大/縮小　B：返回', 'The realm   A: zoom   B: back'), 8, 4, '#f8e070');
+        text(L(`天下全圖　A：放大（${['全圖', '一倍', '兩倍'][zoom]}）　十字鍵：移動　B：返回`, `The realm   A: zoom (${['all', 'x1', 'x2'][zoom]})   pad: pan   B: back`), 8, 4, '#f8e070');
       },
     };
     function drawMarks(x0, y0, s) {
       for (const [id, p] of Object.entries(PLACES)) {
         const open = REGIONS[p[5]] && REGIONS[p[5]][4] <= S.chapter;
         const X = x0 + p[2] * s, Y = y0 + p[3] * s;
+        if (X < -10 || Y < 14 || X > W + 10 || Y > H + 10) continue;
         const col = S.visited[id] ? '#ffe070' : open ? '#e05a40' : '#6a5a5a', rx = Math.round(X), ry = Math.round(Y);
-        // a mark by kind: a black mouth in a ring for caves (and the sect's gate), a diamond for temples, a bar for passes
-        ctx.fillStyle = col;
-        if (p[4] === 'cave' || id === 'wuxia') { ctx.fillRect(rx - 2, ry - 2, 5, 5); ctx.fillStyle = id === 'wuxia' ? '#40104a' : '#100808'; ctx.fillRect(rx - 1, ry - 1, 3, 3); }
-        else if (p[4] === 'temple') { ctx.fillRect(rx, ry - 2, 1, 5); ctx.fillRect(rx - 2, ry, 5, 1); ctx.fillRect(rx - 1, ry - 1, 3, 3); }
-        else if (p[4] === 'gate') { ctx.fillRect(rx - 2, ry - 1, 5, 3); ctx.fillStyle = '#100808'; ctx.fillRect(rx, ry, 1, 2); }
-        else ctx.fillRect(rx - 1, ry - 1, 3, 3);
-        if (s === 2 && (S.visited[id] || (open && ['capital', 'castle', 'cave', 'temple', 'gate'].includes(p[4])))) text(L(p[0], p[1]), Math.round(X) + 3, Math.round(Y) - 6, S.visited[id] ? '#fff0c0' : '#e0c0b0');
+        placeMark(ctx, id, rx, ry, col);
+        if (s >= 1 && (S.visited[id] || (open && (s >= 2 || ['capital', 'castle', 'cave', 'temple', 'gate'].includes(p[4]))))) text(L(p[0], p[1]), rx + 4, ry - 7, S.visited[id] ? '#fff0c0' : '#e0c0b0');
       }
       if ((w.t >> 4) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x0 + tileX() * s) - 2, Math.round(y0 + tileY() * s) - 2, 5, 5); }
-      if (s === 1) {
+      if (s < 1) {
         // region names over the land
-        for (const [k, r] of Object.entries(REGIONS)) { if (r[4] > S.chapter + 0) continue; text(L(r[0], r[1]), x0 + r[2] - 8, y0 + r[3] - 4, '#e8e8e8'); void k; }
+        // each name centred on its land; a name that would touch one already drawn moves a little, or is left out
+        const used = [];
+        const hit = (a2) => used.some((b2) => a2[0] < b2[2] && a2[2] > b2[0] && a2[1] < b2[3] && a2[3] > b2[1]);
+        for (const r of Object.values(REGIONS)) {
+          if (r[4] > S.chapter) continue;
+          const nm = L(r[0], r[1]), w = textW(nm), cx = x0 + r[2] * s, cy = y0 + r[3] * s;
+          for (const [dx, dy] of [[0, 0], [0, -12], [0, 12], [-w / 2 - 4, 0], [w / 2 + 4, 0], [0, -22], [0, 22]]) {
+            const box = [cx + dx - w / 2 - 1, cy + dy - 7, cx + dx + w / 2 + 1, cy + dy + 7];
+            if (hit(box)) continue;
+            used.push(box);
+            ctx.fillStyle = 'rgba(10,8,8,0.45)'; ctx.fillRect(box[0], box[1] + 1, box[2] - box[0], 12);
+            text(nm, cx + dx, cy + dy - 6, '#f0f0f0', { align: 'center' });
+            break;
+          }
+        }
       }
     }
     pushRaw(w);

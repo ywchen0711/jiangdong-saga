@@ -3,8 +3,8 @@
 // recoloured from the LPC palettes, so 500 generals get 500 looks from a hundred layer sheets, and whatever a
 // general equips shows on them. Pictures come in three sizes: the battle sheet (64px figures, with the swing
 // of their weapon), the half-size walking sheet for maps, and a head-and-shoulders portrait.
-import { canvas } from './gfx.js?v=8';
-import { ITEMS, SWING } from './data.js?v=8';
+import { canvas } from './gfx.js?v=9';
+import { ITEMS, SWING } from './data.js?v=9';
 
 let META = null;
 try { META = await (await fetch('assets/doll/doll.json?v=2')).json(); } catch (e) { META = null; }

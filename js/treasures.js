@@ -8,7 +8,7 @@
 // h= helmet layer, p= plume layer, pc= plume colour, hc= cloth of a headband, cp= cape layer, cc= cape colour,
 // sh= shield layer, hs= horse colour, n= neck layer, bl= belt layer, bc= belt colour, br bracers, cu cuffs, sc scarf,
 // ic= icon, fx= effects (comma list), set= set, st= extra stats, src= fixed source, gen= carried by a general
-import { PLACES, REGIONS } from './world.js?v=8';
+import { PLACES, REGIONS } from './world.js?v=9';
 export const RARITY = [['普通', 'Common', '#c8c8c8'], ['精良', 'Fine', '#78d878'], ['稀有', 'Rare', '#68a8ff'], ['名品', 'Famed', '#d080ff'], ['傳說', 'Legendary', '#ffb838']];
 const RMUL = [1, 1.04, 1.08, 1.12, 1.18];
 const W_ATK = [0, 9, 11, 16, 20, 25, 27, 30, 34, 37, 38];
@@ -354,10 +354,10 @@ export const SETS = {
 // the famous pieces that were already in the game (kept with their numbers and places)
 const OLD = {
   yitian: [4, 2, { src: { t: 'chest', map: 'tianzhu/f2', chest: 'tianzhu_f2_1' } }], qinggang: [4, 10, { src: { t: 'chest', map: 'wuxia/f2', chest: 'wuxia_f2_1' }, set: 'changban' }],
-  longdan: [4, 5, { src: { t: 'chest', map: 'jiuyi/f3', chest: 'jiuyi_f3_3' } }], hutou: [4, 8, {}], qinglong: [4, 7, {}], fangtian: [4, 8, { set: 'hulao' }], yangyouji: [4, 8, { src: { t: 'secret', x: 72, y: 70 } }],
-  liannu: [4, 5, { src: { t: 'story', zh: '隆中的諸葛亮所贈', en: 'a gift from Zhuge Liang at Longzhong' } }], starstaff: [3, 9, {}], goldarmour: [4, 10, { src: { t: 'secret', x: 96, y: 112 } }], beastarmour: [4, 10, {}],
-  zijinguan: [4, 8, { src: { t: 'secret', x: 140, y: 60 }, set: 'hulao' }], dilu: [4, 5, {}], jueying: [4, 8, { src: { t: 'secret', x: 150, y: 30 } }], chitu: [4, 8, { src: { t: 'secret', x: 62, y: 40 }, set: 'hulao' }],
-  sunzi: [4, 8, { src: { t: 'secret', x: 118, y: 74 } }], qingnang: [3, 9, { src: { t: 'secret', x: 60, y: 120 }, set: 'healer' }], compass: [3, 1, { src: { t: 'chest', map: 'shanyue/f2', chest: 'shanyue_f2_3' } }],
+  longdan: [4, 5, { src: { t: 'chest', map: 'jiuyi/f3', chest: 'jiuyi_f3_3' } }], hutou: [4, 8, {}], qinglong: [4, 7, {}], fangtian: [4, 8, { set: 'hulao' }], yangyouji: [4, 8, { src: { t: 'secret', x: 144, y: 140 } }],
+  liannu: [4, 5, { src: { t: 'story', zh: '隆中的諸葛亮所贈', en: 'a gift from Zhuge Liang at Longzhong' } }], starstaff: [3, 9, {}], goldarmour: [4, 10, { src: { t: 'secret', x: 192, y: 224 } }], beastarmour: [4, 10, {}],
+  zijinguan: [4, 8, { src: { t: 'secret', x: 280, y: 120 }, set: 'hulao' }], dilu: [4, 5, {}], jueying: [4, 8, { src: { t: 'secret', x: 300, y: 60 } }], chitu: [4, 8, { src: { t: 'secret', x: 124, y: 80 }, set: 'hulao' }],
+  sunzi: [4, 8, { src: { t: 'secret', x: 236, y: 148 } }], qingnang: [3, 9, { src: { t: 'secret', x: 120, y: 240 }, set: 'healer' }], compass: [3, 1, { src: { t: 'chest', map: 'shanyue/f2', chest: 'shanyue_f2_3' } }],
   sextant: [3, 6, { src: { t: 'story', zh: '夷洲的島民所贈', en: 'a gift from the islanders of Yizhou' } }], dragoncape: [4, 10, { src: { t: 'chest', map: 'wuxia/f3', chest: 'wuxia_f3_3' } }],
   bk_stun: [3, 2, { src: { t: 'chest', map: 'tianzhu/f1', chest: 'tianzhu_f1_3' } }], bk_bagua: [4, 9, {}], bk_inferno: [4, 10, { src: { t: 'chest', map: 'wuxia/f1', chest: 'wuxia_f1_3' } }],
 };
@@ -482,7 +482,7 @@ export function assignSources(I) {
   for (const id of TREASURES) { const it = I[id]; if (it.fixedSrc) { SRC[id] = it.fixedSrc; continue; } if (it.gen) { SRC[id] = { t: 'gen', id: it.gen }; continue; } (byCh[it.ch] || (byCh[it.ch] = [])).push(it); }
   for (let c = 1; c <= 10; c++) {
     const regs = Object.keys(REGIONS).filter((k) => REGIONS[k][4] === c);
-    const places = Object.keys(PLACES).filter((p) => regs.includes(PLACES[p][5]));
+    const places = Object.keys(PLACES).filter((p) => regs.includes(PLACES[p][5]) && !PLACES[p][6]);
     const boss = (BOSS_BY_CH[c] || []).map((b) => ({ t: 'boss', id: b }));
     const caves = []; for (const p of places) if (CAVE_FLOORS_T[p]) for (let f = 1; f <= CAVE_FLOORS_T[p]; f++) caves.push({ t: 'chest', map: `${p}/f${f}` });
     const halls = places.filter((p) => ['capital', 'castle', 'fort'].includes(PLACES[p][4])).map((p) => ({ t: 'chest', map: p + '/hall' }));
@@ -490,7 +490,7 @@ export function assignSources(I) {
     const towns = places.filter((p) => PLACES[p][4] !== 'cave' && p !== 'wuxia').map((p) => ({ t: 'chest', map: p }));
     const secret = (k) => places.filter((p) => PLACES[p][4] !== 'cave').map((p, i) => {
       const P = PLACES[p], R = REGIONS[P[5]];
-      const a = h3(i, k, c) * Math.PI * 2, d = 4 + h3(k, i, c + 3) * 4;
+      const a = h3(i, k, c) * Math.PI * 2, d = 8 + h3(k, i, c + 3) * 8;
       return { t: 'secret', x: Math.round(P[2] + (R[2] - P[2]) * 0.4 + Math.cos(a) * d), y: Math.round(P[3] + (R[3] - P[3]) * 0.4 + Math.sin(a) * d) };
     });
     const drops = regs.map((r) => ({ t: 'drop', region: r }));
@@ -505,6 +505,18 @@ export function assignSources(I) {
     const take = (ok) => { const i = order.findIndex((s, k) => !used[k] && ok(s)); if (i < 0) return null; used[i] = true; return order[i]; };
     for (const it of list.filter((x) => x.kind === 'horse')) SRC[it.id] = ['drop', 'merchant', 'shop', 'quest', 'boss', 'secret'].reduce((got, t) => got || take((s) => s.t === t), null) || { t: 'merchant' };
     for (const it of list.filter((x) => x.kind !== 'horse')) SRC[it.id] = take(() => true) || { t: 'merchant' };
+  }
+  // each place to explore keeps one treasure of its chapter: taken from a street chest in a town of the same
+  // chapter (deepest floor for caves, behind the waterfall, in the crypt, at the top of a tower)
+  const DEEP_MAP = { cave: (id, sc) => `${id}/f${sc.floors || 2}`, falls: (id) => `${id}/f1`, ruins: (id) => `${id}/f1`, lighthouse: (id) => `${id}/top`, tower: (id) => `${id}/top` };
+  for (const [id, P] of Object.entries(PLACES)) {
+    const sc = P[6]; if (!sc) continue;
+    const ch = REGIONS[P[5]][4];
+    const cand = TREASURES.filter((t) => I[t].ch === ch && SRC[t] && SRC[t].t === 'chest' && !SRC[t].map.includes('/') && !(PLACES[SRC[t].map] && PLACES[SRC[t].map][6]) && I[t].kind !== 'horse');
+    if (!cand.length) continue;
+    const t = cand[Math.floor(h3(id.length, id.charCodeAt(0), ch) * cand.length)];
+    const f = DEEP_MAP[sc.t] || DEEP_MAP[P[4]];
+    SRC[t] = { t: 'chest', map: f ? f(id, sc) : id };
   }
   // number the chests that share a map
   const n = {};

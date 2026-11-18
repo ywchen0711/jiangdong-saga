@@ -1,11 +1,11 @@
 // Towns, castles, villages, ports, forts, temples, caves and the rooms inside them. Every place on the world
 // map gets its own layout, made from a template for its kind and a seed from its name, so the same place always
 // looks the same. Ground is laid out as letters; houses, trees and furniture are objects placed on top.
-import { hash, canvas } from './gfx.js?v=8';
-import { tileset } from './assets.js?v=8';
-import { TILES } from './tiles.js?v=8';
-import { PLACES } from './world.js?v=8';
-import { L } from './i18n.js?v=8';
+import { hash, canvas } from './gfx.js?v=9';
+import { tileset } from './assets.js?v=9';
+import { TILES } from './tiles.js?v=9';
+import { PLACES } from './world.js?v=9';
+import { L } from './i18n.js?v=9';
 
 // ---------- extra tiles ----------
 // a 16-piece floor autotile (3x3 patch, a column, a row and a single), as in tiles.js
@@ -73,7 +73,7 @@ export function canvasMap(w, h, fill) {
   };
   return b;
 }
-function finish(b, meta) {
+export function finish(b, meta) {
   return { w: b.w, h: b.h, kinds: b.g, kindAt: (x, y) => b.g[y][x], ents: meta.ents || [], ...meta };
 }
 // [tileset, x, y, w, h, { door: column you walk in by, foot: rows from the bottom that are solid }]
@@ -125,13 +125,13 @@ export function obj(m, name, x, y, extra = {}) {
   return o.door !== undefined ? [x + o.door, by] : null;
 }
 // a procedurally drawn thing on one tile (throne, brazier, chest...) with optional talk
-function thing(m, x, y, draw, o = {}) { m.ents.push({ type: 'sprite', x, y, solid: o.solid !== false, draw, talk: o.talk }); mark(m, x, y, 1, 1); }
+export function thing(m, x, y, draw, o = {}) { m.ents.push({ type: 'sprite', x, y, solid: o.solid !== false, draw, talk: o.talk }); mark(m, x, y, 1, 1); }
 // every tile a picture covers (roofs and treetops too), so later pieces never stand inside it
 function mark(m, x, y, w, h) { const o = m.occ || (m.occ = new Set()); for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) o.add((x + i) + ',' + (y + j)); }
-const taken = (m, x, y) => !!(m.occ && m.occ.has(x + ',' + y));
-const throne = (g, X, Y) => { g.fillStyle = '#2a1408'; g.fillRect(X + 1, Y - 10, 14, 26); g.fillStyle = '#b8862e'; g.fillRect(X + 2, Y - 9, 12, 24); g.fillStyle = '#e0b858'; g.fillRect(X + 2, Y - 9, 12, 2); g.fillStyle = '#9a2418'; g.fillRect(X + 4, Y - 5, 8, 10); g.fillRect(X + 3, Y + 6, 10, 6); };
-const brazier = (g, X, Y, f) => { g.fillStyle = '#3a2a20'; g.fillRect(X + 4, Y + 8, 8, 8); g.fillStyle = '#6a4a30'; g.fillRect(X + 3, Y + 6, 10, 3); g.fillStyle = (f >> 3) % 2 ? '#f8a030' : '#f8d050'; g.fillRect(X + 5, Y + 1, 6, 5); g.fillStyle = '#ffe890'; g.fillRect(X + 7, Y + 2, 2, 3); };
-const pillar = (g, X, Y) => { g.fillStyle = '#4a0c08'; g.fillRect(X + 4, Y - 18, 8, 34); g.fillStyle = '#a8281c'; g.fillRect(X + 5, Y - 18, 6, 34); g.fillStyle = '#d84a30'; g.fillRect(X + 5, Y - 18, 2, 34); g.fillStyle = '#e0b858'; g.fillRect(X + 3, Y - 20, 10, 3); g.fillRect(X + 3, Y + 13, 10, 3); };
+export const taken = (m, x, y) => !!(m.occ && m.occ.has(x + ',' + y));
+export const throne = (g, X, Y) => { g.fillStyle = '#2a1408'; g.fillRect(X + 1, Y - 10, 14, 26); g.fillStyle = '#b8862e'; g.fillRect(X + 2, Y - 9, 12, 24); g.fillStyle = '#e0b858'; g.fillRect(X + 2, Y - 9, 12, 2); g.fillStyle = '#9a2418'; g.fillRect(X + 4, Y - 5, 8, 10); g.fillRect(X + 3, Y + 6, 10, 6); };
+export const brazier = (g, X, Y, f) => { g.fillStyle = '#3a2a20'; g.fillRect(X + 4, Y + 8, 8, 8); g.fillStyle = '#6a4a30'; g.fillRect(X + 3, Y + 6, 10, 3); g.fillStyle = (f >> 3) % 2 ? '#f8a030' : '#f8d050'; g.fillRect(X + 5, Y + 1, 6, 5); g.fillStyle = '#ffe890'; g.fillRect(X + 7, Y + 2, 2, 3); };
+export const pillar = (g, X, Y) => { g.fillStyle = '#4a0c08'; g.fillRect(X + 4, Y - 18, 8, 34); g.fillStyle = '#a8281c'; g.fillRect(X + 5, Y - 18, 6, 34); g.fillStyle = '#d84a30'; g.fillRect(X + 5, Y - 18, 2, 34); g.fillStyle = '#e0b858'; g.fillRect(X + 3, Y - 20, 10, 3); g.fillRect(X + 3, Y + 13, 10, 3); };
 const sign = (label) => (g, X, Y) => { g.fillStyle = '#3a2410'; g.fillRect(X + 1, Y + 1, 14, 9); g.fillStyle = '#c89048'; g.fillRect(X + 2, Y + 2, 12, 7); g.fillStyle = '#3a2410'; g.fillRect(X + 7, Y + 10, 2, 6); void label; };
 
 export const warp = (to, tx, ty, dir = 'd', extra = {}) => ({ type: 'warp', to, tx, ty, dir, ...extra });
@@ -297,7 +297,7 @@ function buildOutside(id, extraEnts) {
 }
 
 // rooms
-function buildRoom(id, role) {
+export function buildRoom(id, role) {
   const P = PLACES[id], kind = P[4];
   const seed = [...(id + role)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
   const sizes = { hall: [17, 13], inn: [12, 9], tavern: [13, 10], shrine: [13, 10], weapon: [10, 8], armour: [10, 8], item: [10, 8], book: [10, 8] };
@@ -395,9 +395,12 @@ export const DEEP = { jiuyi: { flag: 'sq_abyss', sq: 'abyss', name: ['九嶷深�
 
 // story hooks may add people or things to a place: (id) -> fn(m, b, info)
 export const EXTRA = {};
+// the places to explore build their own maps (explore.js registers itself here)
+export const SCENE = { build: null };
 export function buildMap(mapId) {
   const [id, sub] = mapId.split('/');
   if (!PLACES[id]) return null;
+  if (PLACES[id][6] && SCENE.build) { const r = SCENE.build(id, sub || null); if (r) { if (EXTRA[mapId]) EXTRA[mapId](r, null, {}); return r; } }
   if (!sub) return buildOutside(id, EXTRA[id]);
   if (sub.startsWith('f')) return buildCave(id, +sub.slice(1));
   const r = buildRoom(id, sub);

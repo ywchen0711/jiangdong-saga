@@ -1,18 +1,18 @@
 // The treasures out in the world: chests holding them in halls, shrines, caves and streets, the treasure merchant's
 // stall, the townsfolk with a favour to ask, tavern rumours, leaders' rewards and the codex rewards for finding
 // many. The table of where each one is lives in treasures.js (SRC); this file puts it into the game.
-import { say, ask, menu, notice, descBox, panel } from './ui.js?v=8';
-import { W, text, windowBox } from './gfx.js?v=8';
-import { sfx } from './audio.js?v=8';
-import { L } from './i18n.js?v=8';
-import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=8';
-import { S, give, take, have, markFound } from './state.js?v=8';
-import { PLACES, REGIONS } from './world.js?v=8';
-import { F } from './field.js?v=8';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=8';
-import { placeName, folkLook } from './maps.js?v=8';
-import { hash } from './gfx.js?v=8';
-import { drawItemIcon } from './itemicons.js?v=8';
+import { say, ask, menu, notice, descBox, panel } from './ui.js?v=9';
+import { W, text, windowBox } from './gfx.js?v=9';
+import { sfx } from './audio.js?v=9';
+import { L } from './i18n.js?v=9';
+import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=9';
+import { S, give, take, have, markFound } from './state.js?v=9';
+import { PLACES, REGIONS } from './world.js?v=9';
+import { F } from './field.js?v=9';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=9';
+import { placeName, folkLook } from './maps.js?v=9';
+import { hash } from './gfx.js?v=9';
+import { drawItemIcon } from './itemicons.js?v=9';
 const GEAR = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 let tryOnPanel = null;
 export const setTryOn = (f) => { tryOnPanel = f; };
@@ -102,6 +102,7 @@ export function populate(mapId, ents) {
 // a starting spot for the k-th chest on a map (toMap moves it to the nearest free tile)
 function spotFor(m, mapId, k) {
   const [, sub] = mapId.split('/');
+  if (m.trSpots && m.trSpots.length) return m.trSpots[k % m.trSpots.length];
   if (sub && sub[0] === 'f') {
     // a cave: some floor tile well away from the way in
     const floor = []; for (let y = 1; y < m.h - 1; y++) for (let x = 1; x < m.w - 1; x++) { const t = m.kindAt(x, y); if (t === 'cavefloor' || t === 'blackstone') floor.push([x, y]); }

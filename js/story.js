@@ -2,23 +2,24 @@
 // Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
 // beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=8';
-import { sfx, playMusic, stopMusic } from './audio.js?v=8';
-import { UI, menu, say, ask, notice, wait } from './ui.js?v=8';
-import { L } from './i18n.js?v=8';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=8';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=8';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp } from './state.js?v=8';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=8';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=8';
-import * as FIELD from './field.js?v=8';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv } from './town.js?v=8';
-import { placeName, CAVE_FLOORS } from './maps.js?v=8';
-import { portrait } from './doll.js?v=8';
-import { ADVICE } from './bosses.js?v=8';
-import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=8';
-import { TREASURES, SRC } from './data.js?v=8';
-import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=8';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=9';
+import { sfx, playMusic, stopMusic } from './audio.js?v=9';
+import { UI, menu, say, ask, notice, wait, descBox } from './ui.js?v=9';
+import { L } from './i18n.js?v=9';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=9';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=9';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp, party, inCamp, fromCamp, toCamp, campCandidates, PARTY_MAX } from './state.js?v=9';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=9';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=9';
+import * as FIELD from './field.js?v=9';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv, fitParty } from './town.js?v=9';
+import { placeName, CAVE_FLOORS } from './maps.js?v=9';
+import { portrait } from './doll.js?v=9';
+import { ADVICE } from './bosses.js?v=9';
+import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=9';
+import { TREASURES, SRC } from './data.js?v=9';
+import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=9';
+import { exploreTalk, populate as exPopulate } from './explore.js?v=9';
 
 export const STORY = {};
 const G = () => window.G;
@@ -39,11 +40,11 @@ const choose = (who, zh, en, opts) => ask(nm(who), L(zh, en), opts.map(([a, b]) 
 async function join(id, lv, quiet = false) {
   const m = recruit(id, lv, { reserve: S.front.length >= 5 });
   S.flags['gone_' + id] = 1;
-  if (!quiet) { sfx('level'); await N(`${GENERALS[id].zh}加入了！`, `${GENERALS[id].en} joins the army!`); }
+  if (!quiet) { sfx('level'); await N(`${GENERALS[id].zh}加入了！`, `${GENERALS[id].en} joins the army!`); await fitParty(); }
   return m;
 }
 const has = (id) => !!S.roster[id];
-const lvNow = () => { const ms = Object.values(S.roster); return ms.length ? Math.round(ms.reduce((t, m) => t + m.lv, 0) / ms.length) : 1; };
+const lvNow = () => { const ms = party().map((id) => S.roster[id]); return ms.length ? Math.round(ms.reduce((t, m) => t + m.lv, 0) / ms.length) : 1; };
 // ---------- staging ----------
 const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 function actor(id, x, y, dir = 'd') {
@@ -135,43 +136,44 @@ export function regionLockText(rk) {
 // ---------- bosses ----------
 // each boss fight: who stands against you, how strong, and where
 export const BOSSES = {
-  tianzhu: { foes: [{ id: 'g325', lv: 23, boss: true, tr: 2 }, { id: 'g326', lv: 20, tr: 1 }, { id: 'g329', lv: 20, tr: 1 }, { id: 'g327', lv: 20, tr: 1, sage: true }], terrain: 'cave', music: 'sectboss' },
-  jiuyi: { foes: [{ id: 'g328', lv: 44, boss: true, tr: 5 }, { id: 'g329', lv: 41, tr: 4 }, { id: 'g330', lv: 41, tr: 4 }, { id: 'g331', lv: 41, tr: 4, sage: true }], terrain: 'cave', music: 'sectboss' },
-  pirates: { foes: [{ id: 'g400', lv: 51, boss: true, tr: 6 }, { id: 'g401', lv: 48, tr: 5 }, { id: 'g402', lv: 48, tr: 5 }, { id: 'g403', lv: 48, tr: 5, sage: true }], terrain: 'river', naval: true, music: 'boss' },
+  tianzhu: { foes: [{ id: 'g325', lv: 20, boss: true, tr: 2 }, { id: 'g326', lv: 18, tr: 1 }, { id: 'g329', lv: 18, tr: 1 }, { id: 'g327', lv: 18, tr: 1, sage: true }], terrain: 'cave', music: 'sectboss' },
+  jiuyi: { foes: [{ id: 'g328', lv: 42, boss: true, tr: 5 }, { id: 'g329', lv: 39, tr: 4 }, { id: 'g330', lv: 39, tr: 4 }, { id: 'g331', lv: 39, tr: 4, sage: true }], terrain: 'cave', music: 'sectboss' },
+  pirates: { foes: [{ id: 'g400', lv: 48, boss: true, tr: 6 }, { id: 'g401', lv: 45, tr: 5 }, { id: 'g402', lv: 45, tr: 5 }, { id: 'g403', lv: 45, tr: 5, sage: true }], terrain: 'river', naval: true, music: 'boss' },
   prologue: { foes: [{ id: 'g300', lv: 4, mul: 0.9 }, { id: 'g301', lv: 4, mul: 0.9 }, { id: 'g302', lv: 3, mul: 0.9 }], terrain: 'castle', music: 'battle', canRun: false, mayLose: false },
   beach: { foes: [{ id: 'g010', lv: 2 }, { id: 'g011', lv: 2 }], terrain: 'grass', music: 'battle' },
-  yanbaihu: { foes: [{ id: 'yanbaihu', lv: 16, boss: true, tr: 1 }, { id: 'g012', lv: 14, tr: 1 }, { id: 'g015', lv: 14, tr: 1 }, { id: 'g303', lv: 14, tr: 1 }], terrain: 'castle', foeForm: 'yulin' },
-  zulang: { foes: [{ id: 'zulang', lv: 15, boss: true, tr: 1 }, { id: 'g013', lv: 12, tr: 1 }, { id: 'g014', lv: 12, tr: 1 }, { id: 'g016', lv: 12, tr: 1 }], terrain: 'cave', foeForm: 'yulin' },
-  liuxun: { foes: [{ id: 'liuxun', lv: 21, boss: true, tr: 2 }, { id: 'g304', lv: 19, tr: 1 }, { id: 'g060', lv: 19, tr: 1 }, { id: 'g061', lv: 18, tr: 1, sage: true }], terrain: 'castle', foeForm: 'changshe' },
-  qua: { foes: [{ id: 'g036', lv: 24, tr: 3 }, { id: 'g037', lv: 23, tr: 2 }, { id: 'g043', lv: 23, tr: 2 }, { id: 'g038', lv: 22, tr: 2, sage: true }], terrain: 'grass' },
-  moling: { foes: [{ id: 'g039', lv: 26, tr: 3 }, { id: 'g040', lv: 24, tr: 2 }, { id: 'g041', lv: 24, tr: 2 }, { id: 'g305', lv: 24, tr: 2, sage: true }], terrain: 'castle' },
-  sunhao: { foes: [{ id: 'sunhao', lv: 26, boss: true, tr: 3 }, { id: 'yanwu', lv: 27, boss: true, tr: 3 }, { id: 'g042', lv: 23, tr: 2 }, { id: 'g306', lv: 23, tr: 2, sage: true }], terrain: 'castle', foeForm: 'fengshi', music: 'boss' },
-  xisai: { foes: [{ id: 'chenjiu', lv: 32, boss: true, tr: 4 }, { id: 'g070', lv: 29, tr: 3 }, { id: 'g071', lv: 29, tr: 3 }, { id: 'g072', lv: 29, tr: 3, sage: true }], terrain: 'river', naval: true, foeForm: 'changshe' },
-  huangzu: { foes: [{ id: 'huangzu', lv: 41, boss: true, tr: 4 }, { id: 'g073', lv: 38, tr: 3 }, { id: 'g074', lv: 38, tr: 3 }, { id: 'g307', lv: 38, tr: 3, sage: true }], terrain: 'castle', foeForm: 'fangyuan' },
-  changsha: { foes: [{ id: 'g090', lv: 38, tr: 5 }, { id: 'g091', lv: 36, tr: 4 }, { id: 'g092', lv: 36, tr: 4 }, { id: 'g093', lv: 36, tr: 4, sage: true }], terrain: 'castle' },
-  caimao: { foes: [{ id: 'caimao', lv: 44, boss: true, tr: 5 }, { id: 'chaoyin', lv: 45, boss: true, tr: 5 }, { id: 'zhangyun', lv: 41, tr: 4 }, { id: 'g094', lv: 41, tr: 4, sage: true }], terrain: 'castle', foeForm: 'yulin', music: 'boss' },
-  fleet1: { foes: [{ id: 'yuejin', lv: 49, tr: 6 }, { id: 'g110', lv: 46, tr: 5 }, { id: 'g111', lv: 46, tr: 5 }, { id: 'g112', lv: 46, tr: 5, sage: true }], terrain: 'river', naval: true },
-  fleet2: { foes: [{ id: 'yujin', lv: 44, boss: true, tr: 6 }, { id: 'chaoyin', lv: 44, boss: true, tr: 6 }, { id: 'g113', lv: 41, tr: 5 }, { id: 'g308', lv: 41, tr: 5, sage: true }], terrain: 'river', naval: true, foeForm: 'shuijun', music: 'boss' },
+  yanbaihu: { foes: [{ id: 'yanbaihu', lv: 12, boss: true, tr: 1 }, { id: 'g012', lv: 10, tr: 1 }, { id: 'g015', lv: 10, tr: 1 }, { id: 'g303', lv: 10, tr: 1 }], terrain: 'castle', foeForm: 'yulin' },
+  zulang: { foes: [{ id: 'zulang', lv: 12, boss: true, tr: 1 }, { id: 'g013', lv: 10, tr: 1 }, { id: 'g014', lv: 10, tr: 1 }, { id: 'g016', lv: 10, tr: 1 }], terrain: 'cave', foeForm: 'yulin' },
+  liuxun: { foes: [{ id: 'liuxun', lv: 23, boss: true, tr: 2 }, { id: 'g304', lv: 21, tr: 1 }, { id: 'g060', lv: 21, tr: 1 }, { id: 'g061', lv: 20, tr: 1, sage: true }], terrain: 'castle', foeForm: 'changshe' },
+  qua: { foes: [{ id: 'g036', lv: 28, tr: 3 }, { id: 'g037', lv: 27, tr: 2 }, { id: 'g043', lv: 27, tr: 2 }, { id: 'g038', lv: 26, tr: 2, sage: true }], terrain: 'grass' },
+  moling: { foes: [{ id: 'g039', lv: 25, tr: 3 }, { id: 'g040', lv: 23, tr: 2 }, { id: 'g041', lv: 23, tr: 2 }, { id: 'g305', lv: 23, tr: 2, sage: true }], terrain: 'castle' },
+  sunhao: { foes: [{ id: 'sunhao', lv: 25, boss: true, tr: 3 }, { id: 'yanwu', lv: 26, boss: true, tr: 3 }, { id: 'g042', lv: 23, tr: 2 }, { id: 'g306', lv: 23, tr: 2, sage: true }], terrain: 'castle', foeForm: 'fengshi', music: 'boss' },
+  xisai: { foes: [{ id: 'chenjiu', lv: 33, boss: true, tr: 4 }, { id: 'g070', lv: 31, tr: 3 }, { id: 'g071', lv: 31, tr: 3 }, { id: 'g072', lv: 31, tr: 3, sage: true }], terrain: 'river', naval: true, foeForm: 'changshe' },
+  huangzu: { foes: [{ id: 'huangzu', lv: 33, boss: true, tr: 4 }, { id: 'g073', lv: 31, tr: 3 }, { id: 'g074', lv: 31, tr: 3 }, { id: 'g307', lv: 31, tr: 3, sage: true }], terrain: 'castle', foeForm: 'fangyuan' },
+  changsha: { foes: [{ id: 'g090', lv: 34, tr: 5 }, { id: 'g091', lv: 32, tr: 4 }, { id: 'g092', lv: 32, tr: 4 }, { id: 'g093', lv: 32, tr: 4, sage: true }], terrain: 'castle' },
+  caimao: { foes: [{ id: 'caimao', lv: 40, boss: true, tr: 5 }, { id: 'chaoyin', lv: 41, boss: true, tr: 5 }, { id: 'zhangyun', lv: 38, tr: 4 }, { id: 'g094', lv: 38, tr: 4, sage: true }], terrain: 'castle', foeForm: 'yulin', music: 'boss' },
+  fleet1: { foes: [{ id: 'yuejin', lv: 46, tr: 6 }, { id: 'g110', lv: 44, tr: 5 }, { id: 'g111', lv: 44, tr: 5 }, { id: 'g112', lv: 44, tr: 5, sage: true }], terrain: 'river', naval: true },
+  fleet2: { foes: [{ id: 'yujin', lv: 47, boss: true, tr: 6 }, { id: 'chaoyin', lv: 48, boss: true, tr: 6 }, { id: 'g113', lv: 45, tr: 5 }, { id: 'g308', lv: 45, tr: 5, sage: true }], terrain: 'river', naval: true, foeForm: 'shuijun', music: 'boss' },
   yuanshu: { foes: [{ id: 'yuanshu', lv: 53, boss: true, tr: 7 }, { id: 'jiling', lv: 53, boss: true, tr: 7 }, { id: 'g130', lv: 51, tr: 6 }, { id: 'g131', lv: 51, tr: 6, sage: true }], terrain: 'castle', foeForm: 'yulin' },
-  guandu: { foes: [{ id: 'yanliang', lv: 44, boss: true, tr: 7 }, { id: 'wenchou', lv: 44, boss: true, tr: 7 }, { id: 'g132', lv: 41, tr: 6 }, { id: 'g133', lv: 41, tr: 6 }, { id: 'g134', lv: 41, tr: 6, sage: true }], terrain: 'grass', foeForm: 'tuzhen', music: 'boss' },
-  yuanshao: { foes: [{ id: 'yuanshao', lv: 50, boss: true, tr: 7 }, { id: 'shuangjing', lv: 51, boss: true, tr: 7 }, { id: 'shenpei', lv: 48, tr: 6 }, { id: 'g135', lv: 48, tr: 6, sage: true }], terrain: 'castle', foeForm: 'changshe', music: 'boss' },
-  hulao: { foes: [{ id: 'huaxiong', lv: 62, boss: true, tr: 8 }, { id: 'g150', lv: 60, tr: 7 }, { id: 'g151', lv: 60, tr: 7 }, { id: 'g155', lv: 60, tr: 7, sage: true }], terrain: 'castle', foeForm: 'fangyuan' },
-  tongguan: { foes: [{ id: 'lijue', lv: 61, boss: true, tr: 8 }, { id: 'guosi', lv: 61, boss: true, tr: 8 }, { id: 'g154', lv: 58, tr: 7 }, { id: 'g152', lv: 58, tr: 7, sage: true }], terrain: 'mountain', foeForm: 'fengshi' },
-  dongzhuo: { foes: [{ id: 'dongzhuo', lv: 67, boss: true, tr: 8 }, { id: 'liru', lv: 64, tr: 7 }, { id: 'zhangxiu', lv: 64, tr: 7 }, { id: 'g153', lv: 63, tr: 7, sage: true }], terrain: 'castle', foeForm: 'fangyuan', music: 'boss' },
-  jianye2: { foes: [{ id: 'g310', lv: 75, tr: 9 }, { id: 'g311', lv: 74, tr: 8 }, { id: 'g312', lv: 74, tr: 8 }, { id: 'g313', lv: 74, tr: 8, sage: true }], terrain: 'castle' },
-  jiyuan: { foes: [{ id: 'jiyuan', lv: 73, boss: true, tr: 9 }, { id: 'mingzhao', lv: 73, boss: true, tr: 9 }, { id: 'g314', lv: 70, tr: 8 }, { id: 'g315', lv: 70, tr: 8, sage: true }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
-  zhangren: { foes: [{ id: 'zhangren', lv: 73, boss: true, tr: 9 }, { id: 'g170', lv: 70, tr: 8 }, { id: 'g171', lv: 70, tr: 8 }, { id: 'g172', lv: 70, tr: 8, sage: true }], terrain: 'mountain', foeForm: 'yanxing' },
-  yanwu: { foes: [{ id: 'yanwu', lv: 81, boss: true, tr: 9 }, { id: 'g316', lv: 78, tr: 8 }, { id: 'g317', lv: 78, tr: 8 }, { id: 'g318', lv: 78, tr: 8, sage: true }], terrain: 'sect', foeForm: 'yulin', music: 'sectboss' },
-  lotus1: { foes: [{ id: 'shuangjing', lv: 68, boss: true, tr: 10 }, { id: 'g319', lv: 65, tr: 9 }, { id: 'g318', lv: 65, tr: 9 }, { id: 'g320', lv: 65, tr: 9, sage: true }], terrain: 'sect', foeForm: 'changshe', music: 'sectboss' },
-  lotus2: { foes: [{ id: 'mingzhao', lv: 76, boss: true, tr: 10 }, { id: 'g321', lv: 73, tr: 9 }, { id: 'g317', lv: 73, tr: 9 }, { id: 'g322', lv: 73, tr: 9, sage: true }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
-  yuji1: { foes: [{ id: 'yuji', lv: 82, boss: true, tr: 10 }, { id: 'g323', lv: 77, tr: 9 }, { id: 'g316', lv: 77, tr: 9 }, { id: 'g324', lv: 77, tr: 9, sage: true }], terrain: 'sect', foeForm: 'fangyuan', music: 'finalboss', canRun: false },
-  yuji2: { foes: [{ id: 'yuji', lv: 76, boss: true, tr: 10 }, { id: 'g326', lv: 71, tr: 10 }, { id: 'g327', lv: 71, tr: 10 }, { id: 'g328', lv: 70, tr: 9, sage: true }], terrain: 'sect', foeForm: 'yanyue', music: 'finalboss', canRun: false, intro: ['黑蓮聖主現出了真身！', 'The Lord of the Black Lotus shows his true form!'] },
+  guandu: { foes: [{ id: 'yanliang', lv: 54, boss: true, tr: 7 }, { id: 'wenchou', lv: 54, boss: true, tr: 7 }, { id: 'g132', lv: 51, tr: 6 }, { id: 'g133', lv: 51, tr: 6 }, { id: 'g134', lv: 51, tr: 6, sage: true }], terrain: 'grass', foeForm: 'tuzhen', music: 'boss' },
+  yuanshao: { foes: [{ id: 'yuanshao', lv: 54, boss: true, tr: 7 }, { id: 'shuangjing', lv: 55, boss: true, tr: 7 }, { id: 'shenpei', lv: 52, tr: 6 }, { id: 'g135', lv: 52, tr: 6, sage: true }], terrain: 'castle', foeForm: 'changshe', music: 'boss' },
+  hulao: { foes: [{ id: 'huaxiong', lv: 65, boss: true, tr: 8 }, { id: 'g150', lv: 63, tr: 7 }, { id: 'g151', lv: 63, tr: 7 }, { id: 'g155', lv: 63, tr: 7, sage: true }], terrain: 'castle', foeForm: 'fangyuan' },
+  tongguan: { foes: [{ id: 'lijue', lv: 66, boss: true, tr: 8 }, { id: 'guosi', lv: 66, boss: true, tr: 8 }, { id: 'g154', lv: 64, tr: 7 }, { id: 'g152', lv: 64, tr: 7, sage: true }], terrain: 'mountain', foeForm: 'fengshi' },
+  dongzhuo: { foes: [{ id: 'dongzhuo', lv: 68, boss: true, tr: 8 }, { id: 'liru', lv: 66, tr: 7 }, { id: 'zhangxiu', lv: 66, tr: 7 }, { id: 'g153', lv: 65, tr: 7, sage: true }], terrain: 'castle', foeForm: 'fangyuan', music: 'boss' },
+  jianye2: { foes: [{ id: 'g310', lv: 73, tr: 9 }, { id: 'g311', lv: 71, tr: 8 }, { id: 'g312', lv: 71, tr: 8 }, { id: 'g313', lv: 71, tr: 8, sage: true }], terrain: 'castle' },
+  jiyuan: { foes: [{ id: 'jiyuan', lv: 74, boss: true, tr: 9 }, { id: 'mingzhao', lv: 74, boss: true, tr: 9 }, { id: 'g314', lv: 72, tr: 8 }, { id: 'g315', lv: 72, tr: 8, sage: true }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
+  zhangren: { foes: [{ id: 'zhangren', lv: 76, boss: true, tr: 9 }, { id: 'g170', lv: 74, tr: 8 }, { id: 'g171', lv: 74, tr: 8 }, { id: 'g172', lv: 74, tr: 8, sage: true }], terrain: 'mountain', foeForm: 'yanxing' },
+  yanwu: { foes: [{ id: 'yanwu', lv: 78, boss: true, tr: 9 }, { id: 'g316', lv: 76, tr: 8 }, { id: 'g317', lv: 76, tr: 8 }, { id: 'g318', lv: 76, tr: 8, sage: true }], terrain: 'sect', foeForm: 'yulin', music: 'sectboss' },
+  lotus1: { foes: [{ id: 'shuangjing', lv: 71, boss: true, tr: 10 }, { id: 'g319', lv: 68, tr: 9 }, { id: 'g318', lv: 68, tr: 9 }, { id: 'g320', lv: 68, tr: 9, sage: true }], terrain: 'sect', foeForm: 'changshe', music: 'sectboss' },
+  lotus2: { foes: [{ id: 'mingzhao', lv: 79, boss: true, tr: 10 }, { id: 'g321', lv: 76, tr: 9 }, { id: 'g317', lv: 76, tr: 9 }, { id: 'g322', lv: 76, tr: 9, sage: true }], terrain: 'sect', foeForm: 'fengshi', music: 'sectboss' },
+  yuji1: { foes: [{ id: 'yuji', lv: 80, boss: true, tr: 10 }, { id: 'g323', lv: 77, tr: 9 }, { id: 'g316', lv: 77, tr: 9 }, { id: 'g324', lv: 77, tr: 9, sage: true }], terrain: 'sect', foeForm: 'fangyuan', music: 'finalboss', canRun: false },
+  yuji2: { foes: [{ id: 'yuji', lv: 77, boss: true, tr: 10 }, { id: 'g326', lv: 73, tr: 10 }, { id: 'g327', lv: 73, tr: 10 }, { id: 'g328', lv: 72, tr: 9, sage: true }], terrain: 'sect', foeForm: 'yanyue', music: 'finalboss', canRun: false, intro: ['黑蓮聖主現出了真身！', 'The Lord of the Black Lotus shows his true form!'] },
 };
 // some of the generated generals are written into the story as the sect's and the rebels' officers;
 // make sure the ids used above belong to the right side (they are reassigned at start)
 const STORY_SIDE_UNUSED = { g300: 'sect', g301: 'sect', g302: 'sect', g303: 'sect', g304: 'sect', g305: 'sect', g306: 'sect', g307: 'sect', g308: 'sect', g310: 'sect', g311: 'sect', g312: 'sect', g313: 'sect', g314: 'sect', g315: 'sect', g316: 'sect', g317: 'sect', g318: 'sect', g319: 'sect', g320: 'sect', g321: 'sect', g322: 'sect', g323: 'sect', g324: 'sect' };
 void STORY_SIDE_UNUSED;
 export function bossFor(id) { return BOSSES[id]; }
+STORY.bossLv = (id) => (BOSSES[id] ? BOSSES[id].foes.map((f) => f.lv).join('/') : null);
 // officers named gNNN in the table are stand-ins: each becomes the Nth officer of the side that fights
 const SECT_FIGHTS = new Set(['prologue', 'jianye2', 'jiyuan', 'yanwu', 'lotus1', 'lotus2', 'yuji1', 'yuji2', 'tianzhu', 'jiuyi']);
 const SIDE_OF = { pirates: 'pirate' };
@@ -198,13 +200,138 @@ async function advise(id) {
   const sp = who.find((w) => has(w) || (w === 'zhuzhi' && S.flags.metZhuzhi)) || (has('erin') ? 'erin' : null);
   if (sp) await T(sp, zh, en);
 }
+// ---------- good ground and sieges ----------
+// where each leader chooses to fight: behind his walls (a siege), on a pass or a height he holds, across a ford.
+// It is the general rule of the ground (battle.js TERRAIN and sieges), the same for both sides, and every one of
+// these can be answered: scouting, preparations outside, the right troops and traits, another road.
+export const BOSS_GROUND = {
+  yanbaihu: { terrain: 'castle', siege: { gate: 0.6, reinf: 0 } },
+  liuxun: { terrain: 'castle', siege: { gate: 0.8, reinf: 7 } },
+  moling: { terrain: 'castle', siege: { gate: 1, reinf: 6 } },
+  sunhao: { terrain: 'castle', siege: { gate: 1.1, reinf: 7 } },
+  huangzu: { terrain: 'castle', siege: { gate: 1, reinf: 6 } },
+  caimao: { terrain: 'castle', siege: { gate: 1.1, reinf: 7 } },
+  yuanshu: { terrain: 'castle', siege: { gate: 1, reinf: 6 } },
+  guandu: { terrain: 'ford', crossing: 'ally' },
+  yuanshao: { terrain: 'castle', siege: { gate: 1.2, reinf: 7 } },
+  hulao: { terrain: 'castle', siege: { gate: 1.2, reinf: 6 } },
+  tongguan: { terrain: 'castle', siege: { gate: 1, reinf: 6 } },
+  dongzhuo: { terrain: 'castle', siege: { gate: 1.3, reinf: 7 } },
+  jianye2: { terrain: 'castle', siege: { gate: 1.1, reinf: 6 } },
+  zhangren: { terrain: 'pass', height: 'foe' },
+  yanwu: { terrain: 'mountain', height: 'foe' },
+};
+// the war council before such a fight: each preparation uses the game's ordinary means (a battle fought, an item
+// spent, gold, a general who can do it) and is done once; what it achieved holds for every later attempt
+const chOf = () => Math.max(1, S.chapter || 1);
+const partyIds = () => party().filter((x) => S.roster[x]);
+const holder = (pred) => partyIds().find((x) => pred(GENERALS[x], S.roster[x]));
+const scoutBy = () => holder((g, m) => g.id === 'jasper' || (g.traits || []).includes('chihou') || m.tactics.includes('zhencha'));
+const mountBy = () => holder((g) => (g.traits || []).includes('shanzhan'));
+const navyBy = () => holder((g) => g.unit === 'nav');
+const talker = () => partyIds().map((x) => S.roster[x]).sort((a, b) => (GENERALS[b.id].int + GENERALS[b.id].lead / 2) - (GENERALS[a.id].int + GENERALS[a.id].lead / 2))[0];
+function prepList(id) {
+  const gd = BOSS_GROUND[id] || {}, out = [];
+  out.push('scout');
+  if (gd.siege) out.push('supply', 'raid', 'fire', 'defect');
+  if (gd.height || gd.terrain === 'pass') out.push('flank', 'raid');
+  if (gd.crossing) out.push('upstream', 'raid');
+  return [...new Set(out)];
+}
+const PREP_TXT = {
+  scout: [['偵察城防', 'Scout the defences'], ['派斥候摸清敵軍：開戰就看穿全軍；攻城時找出最薄的城門（耐久−25%）。需要賈斯珀、「斥候」或會「偵察」的武將。', 'Send scouts: the battle starts with the enemy seen through; in a siege, the weakest gate is found (25% less to break). Needs Jasper, a Scout or someone who knows Scout.']],
+  supply: [['斷糧道', 'Cut the supply road'], ['打一場仗，截下送進城的糧隊：守軍兵力只剩八成五，敵軍策略值−25%，也等不到援軍。', 'Fight a battle to seize the convoy bringing grain in: the garrison fights at 85% troops, with 25% less strategy, and no relief force comes.']],
+  raid: [['夜襲', 'Night raid'], ['趁夜偷襲敵營（一場戰鬥）：敵軍一員大將帶傷上陣（兵力五成），開戰士氣−10。', 'Raid their camp by night (a battle): one of their officers starts at half troops, and their morale starts 10 lower.']],
+  fire: [['火燒城門', 'Burn the gate'], ['用兩包火藥燒城門：城門耐久−40%。', 'Spend two kegs of gunpowder on the gate: 40% less to break.']],
+  defect: [['策反', 'Win over a defender'], ['派能言善道的人帶著金子入城遊說：成功則一員敵將倒戈不出戰；失敗則金子沒了，敵軍更警覺。', 'Send a persuasive officer in with gold: if it works one of their officers changes sides and stays out of the fight; if not the gold is lost and they grow wary.']],
+  flank: [['繞道', 'Go round by another road'], ['走小路繞到敵後：敵軍失去高地與隘口之利；若有善於山戰的武將帶路，高地反而歸我軍。要擅長「山戰」的武將，或花三份兵糧走遠路。', 'Take a mountain track round behind them: they lose the height and the narrows; with a mountaineer guiding, the height is ours instead. Needs a Mountaineer, or three Rations for the long way round.']],
+  upstream: [['夜渡上游', 'Cross upstream by night'], ['在上游找淺處連夜渡河：不必在敵前涉水。要有水軍將領，或花兩份兵糧。', 'Find shallows upstream and cross by night: no wading under their eyes. Needs a navy general, or two Rations.']],
+};
+function prepReady(id, k) {
+  if (k === 'scout') return !!scoutBy();
+  if (k === 'fire') return have('gunpowder') >= 2;
+  if (k === 'defect') return S.gold >= 250 * chOf();
+  if (k === 'flank') return !!mountBy() || have('rations') >= 3;
+  if (k === 'upstream') return !!navyBy() || have('rations') >= 2;
+  return true;
+}
+const prepState = (id, k) => S.flags[`prep_${id}_${k}`] || 0;
+// the battles a preparation means: the convoy, or a raid on their camp
+async function prepBattle(id, k, b) {
+  const foes = officers(id, b).filter((f) => !f.boss).slice(0, 3);
+  const lv = Math.max(1, Math.round(foes.reduce((t, f) => t + f.lv, 0) / Math.max(1, foes.length)) - 3);
+  const cfg = k === 'supply'
+    ? { foes: foes.map((f) => ({ id: f.id, lv, mul: 1 })), terrain: 'grass', canRun: true, capture: false, mayLose: true, intro: L('截住了敵軍的糧隊！', 'You catch the enemy\'s grain convoy!') }
+    : { foes: foes.map((f) => ({ id: f.id, lv: f.lv, mul: 0.55 })), terrain: (BOSS_GROUND[id] || {}).siege ? 'castle' : 'forest', weather: 'clear', canRun: true, capture: false, mayLose: true, intro: L('夜襲！敵營一片混亂！', 'A night raid! Their camp is in chaos!') };
+  sfx('encounter');
+  return battle(cfg);
+}
+export async function warCouncil(id, b) {
+  const list = prepList(id);
+  const auto = window.G && G.autoBattle;
+  const doPrep = async (k) => {
+    const sp = holder(() => true) || 'sunquan';
+    if (k === 'scout') { const w = scoutBy(); if (!w) return; if (!auto) await T(w, '交給我。城牆的每一塊磚我都會數清楚。', 'Leave it to me. I\'ll count every brick in that wall.'); S.flags[`prep_${id}_scout`] = 1; sfx('ok'); if (!auto) await N('偵察完成：敵軍的虛實一目了然。', 'Scouting done: the enemy lies open to you.'); return; }
+    if (k === 'supply' || k === 'raid') { const r = await prepBattle(id, k, b); if (r === 'win') { S.flags[`prep_${id}_${k}`] = 1; if (!auto) await N(k === 'supply' ? '糧隊被截下了！城裡很快就會缺糧。' : '夜襲成功！敵將帶傷退回城中。', k === 'supply' ? 'The convoy is taken! The city will soon go hungry.' : 'The raid succeeds! An enemy officer falls back wounded.'); } else if (!auto) await N('失敗了……可以再試。', 'It failed... you may try again.'); healAll(1); return; }
+    if (k === 'fire') { if (have('gunpowder') < 2) return; take('gunpowder', 2); S.flags[`prep_${id}_fire`] = 1; sfx('boom'); if (!auto) await N('火藥炸開，城門燒得焦黑！', 'The gunpowder bursts; the gate is scorched black!'); return; }
+    if (k === 'defect') {
+      const cost = 250 * chOf(); if (S.gold < cost) return; S.gold -= cost;
+      const t = talker(), g = GENERALS[t.id];
+      const ch = Math.max(0.15, Math.min(0.8, 0.25 + (g.int - 70) / 100 + (g.lead - 70) / 200));
+      if (!auto) await T(t.id, '我帶著金子進城走一趟。', 'I\'ll take the gold into the city.');
+      if (Math.random() < ch) { S.flags[`prep_${id}_defect`] = 1; sfx('level'); if (!auto) await N('遊說成功！有一員敵將答應臨陣倒戈。', 'It worked! One of their officers agrees to turn when battle comes.'); }
+      else { S.flags[`prep_${id}_defect`] = 2; sfx('buzz'); if (!auto) await N('遊說失敗，敵軍更加警覺了。', 'It failed; the enemy is more watchful now.'); }
+      return;
+    }
+    if (k === 'flank') { const w = mountBy(); if (!w) take('rations', 3); S.flags[`prep_${id}_flank`] = w ? 2 : 1; sfx('ok'); if (!auto) await N(w ? `${genName(w)}帶路，全軍從山後繞了上去！` : '全軍走了三天的遠路，繞到了敵後。', w ? `${genName(w)} leads the way and the army climbs round behind them!` : 'Three days on the long road, and the army is behind them.'); return; }
+    if (k === 'upstream') { if (!navyBy()) take('rations', 2); S.flags[`prep_${id}_upstream`] = 1; sfx('ok'); if (!auto) await N('全軍趁夜從上游渡過了河。', 'The army crosses upstream by night.'); return; }
+    void sp;
+  };
+  if (auto) {
+    // the smart bot uses what it can; the brute walks straight in
+    if (G.policy !== 'smart') return 'fight';
+    for (const k of list) if (!prepState(id, k) && prepReady(id, k) && k !== 'defect') await doPrep(k);
+    return 'fight';
+  }
+  let cur = 0;
+  for (;;) {
+    const rows = [...list.map((k) => { const st = prepState(id, k), done = st === 1 || st === 2 && k === 'flank'; return { label: (st ? '✓ ' : '　') + L(PREP_TXT[k][0][0], PREP_TXT[k][0][1]), right: k === 'defect' ? `${250 * chOf()}${L('金', 'g')}` : k === 'fire' ? L(`火藥${have('gunpowder')}`, `powder ${have('gunpowder')}`) : '', disabled: !!st || !prepReady(id, k), color: done ? '#80ff90' : st ? '#ff9080' : undefined }; }), { label: L('出戰', 'To battle!'), color: '#ffe070' }, L('暫且退下', 'Withdraw for now')];
+    const c = await menu(rows, { x: 6, y: 30, w: 200, start: cur, title: L('軍議：開戰前的準備', 'War council: before the battle'), onMove: (i) => { cur = i; }, drawExtra: () => { const k = list[cur]; if (k) descBox(L(PREP_TXT[k][1][0], PREP_TXT[k][1][1])); else if (cur === list.length) descBox(L('準備好了就出戰。已做的準備在每一次進攻都有效。', 'Go when ready. What you have prepared counts for every attempt.')); } });
+    if (c < 0 || c === list.length + 1) return 'stay';
+    if (c === list.length) return 'fight';
+    await doPrep(list[c]);
+  }
+}
+// what the preparations did, applied to the battle
+function prepMods(id, cfg) {
+  const st = (k) => prepState(id, k);
+  if (st('scout')) { cfg.scouted = true; if (cfg.siege) cfg.siege = { ...cfg.siege, gate: cfg.siege.gate * 0.75 }; }
+  if (st('fire') && cfg.siege) cfg.siege = { ...cfg.siege, gate: cfg.siege.gate * 0.6 };
+  if (st('supply')) { cfg.foes = cfg.foes.map((f) => ({ ...f, hp: (f.hp || 1) * 0.85 })); cfg.foeSpMul = 0.75; if (cfg.siege) cfg.siege = { ...cfg.siege, reinf: 0 }; }
+  if (st('raid')) { const k = cfg.foes.map((f, i) => [f, i]).filter(([f]) => !f.boss).sort((a, b) => b[0].lv - a[0].lv)[0]; if (k) cfg.foes[k[1]] = { ...k[0], hp: (k[0].hp || 1) * 0.5 }; cfg.foeMorale = (cfg.foeMorale || 0) - 10; }
+  if (st('defect') === 1) { const i = cfg.foes.map((f, j) => [f, j]).filter(([f]) => !f.boss && !f.sage).map(([, j]) => j).pop(); if (i !== undefined && cfg.foes.length > 2) cfg.foes = cfg.foes.filter((_, j) => j !== i); }
+  if (st('defect') === 2) cfg.foeMorale = (cfg.foeMorale || 0) + 5;
+  if (st('flank')) { cfg.height = st('flank') === 2 ? 'ally' : null; if (cfg.terrain === 'pass') cfg.terrain = 'mountain'; cfg.allyMorale = (cfg.allyMorale || 0) + 10; }
+  if (st('upstream')) cfg.crossing = null;
+  return cfg;
+}
 async function fight(id, extra = {}) {
   const b = BOSSES[id];
   const firstTime = !S.flags['won_' + id];
   await advise(id);
+  // a siege or a fight on chosen ground: the war council first (preparations, or withdraw for now)
+  if (BOSS_GROUND[id] && !extra.noCouncil) { const w = await warCouncil(id, b); if (w !== 'fight') return 'stay'; }
   // tests may raise a leader's army while tuning (G.bossTune: levels added)
   const tune = (window.G && window.G.bossTune) || 0;
-  const cfg = { ...b, foes: officers(id, b).map((f) => ({ ...f, lv: f.lv + (typeof tune === 'object' ? tune[id] || 0 : tune) })), boss: b.foes.some((f) => f.boss), intro: b.intro ? L(b.intro[0], b.intro[1]) : undefined, capture: false, bossId: id, ...extra };
+  // a leader's army is an army of its land, like every other there: the fuller ranks of the later lands (troops)
+  // for all of it, and their fiercer attack for his officers (the leader himself has only the commander's edge)
+  const ch0 = Math.max(1, Math.min(10, S.chapter || 1)), landMul = 1.5 + 0.04 * ch0, landAtk = 1.12 + 0.015 * ch0;
+  // every leader takes the field with five, as we do: a fourth officer fills the line where the table has three
+  const b5 = b.foes.length === 4 && !['prologue', 'beach'].includes(id) ? { ...b, foes: [...b.foes, { ...b.foes.filter((f) => !f.boss && !f.sage).pop() || b.foes[1], id: 'g9' + String(b.foes.length + 10), sage: false }] } : b;
+  let cfg = { ...b, ...(BOSS_GROUND[id] || {}), foes: officers(id, b5).map((f) => ({ ...f, mul: f.mul || landMul, atkMul: f.boss ? undefined : landAtk, lv: f.lv + (typeof tune === 'object' ? tune[id] || 0 : tune) })), boss: b.foes.some((f) => f.boss), intro: b.intro ? L(b.intro[0], b.intro[1]) : undefined, capture: false, bossId: id, ...extra };
+  // a leader on his own ground fights to the last, like any leader's army
+  if (BOSS_GROUND[id]) cfg.boss = true;
+  cfg = prepMods(id, cfg);
   for (const f of cfg.foes) S.met[f.id] = Math.max(S.met[f.id] || 0, 1);
   sfx('encounter');
   const r = await battle(cfg);
@@ -302,6 +429,7 @@ FH.populate = (mapId, ents) => {
   }
   trPopulate(mapId, ents);
   sqPopulate(mapId, ents);
+  exPopulate(mapId, ents);
 };
 // chapter 1
 person('wu/hall', 'zhuzhi', 8, 4, 'd', () => true, 'zhuzhi');
@@ -406,6 +534,7 @@ export async function talkTo(e) {
   if (t === 'tr:merchant') return merchant();
   if (t.startsWith('tr:quest:')) return quest(t.slice(9));
   if (t.startsWith('sq:')) return sqTalk(t);
+  if (t.startsWith('ex:')) return exploreTalk(e);
   if (t === 'shrine') return shrine(F.map.place);
   if (t.startsWith('home:')) { const ln = HOME[Math.floor(hash(t.length, F.map.place.length, 4) * HOME.length)]; return say(L('居民', 'Resident'), L(ln[0], ln[1])); }
   if (t.startsWith('sign_')) { const r = t.slice(5); const nmz = { inn: ['客棧', 'Inn'], weapon: ['武器', 'Weapons'], armour: ['防具', 'Armour'], item: ['道具', 'Supplies'], book: ['書肆', 'Books'], tavern: ['酒館', 'Tavern'], shrine: ['廟', 'Shrine'] }[r] || ['', '']; return N(`招牌上寫著「${nmz[0]}」。`, `The sign reads "${nmz[1]}".`); }
@@ -580,7 +709,7 @@ TALK.taishici = async (e) => {
   await T('josh', '……我？', '...Me?');
   await T('taishici', '跟我比一場！你贏了，我就跟你們走！', 'Fight me! If you win, I go with you!');
   await T('josh', '好吧。但我不打臉。', 'Okay. But no hitting in the face.');
-  const r = await battle({ foes: [{ id: 'taishici', lv: 20, mul: 1.4 }], terrain: 'grass', capture: false, canRun: false, mayLose: true, intro: L('太史慈挺槍出馬！', 'Taishi Ci rides out!') });
+  const r = await battle({ foes: [{ id: 'taishici', lv: 25, mul: 1.4 }], terrain: 'grass', capture: false, canRun: false, mayLose: true, intro: L('太史慈挺槍出馬！', 'Taishi Ci rides out!') });
   if (r === 'win') { await T('taishici', '哈哈哈！痛快！我太史慈說話算話！', 'Ha ha ha! What a fight! Taishi Ci keeps his word!'); await join('taishici', Math.max(20, lvNow())); F.ents = F.ents.filter((x) => x !== e); }
   else await T('taishici', '再練練吧！我在這裡等你們。', 'Train some more! I\'ll wait for you here.');
 };
@@ -910,7 +1039,13 @@ export async function onEnterPlace(id) {
     await T('sunquan', '……父親，大哥。我回來了，帶著很多很多的朋友。', '...Father. Brother. I have come back, with many, many friends.');
     await T('josh', '走吧。打完這一仗，我請大家吃包子。', 'Let\'s go. When this fight is over, buns are on me.');
     await T('jasper', '我記住了喔！', 'I\'m holding you to that!');
+    // everyone the last march needs comes along: the four travellers rejoin from the camp if they wait there
+    const back = ['sunquan', 'jeff', 'erin', 'josh', 'jasper'].filter((x) => inCamp(x));
     S.flags.gathered = 1;
+    for (const x of back) fromCamp(x);
+    while (party().length > PARTY_MAX) { const c = campCandidates()[0]; if (!c) break; toCamp(c); }
+    for (const x of ['jeff', 'erin', 'josh', 'jasper']) if (S.roster[x] && !S.front.includes(x) && S.front.length < 5) S.front.push(x);
+    if (back.length) await N(`${back.map((x) => GENERALS[x].zh).join('、')}從營帳趕來會合了。（最後一戰，四位旅人必須同行）`, `${back.map((x) => GENERALS[x].en).join(', ')} come from the camp to join you. (The four travellers must march in the last battle.)`);
     healAll(1);
     give('tpbig', 3); give('jinchuang', 5); give('zhaohun', 3);
     await N('得到了神機丹×3、金創藥×5、招魂幡×3！全軍恢復了。', 'Received Sage Pill x3, Wound Balm x5, Rallying Banner x3! The whole army is restored.');
@@ -1045,7 +1180,16 @@ export async function openChest(e) {
   if (e.tr) return openTreasureChest(e);
   S.chests[e.id] = 1;
   sfx('chest');
+  if (!e.item && !SPECIAL_CHEST[e.id] && F.map && F.map.scene) {
+    // a chest in a place to explore: something worth the walk, by how far into the story its land is
+    const P0 = PLACES[F.map.place], ch0 = REGIONS[P0[5]] ? REGIONS[P0[5]][4] : 1;
+    const pool0 = [['jinchuang', 'wine', 'tpdan', 'smoke'], ['jinchuang', 'tpdan', 'goodwine', 'gunpowder'], ['jinchuang', 'tpdan', 'oldbook', 'zhaohun', 'qingxin'], ['tpbig', 'jinchuang', 'silk', 'jade', 'zhaohun']][Math.min(3, Math.floor((ch0 - 1) / 3))];
+    const it0 = pool0[Math.floor(hash(e.id.length * 7, e.id.charCodeAt(e.id.length - 1), 9) * pool0.length)];
+    if (hash(e.id.length, e.id.charCodeAt(0), 5) < 0.35) { const g = 150 + ch0 * 120; S.gold += g; return N(`得到了${g}金！`, `Found ${g} gold!`); }
+    give(it0); return N(`得到了「${ITEMS[it0].zh}」！`, `Found ${ITEMS[it0].en}!`);
+  }
   let item = e.item || SPECIAL_CHEST[e.id];
+  if (typeof item === 'string' && item.startsWith('gold:')) { const g = +item.slice(5); S.gold += g; return N(`得到了${g}金！`, `Found ${g} gold!`); }
   if (!item) {
     const P = PLACES[F.map.place], ch = REGIONS[P[5]] ? REGIONS[P[5]][4] : 1, tier = Math.min(3, Math.floor(ch / 3) + (F.map.kind === 'cave' ? 1 : 0));
     const pool = CHEST_ITEMS[tier];
@@ -1149,7 +1293,7 @@ export const SECRETS = [
   [233, 110, 'goodwine'], [217, 97, 'huxin'], [196, 96, 'bk_fire'], [186, 122, 'scarf'], [211, 140, 'pearl'], [170, 108, 'irontaibow'], [151, 128, 'oldbook'],
   [136, 96, 'mn_tuzhen'], [129, 150, 'silk'], [205, 72, 'bingfu'], [181, 44, 'dawan'], [150, 30, 'jueying'], [118, 74, 'sunzi'], [72, 70, 'yangyouji'],
   [60, 120, 'qingnang'], [240, 152, 'sextant'], [96, 112, 'goldarmour'], [140, 60, 'zijinguan'], [62, 40, 'chitu'],
-];
+].map(([x, y, id]) => [x * 2, y * 2, id]); // drawn on the old 256 x 192 grid
 // the treasures buried in the wilds join Jasper's secrets
 for (const id of TREASURES) { const sc = SRC[id]; if (sc && sc.t === 'secret' && !SECRETS.some((x) => x[2] === id)) SECRETS.push([sc.x, sc.y, id]); }
 const jasperHere = () => S.front.includes('jasper');

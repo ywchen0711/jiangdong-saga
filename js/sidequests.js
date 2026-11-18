@@ -8,17 +8,17 @@
 // 0 (not taken), 1..n (on step n) or 99 (done). Each step names the map where its challenge waits, the person
 // who stands there, and the battles fought one after another (a gauntlet: no rest between them).
 // Foes: a general's id, or '#faction:n' for the n-th ordinary officer of that side.
-import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=8';
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=8';
-import { sfx } from './audio.js?v=8';
-import { L } from './i18n.js?v=8';
-import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=8';
-import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=8';
-import { S, recruit, give, have, healAll } from './state.js?v=8';
-import { PLACES, REGIONS } from './world.js?v=8';
-import { F } from './field.js?v=8';
-import { placeName, folkLook } from './maps.js?v=8';
-import { gainTreasure, owned } from './treasure_world.js?v=8';
+import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=9';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=9';
+import { sfx } from './audio.js?v=9';
+import { L } from './i18n.js?v=9';
+import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=9';
+import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=9';
+import { S, recruit, give, have, healAll } from './state.js?v=9';
+import { PLACES, REGIONS } from './world.js?v=9';
+import { F } from './field.js?v=9';
+import { placeName, folkLook } from './maps.js?v=9';
+import { gainTreasure, owned } from './treasure_world.js?v=9';
 
 const DONE = 99;
 // who gives each trial, where, the story, the steps and the reward
@@ -38,7 +38,7 @@ export const SQ = {
     }],
   },
   arena: {
-    ch: 4, rec: 31, name: ['柴桑九連擂', 'The Chaisang Gauntlet'],
+    ch: 4, rec: 35, name: ['柴桑九連擂', 'The Chaisang Gauntlet'],
     giver: { place: 'chaisang', who: ['擂台的老管事', 'Old Steward of the Ring'], kind: 'merchant' },
     ask: ['柴桑擂台的規矩：四場連戰，中間不准休息，不准回城治傷。撐到最後，擂主親自下場。百年來只有一人站到最後。', 'The rule of the Chaisang ring: four battles back to back, no rest, no healing in town between them. Last one standing faces the Champion himself. In a hundred years only one man made it to the end.'],
     goal: ['在柴桑的擂台連勝四場（中途不得休整）。', 'Win four battles in a row at the Chaisang ring, with no rest between.'],
@@ -132,7 +132,7 @@ export const SQ = {
       {
         at: 'huashan', npc: { gen: 'guanyu' },
         before: ['關某只為尋兄而來。閣下若要關某相隨，便以手中兵刃說話。（武聖：對首領與名將傷害更高；周倉、關平會替他擋刀。他擺偃月陣，突騎陣克制）', 'Guan seeks only his brother. If you would have Guan ride with you, let your weapons speak. (Saint of War: he hits leaders and the famous harder; Zhou Cang and Guan Ping take blows for him. He holds the Crescent; the Cavalry Charge beats it.)'],
-        fights: [{ foes: [{ id: 'guanyu', lv: 68, boss: true, tr: 9 }, { id: 'zhoucang', lv: 65, tr: 8 }, { id: 'guanping', lv: 65, tr: 8 }, { id: '#liu:3:sage', lv: 64, tr: 8 }],
+        fights: [{ foes: [{ id: 'guanyu', lv: 70, boss: true, tr: 9 }, { id: 'zhoucang', lv: 67, tr: 8 }, { id: 'guanping', lv: 67, tr: 8 }, { id: '#liu:3:sage', lv: 66, tr: 8 }],
           terrain: 'mountain', foeForm: 'yanyue', intro: ['關羽提青龍偃月刀，立馬華山道上！', 'Guan Yu sits his horse on the Mount Hua road, the Green Dragon blade in hand!'] }],
         win: ['guanyu', '閣下之義，關某領教了。在尋得兄長之前，關某願為閣下效力。', 'Guan has seen your righteousness. Until I find my brother, my blade is yours.'],
       },

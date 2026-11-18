@@ -1,21 +1,21 @@
 // Walking: the big world map (on foot, on horseback or by ship) and the towns, rooms and caves. The leader
 // walks tile by tile; in towns the front-line generals follow in a line. Random battles come from the region
 // you are in, at its own fixed strength.
-import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=8';
-import { input, lastDevice } from './input.js?v=8';
-import { sfx } from './audio.js?v=8';
-import { UI } from './ui.js?v=8';
-import { L } from './i18n.js?v=8';
-import { IMG, tileset, WOBJ } from './assets.js?v=8';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER } from './world.js?v=8';
-import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind } from './worldgfx.js?v=8';
-import { renderMap, solidKind, TILES } from './tiles.js?v=8';
-import { buildMap, placeName } from './maps.js?v=8';
-import { GENERALS, parseLook } from './generals.js?v=8';
-import { fieldSheet } from './doll.js?v=8';
-import { horseImg } from './horses.js?v=8';
-import { ITEMS, gearFx } from './data.js?v=8';
-import { S, member, hasSkill, troopsMax } from './state.js?v=8';
+import { ctx, W, H, canvas, text, textW, windowBox } from './gfx.js?v=9';
+import { input, lastDevice } from './input.js?v=9';
+import { sfx } from './audio.js?v=9';
+import { UI } from './ui.js?v=9';
+import { L } from './i18n.js?v=9';
+import { IMG, tileset, WOBJ } from './assets.js?v=9';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, sailable, DANGER, WATER, sceneOf } from './world.js?v=9';
+import { setWorld, drawWorld, warmWorld, overviewMap, kind as wkind, placeMark } from './worldgfx.js?v=9';
+import { renderMap, solidKind, TILES } from './tiles.js?v=9';
+import { buildMap, placeName } from './maps.js?v=9';
+import { GENERALS, parseLook } from './generals.js?v=9';
+import { fieldSheet } from './doll.js?v=9';
+import { horseImg } from './horses.js?v=9';
+import { ITEMS, gearFx } from './data.js?v=9';
+import { S, member, hasSkill, troopsMax } from './state.js?v=9';
 
 export const F = { mode: 'world', map: null, px: 0, py: 0, dir: 'd', moving: 0, frame: 0, enc: 0, encAt: 20, trail: [], banner: null, bannerT: 0, lockMsgT: 0, ents: [] };
 export const FH = { talk: null, enterPlace: null, encounter: null, trigger: null, chest: null, blocked: null, onStep: null, exitPlace: null, stairs: null };
@@ -183,7 +183,7 @@ function encounterTick(k, x, y, inside = false) {
   F.enc += d;
   if (F.enc >= F.encAt) {
     F.enc = 0; F.encAt = 16 + Math.floor(Math.random() * 22);
-    if (FH.encounter) FH.encounter(inside ? { place: F.map.place, cave: true, floor: F.map.floor } : { region: regionAt(x, y), tile: k, naval: S.vehicle === 'ship' });
+    if (FH.encounter) FH.encounter(inside ? { place: F.map.place, cave: true, floor: F.map.floor || 1, terrain: F.map.terrain } : { region: regionAt(x, y), tile: k, naval: S.vehicle === 'ship' });
   }
 }
 function facing() { const [dx, dy] = DIRV[F.dir]; return [tileX() + dx, tileY() + dy]; }
@@ -271,7 +271,7 @@ export function fieldDraw() {
   list.sort((a, b) => a.y - b.y);
   for (const o of list) o.d();
   if (m.dark) { const g = ctx.createRadialGradient(F.px - camX + 8, F.py - camY + 8, 30, F.px - camX + 8, F.py - camY + 8, 200); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.7)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
-  if (m.kind === 'cave') drawWayMarks();
+  if (m.kind === 'cave' || m.kind === 'scene') drawWayMarks();
   if (F.bannerT > 0 && F.banner) { const w = textW(F.banner) + 24; windowBox((W - w) / 2, 8, w, 22); text(F.banner, W / 2, 13, '#f8e070', { align: 'center' }); }
 }
 function drawNpc(e) {
@@ -381,8 +381,20 @@ function drawRider(x, y, id, dir, moving, at) {
   man();
 }
 // what kind of place each is, for the name over it
-const KIND_NAME = { cave: ['洞窟', 'Cave'], temple: ['寺廟', 'Temple'], gate: ['關隘', 'Pass'], fort: ['營寨', 'Fort'], port: ['港口', 'Port'], village: ['村落', 'Village'], town: ['城鎮', 'Town'], castle: ['城池', 'Castle'], capital: ['都城', 'Capital'], camp: ['營地', 'Camp'] };
+const KIND_NAME = { cave: ['洞窟', 'Cave'], temple: ['寺廟', 'Temple'], gate: ['關隘', 'Pass'], fort: ['營寨', 'Fort'], port: ['港口', 'Port'], village: ['村落', 'Village'], town: ['城鎮', 'Town'], castle: ['城池', 'Castle'], capital: ['都城', 'Capital'], camp: ['山寨', 'Bandit Camp'],
+  peak: ['名山', 'Peak'], falls: ['瀑布', 'Waterfall'], ruins: ['遺跡', 'Ruins'], spring: ['溫泉', 'Hot Spring'], tower: ['烽火臺', 'Beacon'], lighthouse: ['燈塔', 'Lighthouse'], hut: ['隱士草廬', 'Hermitage'],
+  bamboo: ['竹林', 'Bamboo Grove'], marsh: ['沼澤', 'Marsh'], canyon: ['峽谷', 'Gorge'], isle: ['島村', 'Island Village'], ferry: ['渡口', 'Ferry'] };
+// the kind shown over a place: its own kind, or what its scene makes it (an island village, a ferry, a grove)
+export function kindName(id) {
+  const p = PLACES[id], sc = sceneOf(id);
+  if (id === 'wuxia') return ['魔宮', 'Lair'];
+  if (sc && sc.t === 'isle') return KIND_NAME.isle;
+  if (sc && sc.theme === 'ferry') return KIND_NAME.ferry;
+  if (p[4] === 'wild') return KIND_NAME[sc.theme] || ['秘境', 'Wilds'];
+  return KIND_NAME[p[4]] || ['', ''];
+}
 const isMouth = (id) => PLACES[id] && (PLACES[id][4] === 'cave' || id === 'wuxia');
+const TALL_ART = { peak: 34, falls: 34, wild: 34, ruins: 30, spring: 30, tower: 34, lighthouse: 34, hut: 32 };
 // on the world map: torches flicker at every cave mouth in view, and the nearest place within a few steps
 // shows its name and kind over it, so an entrance is never missed
 function drawWorldMarks() {
@@ -392,8 +404,9 @@ function drawWorldMarks() {
     const sx = p[2] * T - camX, sy = p[3] * T - camY;
     if (sx < -40 || sy < -40 || sx > W + 40 || sy > H + 40) continue;
     if (isMouth(id)) {
-      const sect = id === 'wuxia', fl = (F.frame >> 3) + p[2];
+      const sect = id === 'wuxia', fl = (F.frame >> 3) + p[2], sc = sceneOf(id);
       for (const [tx, k] of [[3, 0], [29, 1]]) {
+        if (k && sc && sc.theme === 'mine') continue;
         const fx = Math.round(sx + 8 - 17 + tx), fy = Math.round(sy + 17 - 28);
         const tall = (fl + k) % 3;
         ctx.fillStyle = sect ? '#a040e0' : '#f07818'; ctx.fillRect(fx - 1, fy + 9 - tall, 4, 5 + tall);
@@ -405,9 +418,9 @@ function drawWorldMarks() {
     if (d > 0 && d < bd) { bd = d; best = id; }
   }
   if (!best) return;
-  const p = PLACES[best], kn = best === 'wuxia' ? ['魔宮', 'Lair'] : KIND_NAME[p[4]] || ['', ''];
+  const p = PLACES[best], kn = kindName(best);
   const s = `${placeName(best)}・${L(kn[0], kn[1])}`, w = textW(s) + 10;
-  const tall = isMouth(best) ? 30 : ['capital', 'castle'].includes(p[4]) ? 34 : p[4] === 'temple' ? 26 : 20;
+  const tall = isMouth(best) ? 30 : TALL_ART[p[4]] || (['capital', 'castle'].includes(p[4]) ? 34 : p[4] === 'temple' ? 26 : 20);
   const lx = Math.round(Math.max(2, Math.min(W - w - 2, p[2] * T - camX + 8 - w / 2))), ly = Math.round(p[3] * T - camY + 16 - tall - 18);
   ctx.fillStyle = 'rgba(16,8,10,0.78)'; ctx.fillRect(lx, ly, w, 16);
   ctx.fillStyle = isMouth(best) ? '#b070e0' : '#e0b858'; ctx.fillRect(lx, ly + 15, w, 1);
@@ -424,8 +437,7 @@ function drawMinimap() {
   for (const [id, p] of Object.entries(PLACES)) {
     const mx = p[2] - sx, my = p[3] - sy;
     if (mx < 1 || my < 1 || mx >= mw - 1 || my >= mh - 1) continue;
-    if (isMouth(id)) { ctx.fillStyle = '#f0e0c0'; ctx.fillRect(x0 + mx - 1, y0 + my - 1, 3, 3); ctx.fillStyle = id === 'wuxia' ? '#7020a0' : '#100808'; ctx.fillRect(x0 + mx, y0 + my, 1, 1); }
-    else if (p[4] === 'temple') { ctx.fillStyle = '#ffe070'; ctx.fillRect(x0 + mx - 1, y0 + my, 3, 1); ctx.fillRect(x0 + mx, y0 + my - 1, 1, 3); }
+    if (!['capital', 'castle', 'town', 'port', 'fort'].includes(p[4]) && !(p[4] === 'village' && !sceneOf(id))) placeMark(ctx, id, x0 + mx, y0 + my, S.visited[id] ? '#ffe070' : '#f0e0c0');
   }
   if ((F.frame >> 4) % 2) { ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 + tileX() - sx - 1, y0 + tileY() - sy - 1, 3, 3); }
 }

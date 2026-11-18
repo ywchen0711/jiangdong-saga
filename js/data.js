@@ -1,7 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=8';
-import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=8';
+import { L } from './i18n.js?v=9';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=9';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -219,7 +219,7 @@ export function fxText(fx, short = false) {
   void short;
   return p.join(L('，', ', '));
 }
-export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=8';
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=9';
 // the paper doll's slots; the accessory slot keeps its old save name 'treasure'
 export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };
@@ -373,7 +373,7 @@ export const skillName = (id) => (SKILLS[id] ? L(SKILLS[id][0], SKILLS[id][1]) :
 export const skillDesc = (id) => (SKILLS[id] ? L(SKILLS[id][2], SKILLS[id][3]) : '');
 
 // ---------- levels ----------
-export const MAXLV = 70;
+export const MAXLV = 99;
 export const expFor = (lv) => Math.round(18 * lv * lv + 12 * lv); // total exp to reach lv+1 from lv
 // soldiers a general can lead
 export function maxTroops(lv, lead, haoling) {

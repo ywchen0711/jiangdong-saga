@@ -1,24 +1,26 @@
 // 江東霸業傳 Saga of Jiangdong: start-up, the title screen, the main loop, and the glue between walking,
 // battles, menus and the story. window.G exposes hooks for testing.
-import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=8';
-import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=8';
-import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=8';
-import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=8';
-import { L, LANG, setLang } from './i18n.js?v=8';
-import { generate, WW, WH, K, PLACES, REGIONS, walkable } from './world.js?v=8';
-import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=8';
-import * as FIELD from './field.js?v=8';
-import { overviewMap } from './worldgfx.js?v=8';
-import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=8';
-import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp } from './state.js?v=8';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=8';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=8';
-import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=8';
-import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=8';
-import { buildMap } from './maps.js?v=8';
-import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=8';
-import { banditFor, banditBeaten } from './treasure_world.js?v=8';
-import { SQ, simTrial, cfgOf } from './sidequests.js?v=8';
+import { ctx, W, H, present, text, textW, windowBox, canvas } from './gfx.js?v=9';
+import { input, pollInput, endInput, setupTouch, setupCanvasTap } from './input.js?v=9';
+import { initAudio, playMusic, sfx, stopMusic, currentSong } from './audio.js?v=9';
+import { UI, menu, say, talk, ask, notice, wait, uiTick, abortUI } from './ui.js?v=9';
+import { L, LANG, setLang } from './i18n.js?v=9';
+import { generate, WW, WH, K, PLACES, REGIONS, walkable, GROUND } from './world.js?v=9';
+import { F, FH, initWorld, toWorld, toMap, fieldUpdate, fieldDraw, setBanner, regionAt, tileX, tileY } from './field.js?v=9';
+import * as FIELD from './field.js?v=9';
+import { overviewMap } from './worldgfx.js?v=9';
+import { B, startBattle, battleUpdate, battleDraw } from './battle.js?v=9';
+import { S, newGame, recruit, member, healAll, tpMax, save, load, slotInfo, give, have, take, troopsMax, gainExp, party, PARTY_MAX } from './state.js?v=9';
+import { fitParty } from './town.js?v=9';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=9';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=9';
+import { openMenu, fullMap, helpPage, itemDesc } from './menu.js?v=9';
+import { talkTo, openChest, onEnterPlace, onTrigger, encounterArmy, persuade, STORY, regionLockText, runIntro, bossFor } from './story.js?v=9';
+import { buildMap } from './maps.js?v=9';
+import { portrait, fieldSheet, battleSheet, dollReady } from './doll.js?v=9';
+import { banditFor, banditBeaten } from './treasure_world.js?v=9';
+import { SQ, simTrial, cfgOf } from './sidequests.js?v=9';
+import * as EXPLORE from './explore.js?v=9';
 
 export const G = window.G = { mode: 'boot', S, F, B, UI, GENERALS, GEN_LIST, ITEMS, PLACES, REGIONS };
 G.uiActive = () => UI.active;
@@ -39,7 +41,7 @@ FH.warp = (e) => run(async () => {
   else await fade(() => toMap(e.to, e.tx, e.ty, e.dir));
   await onEnterMap();
 });
-FH.stairs = (e) => run(async () => { sfx('stairs'); if (!e.to) { await exitPlace(); return; } await fade(() => toMap(e.to)); await onEnterMap(); });
+FH.stairs = (e) => run(async () => { sfx('stairs'); if (!e.to) { await exitPlace(); return; } await fade(() => (e.tx != null ? toMap(e.to, e.tx, e.ty, e.dir || 'd') : toMap(e.to))); await onEnterMap(); });
 FH.talk = (e) => run(() => talkTo(e));
 FH.chest = (e) => run(() => openChest(e));
 FH.trigger = (e) => run(() => onTrigger(e));
@@ -71,7 +73,7 @@ async function exitPlace() {
 async function onEnterMap() {
   if (F.mode === 'local') playMusic(F.map.music || worldSong());
   // a cave says which floor this is as you come in
-  if (F.mode === 'local' && F.map.kind === 'cave') setBanner(F.map.name, 150);
+  if (F.mode === 'local' && (F.map.kind === 'cave' || F.map.kind === 'scene')) setBanner(F.map.name, 150);
   if (STORY.onMap) await STORY.onMap(F.mapId);
 }
 export function worldSong() {
@@ -95,12 +97,15 @@ export async function run(fn) {
   busy = true; G.busy = true; F.busy = true;
   const depth = UI.depth();
   try { await fn(); } catch (e) { console.error(e); UI.trim(depth); }
+  // never more than eight on the road: whoever joined last sends someone to the camp
+  try { if (party().length > PARTY_MAX) await fitParty(); } catch (e) { console.error(e); UI.trim(depth); }
   busy = false; G.busy = false; F.busy = false;
 }
 G.run = run;
 
 // ---------- battles ----------
-const TERRAIN = { [K.FOREST]: 'forest', [K.PINE]: 'forest', [K.PALM]: 'forest', [K.HILL]: 'hill', [K.DESERT]: 'desert', [K.DUNE]: 'desert', [K.SNOW]: 'snow', [K.STEPPE]: 'steppe', [K.MARSH]: 'grass', [K.BEACH]: 'grass' };
+// a random battle is fought on the ground of the tile where it happens (world.js GROUND; battle.js TERRAIN says what each does)
+const TERRAIN = GROUND;
 async function randomBattle(info) {
   const bandit = info.region && !info.naval ? banditFor(info.region) : null;
   const army = bandit ? { foes: bandit.foes, form: 'yulin' } : encounterArmy(info);
@@ -108,7 +113,8 @@ async function randomBattle(info) {
   sfx('encounter');
   await flash();
   if (bandit) { const r = await battle({ foes: army.foes, terrain: TERRAIN[info.tile] || 'grass', canRun: true, foeForm: army.form, intro: bandit.intro, capture: false }); if (r === 'win') { banditBeaten(bandit.q); await say(null, L('山賊頭目伏誅了！回去告訴委託人吧。', 'The bandit chief is dead! Go back and tell the one who asked.')); } return; }
-  const r = await battle({ foes: army.foes, terrain: info.cave ? 'cave' : info.naval ? 'river' : TERRAIN[info.tile] || 'grass', naval: !!info.naval, canRun: true, foeForm: army.form, region: info.region || (info.place && PLACES[info.place] ? PLACES[info.place][5] : null) });
+  const ground = info.terrain || (info.cave ? 'cave' : info.naval ? 'river' : TERRAIN[info.tile] || 'grass');
+  const r = await battle({ foes: army.foes, terrain: ground, crossing: ground === 'ford' ? (Math.random() < 0.5 ? 'ally' : 'foe') : null, naval: !!info.naval, canRun: true, foeForm: army.form, region: info.region || (info.place && PLACES[info.place] ? PLACES[info.place][5] : null) });
   void r;
 }
 async function flash() { for (let i = 0; i < 6; i++) { flashA = i % 2 ? 0 : 0.8; await wait(3); } flashA = 0; }
@@ -183,9 +189,15 @@ export async function loadMenu() {
   return load(c);
 }
 async function resumeGame() {
-  if (S.pos.map === 'world') toWorld(S.pos.x, S.pos.y, S.pos.dir);
-  else toMap(S.pos.map, S.pos.x, S.pos.y, S.pos.dir);
+  if (S.pos.map === 'world') {
+    // a spot that is not ground (an old save on the redrawn map): the nearest open ground
+    let { x, y } = S.pos; const ok = (X, Y) => X >= 0 && Y >= 0 && X < WW && Y < WH && walkable(FIELD.WD.t[Y * WW + X]) && FIELD.WD.t[Y * WW + X] !== K.PLACE;
+    if (S.vehicle !== 'ship' && !ok(x, y)) { outer: for (let r = 1; r < 30; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (ok(x + dx, y + dy)) { x += dx; y += dy; break outer; } }
+    toWorld(x, y, S.pos.dir);
+  } else toMap(S.pos.map, S.pos.x, S.pos.y, S.pos.dir);
   playMusic(F.mode === 'world' ? worldSong() : F.map.music || worldSong());
+  // an old save with more than eight generals: say where the others went
+  if (S.flags.campNote) { const n = S.flags.campNote; delete S.flags.campNote; run(() => say(null, L(`隊伍最多只能帶八名武將。等級較低的${n}名武將已在營帳（任何一間酒館，或大本營的客棧）等候，隨時可以換人。`, `No more than eight generals travel together. The ${n} with the lowest levels now wait at the camp (any tavern, or the home city's inn), where you can swap them in at any time.`))); }
 }
 G.resumeGame = resumeGame;
 
@@ -235,21 +247,23 @@ function draw() {
 // ---------- start ----------
 setupTouch();
 setupCanvasTap();
-import { WOBJ, tileset } from './assets.js?v=8';
+import { WOBJ, tileset } from './assets.js?v=9';
 G.WOBJ = WOBJ; G.tileset = tileset;
 requestAnimationFrame(frame);
 // tests can run the game faster than the screen refreshes (and while the page is hidden)
 setInterval(() => { if (G.turbo) for (let i = 0; i < G.turbo; i++) update(); }, 4);
 await document.fonts.load('12px Cubic11').catch(() => {});
+const tGen = performance.now();
 initWorld();
+G.genMs = Math.round(performance.now() - tGen);
 G.WD = FIELD.WD;
-Object.assign(G, { BOT_NEED: (m, a) => STORY.need(m, a), UI, FH, toWorld, toMap, recruit, member, healAll, give, save, load, gainExp, setBanner, buildMap, portrait, fieldSheet, battleSheet, dollReady, overviewMap, menuOpen: openMenu, help: helpPage, STORY, F, fieldUpdate, troopsMax, tpMax, enterPlace: (id) => run(() => enterPlace(id)), exitPlace: () => run(exitPlace), setChapter: (n) => { S.chapter = n; }, itemDesc, SQ: { SQ, simTrial, cfgOf } });
+Object.assign(G, { BOT_NEED: (m, a) => STORY.need(m, a), UI, FH, toWorld, toMap, recruit, member, healAll, give, save, load, gainExp, setBanner, buildMap, portrait, fieldSheet, battleSheet, dollReady, overviewMap, menuOpen: openMenu, help: helpPage, STORY, F, fieldUpdate, troopsMax, tpMax, enterPlace: (id) => run(() => enterPlace(id)), exitPlace: () => run(exitPlace), setChapter: (n) => { S.chapter = n; }, itemDesc, SQ: { SQ, simTrial, cfgOf }, EXPLORE });
 // for tests: skip the title and start with an army at a given chapter
 G.debugStart = (ch = 1, ids = ['sunquan', 'zhoutai', 'shangxiang', 'jeff', 'erin', 'josh', 'jasper'], lv = 8) => {
   abortUI(); newGame(); scene = 'game'; G.mode = 'game';
   for (const id of ids) recruit(id, lv);
   S.chapter = ch; S.flags.ch1 = 1; S.flags.westerners = 1; S.strategist = ids.includes('jeff') ? 'jeff' : ids[0]; S.tp = tpMax(); S.gold = 5000;
-  toWorld(229, 95, 'd'); playMusic(worldSong());
+  toWorld(PLACES.wu[2], PLACES.wu[3] + 2, 'd'); playMusic(worldSong());
 };
 G.mode = 'title';
 (async () => { for (;;) { await title(); G.mode = 'game'; return; } })();

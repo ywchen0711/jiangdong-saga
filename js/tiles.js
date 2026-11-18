@@ -1,8 +1,8 @@
 // Map tiles cut from the Ninja Adventure tilesets (CC0), joined to their neighbours, and the map pre-renderer.
 // Ground, paths, ponds and the sea are 16-piece autotiles; trees, houses and the like are objects on top
 // (see obj() in maps.js), drawn with the characters so you can walk behind them.
-import { canvas, hash } from './gfx.js?v=8';
-import { tileset } from './assets.js?v=8';
+import { canvas, hash } from './gfx.js?v=9';
+import { tileset } from './assets.js?v=9';
 
 const cut = (img, x, y) => (g) => g.drawImage(tileset(img), x * 16, y * 16, 16, 16, 0, 0, 16, 16);
 // a 16-piece autotile: a 3x3 patch, a 1-wide column and row, and a single piece; base is the patch's top left.
@@ -43,7 +43,7 @@ const decor = (under, img, x, y) => (g, X, Y, n, f) => {
   TILES[u].draw(g, X, Y, n, f); g.drawImage(tileset(img), x * 16, y * 16, 16, 16, 0, 0, 16, 16);
 };
 const same = (a, b) => a === b;
-const watery = (a) => a === 'water' || a === 'sea' || a === 'deep' || a === 'lily' || a === 'osea' || a === 'fspot';
+const watery = (a) => a === 'water' || a === 'sea' || a === 'deep' || a === 'lily' || a === 'osea' || a === 'fspot' || a === 'stepstone' || a === 'foam';
 const swampy = (a) => a === 'swamp';
 const springy = (a) => a === 'onsen';
 // a plain colour with a scatter of specks: lava, the sky, the void between clouds

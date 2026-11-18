@@ -11,23 +11,23 @@
 //   softer, a beaten army flees when its heart breaks (a leader's army fights to the last)
 // - tactics may fail: the chance (shown in the menu) depends on INT, element, weather and terrain
 // - statuses with turns, shown as small icons; leaders are strong only by the general rules (level, traits, gear, formation, a strategist)
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=8';
-import { input } from './input.js?v=8';
-import { sfx, playMusic, currentSong } from './audio.js?v=8';
-import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=8';
-import { L } from './i18n.js?v=8';
-import { IMG, FX, tileset } from './assets.js?v=8';
-import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=8';
-import { maxTP } from './data.js?v=8';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=8';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip } from './state.js?v=8';
-import { battleSheet, fieldSheet } from './doll.js?v=8';
-import { drawPose } from './equipui.js?v=8';
-import { horseImg } from './horses.js?v=8';
-import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=8';
-import { icon, digits, ICON_COL } from './icons.js?v=8';
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=8';
-import { TRAITS, traitName, traitDesc } from './traits.js?v=8';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=9';
+import { input } from './input.js?v=9';
+import { sfx, playMusic, currentSong } from './audio.js?v=9';
+import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=9';
+import { L } from './i18n.js?v=9';
+import { IMG, FX, tileset } from './assets.js?v=9';
+import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=9';
+import { maxTP } from './data.js?v=9';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=9';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip, party, inCamp } from './state.js?v=9';
+import { battleSheet, fieldSheet } from './doll.js?v=9';
+import { drawPose } from './equipui.js?v=9';
+import { horseImg } from './horses.js?v=9';
+import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=9';
+import { icon, digits, ICON_COL } from './icons.js?v=9';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=9';
+import { TRAITS, traitName, traitDesc } from './traits.js?v=9';
 
 export const B = { active: false };
 const waits = [];
@@ -153,6 +153,158 @@ function tacticsOf(u) {
 const disabled = (u) => !!(u.st.stun || u.st.sleep);
 const kitBoss = (i) => B.units.find((u) => u.side === 'foe' && u.kidx === i);
 
+// ---------- the ground (地形) ----------
+// The ground works the same for both armies. Each kind changes cavalry and archers, speed and the elements; a
+// side may hold the high ground (cfg.height: its archers +20%, its defence +10%, its rockfalls +20%) or be caught
+// wading across a ford (cfg.crossing: 20% slower and 10% weaker in defence for the first two rounds). Random
+// battles take the ground of the world tile they happen on; leaders choose good ground (bosses in story.js).
+export const TERRAIN = {
+  grass: { zh: '平原', en: 'Open ground', cav: 1.1, d: ['騎兵攻擊+10%。', 'Cavalry +10% attack.'] },
+  steppe: { zh: '草原', en: 'Steppe', cav: 1.15, cavSpd: 1.1, d: ['騎兵攻擊+15%、速度+10%。', 'Cavalry +15% attack, +10% speed.'] },
+  forest: { zh: '森林', en: 'Forest', cav: 0.85, arc: 0.9, d: ['騎兵−15%、弓兵−10%；火計+20%（成功率+5%）；埋伏+50%。', 'Cavalry -15%, archers -10%; fire +20% (+5% chance); ambushes +50%.'] },
+  hill: { zh: '丘陵', en: 'Hills', cav: 0.9, arc: 1.1, d: ['騎兵−10%、弓兵+10%；落石+30%。', 'Cavalry -10%, archers +10%; rockfall +30%.'] },
+  mountain: { zh: '山地', en: 'Mountains', cav: 0.8, arc: 1.1, d: ['騎兵−20%、弓兵+10%；落石+30%；山戰者更強。', 'Cavalry -20%, archers +10%; rockfall +30%; mountaineers fight better.'] },
+  pass: { zh: '隘口', en: 'Narrow pass', cav: 0.8, narrow: true, d: ['路窄：後排刀兵擠不上前（近戰三成），前排在時打不到敵軍後排；騎兵−20%；落石+30%。', 'Narrow: blades in the back rows cannot reach the fight (30%) nor the enemy\'s back rows while the front holds; cavalry -20%; rockfall +30%.'] },
+  ford: { zh: '淺灘渡口', en: 'Ford', cav: 0.8, d: ['騎兵−20%；水計+20%；渡河的一方前兩回合速度−20%、防禦−10%。', 'Cavalry -20%; water +20%; the side wading across is 20% slower and 10% weaker in defence for two rounds.'] },
+  marsh: { zh: '沼澤', en: 'Marsh', cav: 0.75, spd: 0.9, fire: 0.8, d: ['騎兵−25%、全軍速度−10%；火計−20%。', 'Cavalry -25%, everyone 10% slower; fire -20%.'] },
+  desert: { zh: '沙漠', en: 'Desert', spd: 0.95, water: 0.7, fire: 1.1, d: ['全軍速度−5%；水計−30%、火計+10%。', 'Everyone 5% slower; water -30%, fire +10%.'] },
+  snow: { zh: '雪原', en: 'Snowfield', spd: 0.9, fire: 0.8, d: ['全軍速度−10%；火計−20%。', 'Everyone 10% slower; fire -20%.'] },
+  river: { zh: '江上', en: 'On the water', d: ['水戰：水軍克制一切，騎兵施展不開。', 'Afloat: navy beats everything; cavalry struggle.'] },
+  cave: { zh: '洞窟', en: 'Cave', cav: 0.85, arc: 0.85, d: ['騎兵、弓兵各−15%；山戰者更強。', 'Cavalry and archers -15%; mountaineers fight better.'] },
+  castle: { zh: '城中', en: 'Within walls', d: ['沒有特別的地形效果。', 'No special effect.'] },
+  sect: { zh: '黑蓮宮', en: 'Lotus Palace', d: ['沒有特別的地形效果。', 'No special effect.'] },
+};
+const TERR = () => TERRAIN[B.terrain] || TERRAIN.grass;
+// what the ground does to a general's attack, defence and speed (the info card shows the same numbers)
+function terrAtk(a) {
+  const T = TERR();
+  let k = 1;
+  if (!B.naval) { if (a.unit === 'cav') k *= T.cav || 1; if (a.unit === 'arc') k *= T.arc || 1; }
+  if (B.height === a.side && ranged(a)) k *= 1.2;
+  // on the walls: archers shoot down from above; blades can only thrust over the parapet
+  if (onWall(a)) k *= ranged(a) ? 1.25 : 0.85;
+  return k;
+}
+function terrDef(d) {
+  let k = 1;
+  if (B.height === d.side) k *= 1.1;
+  if (B.crossing === d.side && B.round <= 2) k *= 0.9;
+  if (onWall(d)) k *= 1.25;
+  return k;
+}
+function terrSpd(u) {
+  const T = TERR();
+  let k = T.spd || 1;
+  if (u.unit === 'cav' && T.cavSpd) k *= T.cavSpd;
+  if (B.crossing === u.side && B.round <= 2) k *= 0.8;
+  return k;
+}
+// the terrain's lines for one general (info card)
+function terrLines(u) {
+  const T = TERR(), out = [];
+  const a = Math.round((terrAtk(u) - 1) * 100), d = Math.round((terrDef(u) - 1) * 100), s = Math.round((terrSpd(u) - 1) * 100), sg = (v) => (v > 0 ? '+' : '') + v;
+  const parts = [a && L(`攻${sg(a)}%`, `ATK ${sg(a)}%`), d && L(`防${sg(d)}%`, `DEF ${sg(d)}%`), s && L(`速${sg(s)}%`, `SPD ${sg(s)}%`)].filter(Boolean);
+  const tags = [B.height === u.side && L('高地', 'high ground'), B.crossing === u.side && B.round <= 2 && L('渡河中', 'wading'), onWall(u) && L('城牆上', 'on the walls'), u.sally && L('出城迎戰', 'sallied out')].filter(Boolean);
+  out.push(L(`地形：${T.zh}${tags.length ? '（' + tags.join('、') + '）' : ''}　${parts.join(' ') || '無影響'}`, `Ground: ${T.en}${tags.length ? ' (' + tags.join(', ') + ')' : ''}  ${parts.join(' ') || 'no effect'}`));
+  return out;
+}
+async function terrainIntro() {
+  const T = TERR();
+  if (B.terrain === 'castle' || B.terrain === 'sect') { if (!B.siege) return; }
+  if (!B.siege && !B.height && !B.crossing && !B.cfg.boss && !['pass', 'ford', 'marsh', 'forest', 'mountain'].includes(B.terrain)) return;
+  const extra = [];
+  if (B.height) extra.push(B.height === 'foe' ? L('敵軍佔據高地！', 'The enemy holds the high ground!') : L('我軍佔據高地！', 'We hold the high ground!'));
+  if (B.crossing) extra.push(B.crossing === 'ally' ? L('我軍正在渡河！', 'We are caught mid-crossing!') : L('敵軍正在渡河！', 'The enemy is caught mid-crossing!'));
+  say1(L(`地形：${T.zh}。${T.d[0]}${extra.join('')}`, `Ground: ${T.en}. ${T.d[1]} ${extra.join(' ')}`));
+  await tick(fast ? 40 : 90);
+  if (B.siege) { say1(L('攻城戰：守軍在城牆上（弓兵+25%、防禦+25%）。騎兵只能撞門，步兵可以爬梯（傷害減半），城門被破，城牆就失去作用。', 'A siege: the defenders stand on the walls (archers +25%, defence +25%). Horse can only ram the gate, foot may climb ladders (half damage); once the gate falls, the walls protect them no more.')); await tick(fast ? 60 : 140); }
+}
+
+// ---------- sieges (攻城) ----------
+// cfg.siege = { gate: how strong the gate is (1 = ordinary), reinf: the round reinforcements arrive (0: none),
+// sally: may the defending leader ride out }. The gate stands in front of the walls with its own durability;
+// while it stands, every defender is on the walls. It is broken by blows (foot best, rams by horse, engineers),
+// fire and rocks; then the walls protect nobody. Preparations outside (story.js warCouncil) weaken all this.
+const onWall = (u) => !!(B.siege && B.gate && B.gate.troops > 0 && u && u.side === 'foe' && !u.sally && !u.summon);
+const gateUp = () => !!(B.gate && B.gate.troops > 0);
+const GATE_X = 228;
+function makeGate() {
+  const foes = B.units.filter((u) => u.side === 'foe');
+  const avg = foes.reduce((t, u) => t + u.max, 0) / Math.max(1, foes.length);
+  const hp = Math.round(avg * 2.2 * (B.siege.gate || 1));
+  const ch = Math.max(1, Math.min(10, S.chapter || 1));
+  B.gate = { gate: true, side: 'foe', id: 'gate', g: { zh: '城門', en: 'The Gate' }, x: GATE_X, y: LANE_MID + 14, dx: 0, hx: GATE_X, hy: LANE_MID + 14, troops: hp, max: hp, lv: foes[0] ? foes[0].lv : 1, unit: 'gate', def: 40 + ch * 9, tr: new Set(), st: {}, buf: {}, fx: {}, equip: {}, own: [] };
+  B.gateStats = { hits: 0 };
+}
+// how much a blow does to the gate: the attacker's strength against the gate's timbers; foot hew it best,
+// horse ram it, archers barely scratch it; engineers (工匠) and armour-breakers (破軍) know how
+function gateBlow(a, mul = 1) {
+  const A = a.atk * buffK(a, 'atk') * moraleMul(a.side), D = B.gate.def;
+  let dmg = (A * A) / (A + D) / 52 * scaleLv(a.lv) * (0.55 + 0.45 * (a.troops / a.max));
+  dmg *= { inf: 1.4, cav: 1.0, nav: 1.2, arc: 0.3 }[a.unit] || 1;
+  if (ranged(a) && a.unit !== 'arc') dmg *= 0.5;
+  if (has(a, 'gongjiang')) dmg *= 1.5;
+  if (has(a, 'pojun')) dmg *= 1.2;
+  if (has(a, 'xiandeng')) dmg *= 1.2;
+  return Math.max(1, Math.round(dmg * 0.6 * mul * rnd(0.9, 1.1)));
+}
+async function hurtGate(n, by) {
+  if (!gateUp()) return;
+  B.gate.troops = Math.max(0, B.gate.troops - n);
+  B.gate.flash = 8; B.shake = Math.max(B.shake || 0, 3);
+  nums.push({ x: B.gate.x, y: B.gate.y - 60, y0: B.gate.y - 60, s: String(n), col: '#ffd8a0', t: 0 });
+  if (B.gate.troops <= 0) {
+    fxs.push({ k: 'smoke', x: B.gate.x, y: B.gate.y - 24, t: 0, big: true }); fxs.push({ k: 'rock', x: B.gate.x, y: B.gate.y - 30, t: 0, big: true });
+    sfx('boom'); B.shake = 10;
+    morale('ally', 15); morale('foe', -20);
+    say1(L(`城門被${by ? N(by) : '我軍'}攻破了！守軍失去了城牆的掩護！`, `The gate is broken${by ? ' by ' + N(by) : ''}! The defenders lose the cover of their walls!`));
+    await tick(70);
+  }
+}
+async function attackGate(u) {
+  say1(L(`${N(u)}${u.unit === 'cav' ? '衝撞' : '猛攻'}城門！`, `${N(u)} ${u.unit === 'cav' ? 'rams' : 'hacks at'} the gate!`));
+  const sw = (u.sheet && u.sheet.swing) || 'slash', rng = ranged(u), dir = u.side === 'ally' ? -1 : 1;
+  const reach = rng ? 0 : Math.max(0, Math.abs(B.gate.x - u.x) - 30) * dir;
+  u.anim = 'windup'; u.at = 0; for (let f = 1; f <= 6; f++) { u.dx = -dir * Math.round(f / 2); await tick(1); }
+  if (!rng) { sfx('step'); await moveTo(u, reach, Math.max(8, Math.round(Math.abs(reach) / 6))); }
+  u.anim = sw === 'cast' ? 'cast' : sw; u.at = 0;
+  for (let f = 0; f < 18; f++) { u.at = f; if (f === 9) { if (rng) shots.push({ x: u.x - 20 * -dir, y: u.y - 34, tx: B.gate.x, ty: B.gate.y - 30, t: 0, n: 12 }); sfx('hit'); fxs.push({ k: 'cutx', x: B.gate.x, y: B.gate.y - 24, t: 0 }); await hurtGate(gateBlow(u), u); } await tick(1); }
+  if (!rng) await moveTo(u, 0, Math.max(6, Math.round(Math.abs(reach) / 8)));
+  u.anim = 'idle'; u.dx = 0; u.xdDone = true;
+  await tick(6);
+}
+// a ploy on the gate: fire burns its timbers (x1.5), rocks batter it (x1.3); nothing else hurts wood
+function gateTacDamage(a, t) {
+  if (!(t.el === 'fire' || t.el === 'rock')) return 0;
+  const int = tacPower(a);
+  let dmg = (t.pow || 1) * ((int + 40) / (50 * 0.6 + 70)) * 0.75 * scaleLv(a.lv) * (t.el === 'fire' ? 1.5 : 1.3) * 0.6;
+  if (has(a, 'huoshen') && t.el === 'fire') dmg *= 1.25; if (has(a, 'jushi') && t.el === 'rock') dmg *= 1.3; if (has(a, 'gongjiang') && t.el === 'fire') dmg *= 1.25;
+  if (t.el === 'fire') { if (B.weather === 'rain') dmg *= 0.6; if (B.weather === 'wind') dmg *= 1.3; }
+  return Math.max(1, Math.round(dmg * rnd(0.9, 1.1)));
+}
+// at the start of a round in a siege: the leader may ride out; slow attackers meet the relief army
+async function siegeRound() {
+  if (!B.siege) return;
+  const sg = B.siege;
+  if (gateUp() && sg.sally !== false && B.round >= 3 && !B.sallied) {
+    const lead = alive('foe').find((u) => u.cmd && !ranged(u) && !disabled(u));
+    if (lead && lead.troops > lead.max * 0.55 && B.morale.foe >= B.morale.ally - 5 && Math.random() < 0.5) {
+      B.sallied = true; lead.sally = true;
+      for (const v of alive('foe')) if (v !== lead && has(v, 'huzhu')) { v.sally = true; break; }
+      say1(L(`${N(lead)}打開城門，親自出城迎戰！（出城的武將不再受城牆保護）`, `${N(lead)} opens the gate and rides out to fight! (Those who sally lose the walls' protection.)`)); sfx('encounter'); B.shake = 5;
+      await tick(70);
+    }
+  }
+  if (sg.reinf && B.round === sg.reinf && !B.reinfCame) {
+    B.reinfCame = true;
+    const base = B.units.filter((u) => u.side === 'foe' && !u.summon);
+    const pool = GEN_LIST.filter((g) => g.faction === (base[0] ? base[0].faction : 'sect') && !g.famous && !S.roster[g.id] && !B.units.some((u) => u.id === g.id));
+    let n = 0;
+    for (let i = 0; i < 2 && alive('foe').length < 5 && pool.length; i++) { const g = pool[(B.round * 7 + i * 13) % pool.length]; const lv = Math.max(1, (base[1] || base[0]).lv - 1); addFoe({ id: g.id, lv, mul: base[1] ? base[1].hpMul || 1 : 1 }); n++; }
+    if (n) { say1(L(`守軍的援軍從城後趕到了！（攻城拖得太久）`, `A relief force reaches the defenders from behind the city! (The siege took too long.)`)); sfx('encounter'); await tick(60); }
+  }
+}
+
 // ---------- numbers ----------
 const formOf = (side) => FORMS[side === 'ally' ? B.form : B.foeForm] || FORMS.fangyuan;
 const curForm = (side) => (side === 'ally' ? B.form : B.foeForm);
@@ -185,6 +337,7 @@ function atkMul(a, d = null) {
   if (has(a, 'yongmeng')) k *= 1.1;
   if (has(a, 'mengjin')) k *= 1.2;
   if (has(a, 'xianfeng') && colOf(a) === 0) k *= 1.15;
+  k *= terrAtk(a);
   const ax = a.fx || {};
   k *= 1 + ((d && ax.vs && ax.vs[d.unit]) || 0) + ((ax.as && ax.as[a.unit]) || 0) + ((ax.form && ax.form[curForm(a.side)]) || 0);
   return k;
@@ -200,6 +353,7 @@ function defMul(d, a = null) {
   if (has(d, 'xianfeng') && colOf(d) === 0) k *= 1.1;
   if (has(d, 'shanzhan') && ROUGH.has(B.terrain)) k *= 1.1;
   if (sideHas(d.side, 'biyan')) k *= 1.08;
+  k *= terrDef(d);
   return k;
 }
 // opts: tele (an announced move: defending cuts it to 35%), snipe (ignores the back-row rule).
@@ -248,10 +402,15 @@ function physDamage(a, d, mul = 1, opts = {}) {
   if (has(a, 'xiandeng') && !a.xdDone) { dmg *= 1.25; tr.push('xiandeng'); }
   if (has(a, 'quxie') && d.faction === 'sect') { dmg *= 1.2; tr.push('quxie'); }
   if (has(d, 'changshan')) dmg *= 0.75;
-  // the back rows are hard to reach with a blade while the front holds (騎射 reaches them)
+  // the back rows are hard to reach with a blade while the front holds (騎射 reaches them); in a narrow pass
+  // they cannot be reached at all, and blades in our own back rows cannot get to the fight
   let back = !opts.snipe && !ranged(a) && isBack(d) && frontHolds(d.side);
   if (back && has(a, 'qishe')) { back = false; tr.push('qishe'); }
-  if (back) dmg *= 0.6;
+  if (back) dmg *= TERR().narrow ? 0.2 : 0.6;
+  if (TERR().narrow && !ranged(a) && isBack(a) && frontHolds(a.side) && !opts.tele) dmg *= 0.3;
+  // a siege: the defenders on the walls take blows from ladders at half, arrows shot upwards at 85%
+  let ladder = false;
+  if (onWall(d) && a.side !== d.side && !opts.tele) { if (ranged(a)) dmg *= 0.85; else { dmg *= 0.5; ladder = true; } }
   // boss defences
   if (d.wall) dmg *= 0.25;
   if (iceStance(d)) dmg *= 0.3;
@@ -271,7 +430,7 @@ function physDamage(a, d, mul = 1, opts = {}) {
     if (B.fog > 0 && a.side === 'ally' && Math.random() < 0.35) return { dmg: 0, miss: true, fog: true, tr: [] };
     if (B.kit && B.kit.evade && d.kidx === 0 && !ranged(a) && !disabled(d) && Math.random() < B.kit.evade) return { dmg: 0, miss: true, tr: [] };
   }
-  return { dmg: Math.max(1, Math.round(dmg)), crit: isCrit, edge, back, tr };
+  return { dmg: Math.max(1, Math.round(dmg)), crit: isCrit, edge, back, tr, ladder };
 }
 function tacPower(a) {
   let int = a.int;
@@ -292,7 +451,7 @@ export function tacChance(a, d, t) {
   if (t.el === 'fire') { if (B.weather === 'rain') c -= 0.3; if (B.weather === 'wind') c += 0.1; if (B.terrain === 'forest') c += 0.05; }
   if (t.el === 'water' && (B.naval || B.terrain === 'river' || B.weather === 'rain')) c += 0.1;
   if (t.el === 'water' && has(a, 'shuigong')) c += 0.1;
-  if (t.el === 'rock') { if (B.terrain === 'mountain' || B.terrain === 'hill') c += 0.1; if (B.naval) c -= 0.35; }
+  if (t.el === 'rock') { if (B.terrain === 'mountain' || B.terrain === 'hill' || B.terrain === 'pass') c += 0.1; if (B.naval) c -= 0.35; }
   if (t.el === 'thunder' && B.weather === 'rain') c += 0.15;
   if (sideHas(a.side, 'wolong')) c += 0.1;
   if (kitWeak(d, t.el)) c += 0.15;
@@ -334,9 +493,11 @@ function tacDamage(a, d, t) {
   if (has(a, 'guimou') || (a.side === 'ally' && S.strategist && GENERALS[S.strategist].skills.includes('guimou') && stratUnit())) dmg *= 1.15;
   dmg *= tacTraitMul(a, t, d);
   if (t.el === 'fire') { if (B.weather === 'rain') dmg *= 0.6; if (B.weather === 'wind') dmg *= 1.3; if (B.terrain === 'forest') dmg *= 1.2; if (d.weakFire) dmg *= 2; if (has(a, 'gongjiang')) dmg *= 1.25; if (d.side === 'foe' && B.kit && B.kit.chained) dmg *= 1.4; }
-  if (t.el === 'water') { if (B.weather === 'rain') dmg *= 1.3; if (B.naval || B.terrain === 'river') dmg *= 1.2; }
+  if (t.el === 'water') { if (B.weather === 'rain') dmg *= 1.3; if (B.naval || B.terrain === 'river' || B.terrain === 'ford') dmg *= 1.2; dmg *= TERR().water || 1; }
+  if (t.el === 'fire') dmg *= TERR().fire || 1;
   if (t.el === 'thunder' && B.weather === 'rain') dmg *= 1.4;
-  if (t.el === 'rock' && (B.terrain === 'mountain' || B.terrain === 'hill')) dmg *= 1.3;
+  if (t.el === 'rock' && (B.terrain === 'mountain' || B.terrain === 'hill' || B.terrain === 'pass')) dmg *= 1.3;
+  if (t.el === 'rock' && B.height === a.side) dmg *= 1.2;
   if (t.naval && B.naval) dmg *= t.naval;
   if (kitWeak(d, t.el)) dmg *= 1.5;
   if (B.kit && B.kit.resistAll && B.kit.resistAll[d.kidx]) dmg *= B.kit.resistAll[d.kidx];
@@ -429,6 +590,7 @@ export function startBattle(cfg) {
     if (window.G && G.autoBattle && G.policy === 'smart') smartPrep(cfg);
     if (window.G && G.autoBattle && G.policy === 'brute') S.formation = 'fangyuan';
     Object.assign(B, { active: true, cfg, resolve, units: [], round: 0, weather: cfg.weather || 'clear', naval: !!cfg.naval, terrain: cfg.terrain || 'grass', form: formOk(S.formation) ? S.formation : 'fangyuan',
+      height: cfg.height || null, crossing: cfg.crossing || null, siege: cfg.siege || null, gate: null,
       foeForm: cfg.foeForm || ['fangyuan', 'yulin', 'heyi', 'changshe'][Math.floor(Math.random() * 4)], scouted: false, auto: false, over: false, fade: 30, prevSong: currentSong, ambush: {}, lvgap: 0, cmdDown: null,
       kit: null, morale: { ally: 50, foe: cfg.boss ? 55 : 50 }, fog: 0, pending: [], phaseDone: {}, nextMove: {}, cur: null, picking: null, card: null, stats: { tele: 0, cancel: 0 } });
     nums.length = 0; fxs.length = 0; shots.length = 0; fallers.length = 0; runners.length = 0; msg = '';
@@ -440,8 +602,12 @@ export function startBattle(cfg) {
     for (const u of [ourCmd, foeCmd]) if (u) { u.cmd = true; u.atk = Math.round(u.atk * CMD); u.def = Math.round(u.def * CMD); }
     // the enemy's strategy pool works like ours: its cleverest general's strategy points (plus gear)
     const foes0 = B.units.filter((u) => u.side === 'foe'), sage = foes0.reduce((a, b) => (b.int > a.int ? b : a), foes0[0]);
-    B.foeTpMax = sage ? maxTP(sage.int, sage.lv) + Math.min(20, foes0.reduce((t, u) => t + (u.fx.sp || 0), 0)) : 0; B.foeTp = B.foeTpMax; B.foeSage = sage;
+    B.foeTpMax = sage ? Math.round((maxTP(sage.int, sage.lv) + Math.min(20, foes0.reduce((t, u) => t + (u.fx.sp || 0), 0))) * (cfg.foeSpMul || 1)) : 0; B.foeTp = B.foeTpMax; B.foeSage = sage;
     layoutSide('ally', B.form, true); layoutSide('foe', B.foeForm, true);
+    if (B.siege) makeGate();
+    if (cfg.scouted) B.scouted = true;
+    if (cfg.foeMorale) B.morale.foe = Math.max(5, Math.min(100, B.morale.foe + cfg.foeMorale));
+    if (cfg.allyMorale) B.morale.ally = Math.max(5, Math.min(100, B.morale.ally + cfg.allyMorale));
     B.morale.ally = Math.min(100, B.morale.ally + Math.min(15, alive('ally').reduce((t, u) => t + (u.fx.mor || 0), 0)));
     B.relicUsed = {};
     if (B.kit && B.kit.wall !== undefined) { const w = kitBoss(B.kit.wall); if (w) w.wall = true; }
@@ -501,6 +667,8 @@ async function run() {
   if (e > 0) { morale('ally', 10); morale('foe', -10); say1(L(`我軍陣形克制敵軍！（${BEAT_WHY[B.form][0]}）`, `Our formation beats theirs! (${BEAT_WHY[B.form][1]})`)); sfx('buff'); await tick(50); }
   else if (e < 0) { morale('ally', -10); morale('foe', 10); say1(L(`敵軍陣形克制我軍！（${BEAT_WHY[B.foeForm][0]}）`, `Their formation beats ours! (${BEAT_WHY[B.foeForm][1]})`)); sfx('buzz'); await tick(50); }
   if (B.kit && B.kit.info && B.cfg.boss) { say1(L('首領會預告大招：注意上方的提示。', 'Leaders announce their big moves: watch the line at the top.')); await tick(40); }
+  // the ground: what it does, and who holds the high ground or is wading across
+  await terrainIntro();
   // traits at the start
   await traitsAtStart();
   if (await checkEnd()) return;
@@ -552,7 +720,7 @@ async function run() {
   }
 }
 // speed this round (without the dice: the card shows it)
-const speedBase = (u) => u.spd * (B.round <= 1 && u.fx && u.fx.first ? 1 + u.fx.first : 1) * buffK(u, 'spd') * formK(u.side, 'spd') * (has(u, 'jisu') ? 1.2 : 1) * (B.naval && has(u, 'guanxing') ? 1.2 : 1) * (B.round <= 1 && has(u, 'xiandeng') ? 2 : 1);
+const speedBase = (u) => u.spd * (B.round <= 1 && u.fx && u.fx.first ? 1 + u.fx.first : 1) * buffK(u, 'spd') * formK(u.side, 'spd') * (has(u, 'jisu') ? 1.2 : 1) * (B.naval && has(u, 'guanxing') ? 1.2 : 1) * (B.round <= 1 && has(u, 'xiandeng') ? 2 : 1) * terrSpd(u);
 const speedOf = (u) => speedBase(u) * rnd(0.85, 1.15) + (u.guard ? 1000 : 0);
 
 // ---------- boss mechanics ----------
@@ -572,6 +740,7 @@ async function readFormation() {
 // at the start of each round: stances change, announced moves begin (or happen at once, for instant ones)
 async function roundStart() {
   await readFormation();
+  await siegeRound();
   const k = B.kit;
   if (!k) return;
   if (k.stance) {
@@ -824,7 +993,8 @@ async function giveOrders(orders) {
 const tacCost = (t, u) => Math.max(1, Math.round(TACTICS[t].cost * (hasShensuan() ? 0.75 : 1) * (has(u, 'jieyue') ? 0.7 : 1) * (1 - ((u && u.fx && u.fx.cost) || 0))));
 const hasShensuan = () => S.strategist && GENERALS[S.strategist].skills.includes('shensuan') && !!stratUnit();
 function autoOrder(u) {
-  const foes = alive('foe');
+  let foes = alive('foe');
+  if (gateUp() && u.unit === 'cav' && !ranged(u)) { foes = foes.filter((v) => !onWall(v)); if (!foes.length) return { kind: 'attack', target: B.gate }; }
   const t = foes.reduce((a, b) => (b.troops < a.troops ? b : a), foes[0]);
   return { kind: 'attack', target: t };
 }
@@ -842,8 +1012,18 @@ export function formCounterText(id) {
   if (!b && !by) return L('不在相剋之列。', 'Outside the circle of counters.');
   return L(`克制：${b ? FORMS[b].zh : '—'}　被克：${by ? FORMS[by].zh : '—'}`, `Beats: ${b ? FORMS[b].en : '-'}   Beaten by: ${by ? FORMS[by].en : '-'}`);
 }
+// in a siege the gate can be aimed at (by blows, and by fire or rock ploys); horse cannot climb the walls
+function siegeTargets(list, u, tac) {
+  if (!gateUp()) return list;
+  const T = tac ? TACTICS[tac] : null;
+  if (T && !(T.el === 'fire' || T.el === 'rock')) return list;
+  let l = list;
+  if (!T && u && u.unit === 'cav' && !ranged(u)) l = list.filter((v) => !onWall(v));
+  return [B.gate, ...l];
+}
 async function pickTarget(side, u, { all = false, down = false, tac = null, heal: healFn = null } = {}) {
   let list = down ? B.units.filter((x) => x.side === side && x.troops <= 0 && !x.summon) : alive(side);
+  if (side === 'foe' && !down && !all) list = siegeTargets(list, u, tac);
   if (!list.length) return null;
   if (all) return list;
   list = list.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -875,6 +1055,13 @@ async function pickTarget(side, u, { all = false, down = false, tac = null, heal
 function drawInfo(p) {
   const t = p.t, u = p.u, foe = t.side === 'foe';
   const X = 8; let y = 195;
+  if (t.gate) {
+    text(L('城門', 'The Gate'), X, y, '#ffd8a0'); y += 13;
+    text(fit(L(`耐久 ${t.troops}/${t.max}`, `Holds ${t.troops}/${t.max}`), 146), X, y, '#e0e0e0'); y += 13;
+    if (u) { const est = p.tac ? gateTacDamage(u, TACTICS[p.tac]) : gateBlow(u); text(fit(L(`約可打掉 ${est}`, `About ${est} a blow`), 146), X, y, est > 0 ? '#80ff90' : '#ff8080'); y += 13; }
+    text(fit(L('步兵×1.4 騎撞×1 弓×0.3 火×1.5', 'foot x1.4 ram x1 bow x0.3 fire x1.5'), 146), X, y, '#c0c8d8');
+    return;
+  }
   text(fit(`${N(t)} Lv${t.lv}`, 112), X, y, foe ? '#ffb0a0' : '#c0e0ff');
   icon(t.unit, 124, y + 3); y += 13;
   text(fit(`${L('兵', 'T')} ${t.troops}/${t.max}`, 146), X, y, '#e0e0e0'); y += 13;
@@ -975,7 +1162,7 @@ function bruteOrder(u) {
 const power = (id) => { const g = GENERALS[id]; return g.str + g.lead + g.int * 0.5; };
 // before the battle: who stands in the line, in which formation, and where
 function smartPrep(cfg) {
-  const kit = cfg.kit, live = Object.keys(S.roster).filter((id) => S.roster[id].troops > 0);
+  const kit = cfg.kit, live = party().filter((id) => S.roster[id].troops > 0);
   const unitOf = (id) => GENERALS[id].unit;
   const kinds = kit && kit.moves ? kit.moves.map((m) => m.kind) : [];
   const want = [];
@@ -1133,6 +1320,16 @@ function focusFor(u, foes, phys) {
   return weakest(rest.length ? rest : foes);
 }
 function smartFight(u, foes, tp) {
+  if (gateUp()) {
+    // a sallied leader outside the walls is the prize; otherwise blades go for the gate, bows for the walls
+    const out = foes.filter((v) => v.sally);
+    if (out.length && !ranged(u)) return { kind: 'attack', target: out[0] };
+    if (!ranged(u) && u.unit !== 'arc') {
+      const clever0 = !u.st.silence && (u.int >= 80 || u.int > u.str + 15) && tp > tpMax() * 0.3;
+      if (clever0) { const fire = tacticsOf(u).map((id) => TACTICS[id]).filter((t) => t && t.t === 'e1' && t.pow && (t.el === 'fire' || t.el === 'rock') && tacCost(t.id, u) <= tp).sort((a, b) => gateTacDamage(u, b) - gateTacDamage(u, a))[0]; if (fire && gateTacDamage(u, fire) > gateBlow(u) * 1.3) return { kind: 'tactic', tac: fire.id, target: B.gate, cost: tacCost(fire.id, u) }; }
+      return { kind: 'attack', target: B.gate };
+    }
+  }
   const ft = focusFor(u, foes, true);
   // expected damage of a plain attack on the focus, against the best tactic
   let phys = 0;
@@ -1258,6 +1455,7 @@ async function act(u, o) {
     if (has(u, 'yingbian')) { for (const v of alive(u.side)) v.buf.atk = Math.max(v.buf.atk || 0, 2); morale(u.side, 8); tpop(u, 'yingbian'); }
     sfx('buff'); await tick(46); return;
   }
+  if (o.kind === 'attack' && o.target && o.target.gate) { if (gateUp()) await attackGate(u); else { const l = alive('foe'); if (l.length) await attack(u, l[0]); } return; }
   if (o.kind === 'attack') {
     let t = o.target;
     if (!t || t.troops <= 0) { const l = alive(u.side === 'ally' ? 'foe' : 'ally'); if (!l.length) return; t = u.side === 'foe' ? pickWeighted(l, u) : (B.kit && window.G && G.autoBattle ? focusFor(u, l, true) : l[0]); }
@@ -1271,6 +1469,7 @@ async function act(u, o) {
     u.again = false;
     return;
   }
+  if (o.kind === 'tactic' && o.target && o.target.gate) { await castOnGate(u, TACTICS[o.tac], o); return; }
   if (o.kind === 'tactic') { await castTactic(u, TACTICS[o.tac], o); return; }
   if (o.kind === 'item') { await useItem(u, o); }
 }
@@ -1346,6 +1545,7 @@ async function attack(u, t0, confused = false, mul = 1, isCounter = false) {
       if (r.miss) { pop(t, r.fog ? L('霧中落空', 'Lost in fog') : L('閃避', 'Miss'), '#c0c0ff'); sfx('miss'); }
       else {
         hurt(t, r.dmg, u); pop(t, r.dmg, r.crit ? '#ffe040' : r.edge > 1.01 ? '#a0ffa0' : r.edge < 0.99 ? '#c0c0c0' : '#ffffff');
+        if (r.ladder) { const v = Math.max(1, Math.round(u.max * 0.08)); hurt(u, v); pop(u, v, '#ffb080', 10); pop(t, L('爬梯', 'Ladder'), '#ffc080', -24); }
         if (r.crit) { pop(t, L('會心！', 'Critical!'), '#ffe040', -12); morale(u.side, 3); }
         else if (r.edge > 1.01) { pop(t, L('克制!', 'Strong!'), '#80ff90', -12); morale(u.side, 1); }
         else if (r.edge < 0.99) pop(t, L('被克制', 'Weak'), '#b0b0b0', -12);
@@ -1434,7 +1634,7 @@ async function castTactic(u, t, o) {
   for (const x of targets) fxs.push({ k: t.fx || 'spark', x: x.x + x.dx, y: x.y - 24, t: 0, big: t.t === 'eall' });
   sfx(t.el === 'fire' ? 'fire' : t.el === 'water' ? 'bubble' : t.el === 'thunder' ? 'bolt' : t.el === 'rock' ? 'quake' : t.heal || t.revive ? 'heal' : t.buff ? 'buff' : 'spore');
   await tick(18);
-  if (t.st === 'ambush') { B.ambush[u.side] = tacDamage(u, alive(foeSide)[0] || u, { pow: 1.2 }); say1(L('伏兵已就位。', 'The ambush is set.')); await tick(30); return; }
+  if (t.st === 'ambush') { B.ambush[u.side] = tacDamage(u, alive(foeSide)[0] || u, { pow: 1.2 }) * (B.terrain === 'forest' ? 1.5 : 1); say1(L(B.terrain === 'forest' ? '伏兵藏進了樹林。' : '伏兵已就位。', B.terrain === 'forest' ? 'The ambush hides among the trees.' : 'The ambush is set.')); await tick(30); return; }
   if (u.side === 'ally' && !o.free && hasShensuan()) tpop(stratUnit(), 'shensuan', true);
   if ((t.pow || t.st) && targets.some((x) => isEnemyOf(u, x))) {
     const on = { huoshen: t.el === 'fire', shuigong: t.el === 'water', leigong: t.el === 'thunder', jushi: t.el === 'rock', fengchu: t.t === 'eall' && t.pow, heyizhi: ['heyi', 'yanxing'].includes(curForm(u.side)), gongjiang: t.el === 'fire', guimou: !!t.pow };
@@ -1504,7 +1704,8 @@ async function useRelic(u, o, it) {
   say1(L(`${N(u)}祭出了${it.zh}！`, `${N(u)} brings out the ${it.en}!`));
   u.anim = 'cast'; u.at = 0; sfx('special'); for (let f = 0; f < 18; f++) { u.at = f; await tick(1); } u.anim = 'idle';
   const mine = alive(u.side), foes = alive(u.side === 'ally' ? 'foe' : 'ally');
-  const boom = (k, el, pow) => { for (const x of foes) { const d = tacDamage(u, x, { el, pow }); hurt(x, d); pop(x, d, '#ffd0a0'); fxs.push({ k, x: x.x + x.dx, y: x.y - 26, t: 0 }); if (el === 'rock') breakWall(x, 'rock'); tryCancel(x, 'el:' + el); } };
+  const boom = (k, el, pow) => { for (const x of foes) { const d = tacDamage(u, x, { el, pow }); hurt(x, d); pop(x, d, '#ffd0a0'); fxs.push({ k, x: x.x + x.dx, y: x.y - 26, t: 0 }); if (el === 'rock') breakWall(x, 'rock'); tryCancel(x, 'el:' + el); } if (u.side === 'ally' && gateUp()) gateHit = gateTacDamage(u, { el, pow: pow * 1.6 }); };
+  let gateHit = 0;
   switch (o.relic) {
     case 'drum': morale(u.side, 20); for (const v of mine) { v.buf.atk = 3; pop(v, L('攻↑', 'ATK↑'), '#ffe080'); } sfx('buff'); break;
     case 'fireox': boom('explosion', 'fire', 0.5); sfx('boom'); B.shake = 6; break;
@@ -1515,8 +1716,10 @@ async function useRelic(u, o, it) {
     case 'catapult': boom('rock', 'rock', 0.55); sfx('quake'); B.shake = 7; break;
     case 'maze': for (const v of mine) { v.buf.def = 3; pop(v, L('防↑', 'DEF↑'), '#ffe080'); } sfx('buff'); break;
     case 'incense': { const x = o.target && o.target.troops <= 0 ? o.target : B.units.find((v) => v.side === u.side && v.troops <= 0 && !v.summon); if (x) { x.troops = Math.round(x.max * 0.3); x.dead = false; x.anim = 'idle'; x.st = {}; pop(x, L('重整旗鼓！', 'Rallied!'), '#80ffa0'); morale(u.side, 5); } sfx('heal'); break; }
+    case 'none': break;
     case 'altar': B.weather = 'wind'; if (B.fog > 0) B.fog = 0; say1(L('七星壇上東風大作！', 'An east wind rises over the altar!')); for (const v of foes) if (v.charge && tryCancel(v, 'wind')) say1(L(`${N(v)}的招式被大風吹散了！`, `The wind scatters ${N(v)}'s move!`)); sfx('buff'); break;
   }
+  if (gateHit) await hurtGate(gateHit, u);
   await tick(36);
 }
 async function useItem(u, o) {
@@ -1526,7 +1729,7 @@ async function useItem(u, o) {
   say1(L(`${N(u)}使用了${it.zh}。`, `${N(u)} uses ${it.en}.`));
   await tick(16);
   if (it.escape) { if (B.cfg.boss || B.cfg.canRun === false) { say1(L('無法撤退！', 'There is no retreat!')); await tick(30); return; } sfx('run'); finish('run'); return; }
-  if (it.fire) { for (const x of alive(u.side === 'ally' ? 'foe' : 'ally')) { const d = Math.round(scaleLv(Math.max(u.lv, 5)) * 0.9 * rnd(0.9, 1.1)); hurt(x, d); pop(x, d, '#ffd0a0'); fxs.push({ k: 'explosion', x: x.x + x.dx, y: x.y - 26, t: 0 }); tryCancel(x, 'el:fire'); } sfx('boom'); await tick(30); return; }
+  if (it.fire) { for (const x of alive(u.side === 'ally' ? 'foe' : 'ally')) { const d = Math.round(scaleLv(Math.max(u.lv, 5)) * 0.9 * rnd(0.9, 1.1)); hurt(x, d); pop(x, d, '#ffd0a0'); fxs.push({ k: 'explosion', x: x.x + x.dx, y: x.y - 26, t: 0 }); tryCancel(x, 'el:fire'); } if (u.side === 'ally' && gateUp()) { fxs.push({ k: 'explosion', x: B.gate.x, y: B.gate.y - 26, t: 0, big: true }); await hurtGate(Math.round(scaleLv(Math.max(u.lv, 5)) * 2.4), u); } sfx('boom'); await tick(30); return; }
   if (it.tp) { const n = Math.min(tpMax() - S.tp, it.tp); S.tp += n; pop(u, `+${n} ${L('策', 'SP')}`, '#a0e0ff'); sfx('heal'); await tick(24); return; }
   const targets = it.target === 'all' ? alive(u.side) : [o.target || u];
   for (const x of targets) {
@@ -1595,15 +1798,17 @@ async function victory() {
   await tick(60);
   const lines = [];
   const per = Math.max(1, Math.round(exp * 0.75));
+  // the front line learns most, the reserve less; generals waiting in the camp drill with a fifth of it
   for (const id of Object.keys(S.roster)) {
-    const m = S.roster[id], inFront = S.front.includes(id);
+    const m = S.roster[id], inFront = S.front.includes(id), camp = inCamp(id);
     const u = B.units.find((x) => x.side === 'ally' && x.id === id);
     if (inFront && u && u.troops <= 0) continue;
     // little is learned from much weaker enemies, more from stronger ones
     const avg = foes.reduce((t, f) => t + f.lv, 0) / foes.length;
     const gap = m.lv - avg, k = gap > 4 ? Math.pow(0.5, (gap - 4) / 4) : gap < 0 ? 1 + Math.min(1.5, -gap * 0.15) : 1;
-    const ups = gainExp(m, Math.max(1, Math.round(per * k * (inFront ? 1 : 0.3))));
+    const ups = gainExp(m, Math.max(1, Math.round(per * k * (inFront ? 1 : camp ? 0.2 : 0.3))));
     if (u && ups.length) { u.max = troopsMax(m); }
+    if (camp) continue;
     for (const up of ups) {
       lines.push(L(`${genName(id)}升到了${up.lv}級！`, `${genName(id)} reached level ${up.lv}!`));
       for (const t of up.learned) lines.push(L(`${genName(id)}學會了「${TACTICS[t].zh}」！`, `${genName(id)} learned ${TACTICS[t].en}!`));
@@ -1662,7 +1867,7 @@ let cardClose = null;
 function closeCard() { if (cardClose) cardClose(); }
 function cardList() {
   const by = (a, b) => a.y - b.y || a.x - b.x;
-  return [...alive('foe').filter((v) => !v.gone).sort(by), ...alive('ally').sort(by)];
+  return [...(gateUp() ? [B.gate] : []), ...alive('foe').filter((v) => !v.gone).sort(by), ...alive('ally').sort(by)];
 }
 export function openCard(u) {
   if (B.card || !B.active) return Promise.resolve();
@@ -1692,6 +1897,7 @@ export function openCard(u) {
 // the general on the battlefield (or in the army panel) under a tap
 function unitAt(x, y) {
   if (y >= 194 && y < 194 + 5 * 14 && x >= 160) { const al = B.units.filter((u) => u.side === 'ally'); const v = al[Math.floor((y - 195) / 14)]; return v && v.troops > 0 ? v : null; }
+  if (gateUp() && Math.abs(x - B.gate.x) < 16 && y > B.gate.y - 50 && y < B.gate.y + 6) return B.gate;
   let best = null, bd = 1e9;
   for (const u of B.units) {
     if (u.troops <= 0 || u.gone) continue;
@@ -1734,6 +1940,7 @@ function bossLines(u) {
   return out;
 }
 function drawCard(u, i, n) {
+  if (u.gate) return drawGateCard(u, i, n);
   const foe = u.side === 'foe', see = seen(u), g = u.g, m = u.m;
   ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
   windowBox(4, 4, W - 8, H - 8);
@@ -1790,6 +1997,7 @@ function drawCard(u, i, n) {
   text(fit(`${formName(curForm(u.side))}${sideHas(u.side, 'zhenfa') ? L('（陣法家）', ' (master)') : ''}  ${fparts.join(' ') || L('無加成', 'no bonus')}`, 224), X0, y, '#e0e8ff'); y += 13;
   const ed = edgeSide(u.side), fm = Math.round((formMul(u.side, u) - 1) * 100);
   text(fit(ed > 0 ? L(`克制敵陣：傷害${sg(fm)}%`, `Beats their formation: ${sg(fm)}%`) : ed < 0 ? L(`被敵陣克制：傷害${sg(fm)}%`, `Beaten by their formation: ${sg(fm)}%`) : L('陣形不相剋', 'No formation counter'), 224), X0, y, ed > 0 ? '#80ff90' : ed < 0 ? '#ff9080' : '#a8b0c8'); y += 13;
+  for (const ln of terrLines(u)) { text(fit(ln, 226), X0, y, '#d0e8c0'); y += 13; }
   // statuses with turns left, buffs and stances
   const sts = [];
   for (const k of Object.keys(STATUS)) if (u.st[k] && k !== 'provoke') sts.push([`${STATUS[k][L(0, 1)]}${u.st[k]}`, STATUS[k][2]]);
@@ -1848,6 +2056,84 @@ function drawCard(u, i, n) {
   text(fit(L('←→ 切換　B 關閉　（觸控：點左右兩側切換，點中間關閉）', '←→ switch  B close  (touch: tap a side to switch, the middle to close)'), W - 24), W / 2, 247, '#8890b0', { align: 'center' });
 }
 
+// ---------- a siege on the screen ----------
+// a ploy thrown at the gate: fire and rocks only
+async function castOnGate(u, t, o) {
+  if (u.st.silence) { say1(L(`${N(u)}的策略被封住了！`, `${N(u)}'s ploys are sealed!`)); await tick(30); return; }
+  if (!o.free) { if (S.tp < o.cost) { say1(L('策略值不足！', 'Not enough strategy points!')); await tick(30); return; } S.tp -= o.cost; }
+  say1(L(`${N(u)}對城門使出「${t.zh}」！`, `${N(u)} turns ${t.en} on the gate!`));
+  u.anim = 'cast'; u.at = 0; sfx('special');
+  for (let f = 0; f < 21; f++) { u.at = f; await tick(1); }
+  u.anim = 'idle';
+  const d = gateTacDamage(u, t);
+  if (!gateUp()) return;
+  fxs.push({ k: t.fx || (t.el === 'fire' ? 'explosion' : 'rock'), x: B.gate.x, y: B.gate.y - 26, t: 0, big: true });
+  sfx(t.el === 'fire' ? 'fire' : 'quake');
+  if (d) await hurtGate(d, u); else { pop(B.gate, L('無效', 'No effect'), '#c0c0c0'); await tick(20); }
+  await tick(20);
+}
+// the gate in its stone frame with its durability; a parapet in front of every defender on the walls; two
+// towers on the wall behind them
+function drawSiege(order) {
+  // the wall itself, a band of stone behind the defenders, with two towers
+  if (gateUp()) {
+    for (const u of order) {
+      if (!onWall(u) || u.troops <= 0) continue;
+      const x = Math.round(u.x + u.dx), y = u.y;
+      // the parapet: dressed stone with merlons, hiding the legs of the general and his soldiers
+      ctx.fillStyle = '#2a2420'; ctx.fillRect(x - 46, y - 9, 66, 15);
+      ctx.fillStyle = '#9a9080'; ctx.fillRect(x - 45, y - 8, 64, 13);
+      ctx.fillStyle = '#b8ae9a'; ctx.fillRect(x - 45, y - 8, 64, 2);
+      ctx.fillStyle = '#7a7060'; for (let i = 0; i < 64; i += 8) ctx.fillRect(x - 45 + i, y - 3, 1, 8);
+      ctx.fillStyle = '#2a2420'; for (let i = 0; i < 64; i += 12) ctx.fillRect(x - 45 + i, y - 13, 7, 5);
+      ctx.fillStyle = '#a89c8a'; for (let i = 0; i < 64; i += 12) ctx.fillRect(x - 44 + i, y - 12, 5, 4);
+    }
+  }
+  const g = B.gate; if (!g) return;
+  const x = g.x, y = g.y;
+  if (g.troops > 0) {
+    const fl = g.flash && g.flash-- % 4 < 2;
+    // the gatehouse: a stone arch with a wooden door studded with iron
+    ctx.fillStyle = '#1a1410'; ctx.fillRect(x - 18, y - 52, 36, 56);
+    ctx.fillStyle = fl ? '#d8ccb8' : '#8a8070'; ctx.fillRect(x - 17, y - 51, 34, 54);
+    ctx.fillStyle = '#a89c88'; ctx.fillRect(x - 17, y - 51, 34, 3);
+    ctx.fillStyle = '#2a2420'; for (let i = 0; i < 34; i += 8) ctx.fillRect(x - 17 + i, y - 56, 5, 5);
+    const k = g.troops / g.max;
+    ctx.fillStyle = '#2a1408'; ctx.fillRect(x - 11, y - 38, 22, 41);
+    ctx.fillStyle = k > 0.5 ? '#7a4a24' : k > 0.25 ? '#6a3a1a' : '#4a2812'; ctx.fillRect(x - 10, y - 37, 20, 40);
+    ctx.fillStyle = '#3a2410'; ctx.fillRect(x - 1, y - 37, 2, 40);
+    ctx.fillStyle = '#c8b090'; for (const [dx, dy] of [[-6, -30], [5, -30], [-6, -16], [5, -16], [-6, -4], [5, -4]]) ctx.fillRect(x + dx, y + dy, 2, 2);
+    // cracks and splinters as it weakens
+    if (k < 0.66) { ctx.fillStyle = '#1a0c04'; ctx.fillRect(x - 7, y - 26, 5, 1); ctx.fillRect(x - 3, y - 25, 1, 7); }
+    if (k < 0.33) { ctx.fillStyle = '#1a0c04'; ctx.fillRect(x + 3, y - 14, 1, 10); ctx.fillRect(x + 1, y - 10, 6, 1); ctx.fillStyle = '#c89050'; ctx.fillRect(x + 6, y - 20, 3, 1); }
+    // durability bar
+    ctx.fillStyle = '#101018'; ctx.fillRect(x - 17, y + 6, 34, 4);
+    ctx.fillStyle = k > 0.5 ? '#d0a060' : k > 0.25 ? '#e0c040' : '#e04040'; ctx.fillRect(x - 16, y + 7, Math.round(32 * k), 2);
+    text(L('城門', 'Gate'), x, y - 70, '#ffe0b0', { align: 'center' });
+  } else {
+    // the broken gate: a dark gap and splinters
+    ctx.fillStyle = '#1a1410'; ctx.fillRect(x - 18, y - 52, 36, 56); ctx.fillStyle = '#6a6050'; ctx.fillRect(x - 17, y - 51, 34, 54); ctx.fillStyle = '#100808'; ctx.fillRect(x - 10, y - 37, 20, 40);
+    ctx.fillStyle = '#6a3a1a'; ctx.fillRect(x - 14, y, 9, 3); ctx.fillRect(x + 4, y - 2, 10, 3);
+  }
+}
+function drawGateCard(u, i, n) {
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
+  windowBox(4, 4, W - 8, H - 8);
+  text(L('城門', 'The Gate'), 14, 10, '#f8e070');
+  text(`${i + 1}/${n}`, W - 126, 10, '#a0a8c0', { align: 'right' });
+  windowBox(W - 118, 7, 30, 18); text('✕', W - 103, 10, '#ffb0a0', { align: 'center' });
+  const lines = [
+    [L(`耐久 ${u.troops}/${u.max}`, `Holds ${u.troops}/${u.max}`), '#ffffff'],
+    [L('城門擋在城牆前。只要它還在，所有守軍都站在城牆上：弓兵攻擊+25%，防禦+25%；刀兵只能從垛口刺擊（八成五）。', 'The gate stands before the walls. While it holds, every defender is on the walls: their archers +25%, their defence +25%; their blades can only thrust over the parapet (85%).'), '#e0e0e0'],
+    [L('破門：步兵×1.4、水軍×1.2、騎兵衝撞×1、弓兵×0.3；工匠×1.5、破軍與先登×1.2。火計×1.5、落石×1.3，火藥與投石車也行。下雨火計減弱，颳風增強。', 'Breaking it: foot x1.4, navy x1.2, horse ramming x1, archers x0.3; engineers x1.5, armour-breakers and first-up x1.2. Fire ploys x1.5, rocks x1.3; gunpowder and the catapult work too. Rain weakens fire, wind feeds it.'), '#a0e0ff'],
+    [L('爬梯：步兵可以直接攻擊城上的守軍，但傷害減半，還會挨一輪箭。騎兵上不了城牆。弓箭往上射八成五。', 'Ladders: foot may strike defenders on the walls directly, at half damage and taking a volley. Horse cannot climb. Arrows shot upwards do 85%.'), '#e0e0e0'],
+    [L('城門一破，守軍失去城牆的掩護，士氣大跌。守將可能出城迎戰；拖得太久，敵軍的援軍會趕到。', 'When the gate falls the defenders lose the walls and their heart. Their leader may ride out to fight; take too long and a relief force arrives.'), '#ffd8a0'],
+  ];
+  let y = 30;
+  for (const [s1, c] of lines) for (const ln of wrap(s1, W - 32)) { if (y > 236) break; text(ln, 14, y, c); y += 13; }
+  text(fit(L('←→ 切換　B 關閉　（觸控：點左右兩側切換，點中間關閉）', '←→ switch  B close  (touch: tap a side to switch, the middle to close)'), W - 24), W / 2, 247, '#8890b0', { align: 'center' });
+}
+
 // for tests (traittest.mjs): the inner workings, to drive each trait's code path directly
 export const __test = { attack, act, castTactic, traitsAtStart, endOfRound, useItem, tryRun, rollDrop, instantMove, physDamage, tacChance, tacDamage, morale, traitStatus, cover, unitAt, openCard, closeCard, has, sideUnit };
 
@@ -1883,24 +2169,32 @@ export function battleUpdate() {
 // ---- the backdrop ----
 const bgCache = {};
 function backdrop() {
-  const key = B.terrain + (B.naval ? 'n' : '') + B.weather;
+  const key = B.terrain + (B.naval ? 'n' : '') + B.weather + (B.height || '') + (B.siege ? 's' : '');
   if (bgCache[key]) return bgCache[key];
   const c = canvas(W, H), g = c.x;
-  const sky = { grass: ['#5a8ad8', '#b8dcf0'], forest: ['#4a7ac0', '#a8d0e0'], hill: ['#5a84d0', '#c0dcec'], mountain: ['#6a7ab8', '#c8d0e0'], desert: ['#d89a58', '#f4dca0'], snow: ['#8aa0c8', '#e8f0f8'], river: ['#4a80d0', '#b0d8f0'], castle: ['#3a4a78', '#8890b0'], cave: ['#100c14', '#2a2028'], sect: ['#1a0a20', '#4a2050'], steppe: ['#6a90d0', '#e0e0b0'] }[B.naval ? 'river' : B.terrain] || ['#5a8ad8', '#b8dcf0'];
+  const sky = { grass: ['#5a8ad8', '#b8dcf0'], forest: ['#4a7ac0', '#a8d0e0'], hill: ['#5a84d0', '#c0dcec'], mountain: ['#6a7ab8', '#c8d0e0'], desert: ['#d89a58', '#f4dca0'], snow: ['#8aa0c8', '#e8f0f8'], river: ['#4a80d0', '#b0d8f0'], castle: ['#3a4a78', '#8890b0'], cave: ['#100c14', '#2a2028'], sect: ['#1a0a20', '#4a2050'], steppe: ['#6a90d0', '#e0e0b0'], pass: ['#6a7ab8', '#c8d0e0'], ford: ['#5a8ad8', '#b8dcf0'], marsh: ['#7a8a90', '#b8c8b8'] }[B.naval ? 'river' : B.terrain] || ['#5a8ad8', '#b8dcf0'];
   const grd = g.createLinearGradient(0, 0, 0, 90); grd.addColorStop(0, sky[0]); grd.addColorStop(1, sky[1]); g.fillStyle = grd; g.fillRect(0, 0, W, 96);
   // far hills
   const far = B.terrain === 'desert' ? '#c89060' : B.terrain === 'snow' ? '#a8b8d0' : B.terrain === 'cave' || B.terrain === 'sect' ? '#1a1018' : '#5a7a8a';
   g.fillStyle = far;
-  for (let x = 0; x < W; x++) { const h = 20 + Math.sin(x * 0.021) * 9 + Math.sin(x * 0.057 + 1) * 5 + (B.terrain === 'mountain' ? Math.abs(Math.sin(x * 0.03)) * 26 : 0); g.fillRect(x, 70 - h, 1, h + 30); }
+  for (let x = 0; x < W; x++) { const h = 20 + Math.sin(x * 0.021) * 9 + Math.sin(x * 0.057 + 1) * 5 + (B.terrain === 'mountain' || B.terrain === 'pass' ? Math.abs(Math.sin(x * 0.03)) * 26 : 0); g.fillRect(x, 70 - h, 1, h + 30); }
   // ground: a floor texture from the tilesets
   const fl = tileset('floor');
-  const tile = B.naval || B.terrain === 'river' ? null : { grass: [0, 12], forest: [11, 12], hill: [0, 12], mountain: [11, 14], desert: [1, 1], snow: [6, 18], castle: [1, 13, 'interiorfloor'], cave: [13, 13, 'interiorfloor'], sect: [13, 13, 'interiorfloor'], steppe: [0, 12] }[B.terrain] || [0, 12];
+  const tile = B.naval || B.terrain === 'river' ? null : { grass: [0, 12], forest: [11, 12], hill: [0, 12], mountain: [11, 14], desert: [1, 1], snow: [6, 18], castle: [1, 13, 'interiorfloor'], cave: [13, 13, 'interiorfloor'], sect: [13, 13, 'interiorfloor'], steppe: [0, 12], pass: [11, 14], ford: [0, 12], marsh: [11, 12] }[B.terrain] || [0, 12];
   if (tile) { const im = tile[2] ? tileset(tile[2]) : fl; for (let y = 72; y < H; y += 16) for (let x = 0; x < W; x += 16) g.drawImage(im, tile[0] * 16, tile[1] * 16, 16, 16, x, y, 16, 16); if (B.terrain === 'sect') { g.fillStyle = 'rgba(60,10,70,0.35)'; g.fillRect(0, 72, W, H); } }
   else { g.fillStyle = '#3a88c8'; g.fillRect(0, 70, W, H); g.fillStyle = '#5aa8e0'; for (let y = 74; y < H; y += 7) for (let x = (y * 13) % 23; x < W; x += 31) g.fillRect(x, y, 9, 1); }
   // a darker band at the horizon, and haze
   g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(0, 70, W, 6);
   if (B.terrain === 'forest') { for (let x = -8; x < W; x += 22) { g.fillStyle = '#2a5a34'; g.beginPath(); g.arc(x + 11, 64, 14, 0, 7); g.fill(); g.fillStyle = '#3a7a40'; g.beginPath(); g.arc(x + 8, 60, 8, 0, 7); g.fill(); } }
   if (B.terrain === 'castle') { g.fillStyle = '#7e7468'; g.fillRect(0, 34, W, 38); g.fillStyle = '#a89c8a'; for (let x = 0; x < W; x += 12) g.fillRect(x, 28, 7, 8); g.fillStyle = '#5a5048'; g.fillRect(0, 66, W, 6); }
+  // the ground's own marks: cliffs closing in on a pass, a river across a ford, pools and reeds in a marsh
+  if (B.terrain === 'pass') { for (const side of [0, 1]) for (let y = 30; y < 190; y++) { const w = 26 + Math.round(Math.sin(y * 0.09 + side) * 6 + (y - 30) * 0.12); g.fillStyle = '#4a4238'; g.fillRect(side ? W - w : 0, y, w, 1); g.fillStyle = '#6a6052'; g.fillRect(side ? W - w : w - 3, y, 3, 1); } }
+  if (B.terrain === 'ford') { g.fillStyle = '#3a88c8'; g.fillRect(222, 72, 36, 118); g.fillStyle = '#6ab0e8'; for (let y = 76; y < 190; y += 9) g.fillRect(226 + (y % 3) * 6, y, 14, 1); g.fillStyle = '#d8c890'; g.fillRect(218, 72, 4, 118); g.fillRect(258, 72, 4, 118); }
+  if (B.terrain === 'marsh') { g.fillStyle = 'rgba(40,90,110,0.55)'; for (let i = 0; i < 14; i++) { g.beginPath(); g.ellipse((i * 67) % W, 90 + (i * 41) % 95, 22, 6, 0, 0, 7); g.fill(); } g.fillStyle = '#3a5a2a'; for (let x = 4; x < W; x += 9) g.fillRect(x, 66 + (x * 7) % 10, 1, 9); }
+  // a hill under the side that holds the high ground
+  if (B.height) { const left = B.height === 'foe'; g.fillStyle = 'rgba(110,90,60,0.55)'; g.beginPath(); g.moveTo(left ? 0 : W, 196); g.lineTo(left ? 0 : W, 78); g.quadraticCurveTo(left ? 150 : W - 150, 70, left ? 236 : W - 236, 196); g.closePath(); g.fill(); g.strokeStyle = 'rgba(70,52,30,0.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(left ? 0 : W, 78); g.quadraticCurveTo(left ? 150 : W - 150, 70, left ? 236 : W - 236, 196); g.stroke(); }
+  // a siege: the city wall and two towers behind the defenders
+  if (B.siege) { g.fillStyle = '#6e665a'; g.fillRect(0, 24, 236, 50); g.fillStyle = '#8e8676'; for (let x = 0; x < 236; x += 12) g.fillRect(x, 18, 7, 8); for (const tx of [40, 170]) { g.fillStyle = '#5a5248'; g.fillRect(tx, 4, 34, 70); g.fillStyle = '#8a3020'; g.fillRect(tx - 4, 0, 42, 8); g.fillStyle = '#2a2420'; g.fillRect(tx + 13, 30, 8, 14); } }
   if (B.naval) { // the decks of two fleets
     for (const [x0, x1] of [[0, 230], [250, 480]]) { g.fillStyle = '#5a3820'; g.fillRect(x0, 196, x1 - x0, 10); g.fillStyle = '#7e5230'; g.fillRect(x0, 190, x1 - x0, 7); }
   }
@@ -2136,6 +2430,7 @@ export function battleDraw() {
   for (const u of order) if (u.troops <= 0) drawUnit(u);
   drawRunners();
   for (const u of order) if (u.troops > 0) drawUnit(u);
+  if (B.siege) drawSiege(order);
   for (const u of order) drawUnitHud(u);
   if (B.fog > 0) { ctx.fillStyle = 'rgba(220,230,240,0.28)'; ctx.fillRect(0, 30, W, 160); }
   drawFx();
@@ -2152,6 +2447,8 @@ export function battleDraw() {
   text(formName(B.foeForm), 106, 3, fe < 0 ? '#ff7060' : '#ffb0a0');
   text(L('士氣', 'MOR'), 164, 3, '#c8b8b0'); moraleBar(190, 7, 44, B.morale.foe, '#e07050');
   if (B.weather !== 'clear') text({ rain: L('雨', 'Rain'), wind: L('風', 'Wind') }[B.weather] || '', 240, 3, '#c0e0ff', { align: 'center' });
+  // the ground, under the formations on the left (with who holds the height, who is wading)
+  { const T = TERR(), tags = [B.height && (B.height === 'foe' ? L('敵佔高地', 'foe on high ground') : L('我佔高地', 'we hold the height')), B.crossing && B.round <= 2 && (B.crossing === 'ally' ? L('我軍渡河', 'we wade') : L('敵軍渡河', 'they wade')), gateUp() && L(`城門 ${B.gate.troops}/${B.gate.max}`, `Gate ${B.gate.troops}/${B.gate.max}`)].filter(Boolean); const s0 = L(`地形：${T.zh}`, `Ground: ${T.en}`) + (tags.length ? '　' + tags.join(L('・', ' / ')) : ''); const w0 = textW(s0) + 10; ctx.fillStyle = 'rgba(8,6,16,0.6)'; ctx.fillRect(W - w0 - 44, 33, w0, 13); text(s0, W - 49, 34, B.height === 'foe' || gateUp() ? '#ffc8a0' : '#d0e8c0', { align: 'right' }); }
   text(L('士氣', 'MOR'), 256, 3, '#c8b8b0'); moraleBar(282, 7, 44, B.morale.ally, '#60d080');
   text(formName(B.form), 420, 3, fe > 0 ? '#80ff90' : '#ffe080', { align: 'right' });
   // the enemy's strategy points, under the top line on the right (clear of the sound button)

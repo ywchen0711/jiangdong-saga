@@ -1,8 +1,8 @@
 // The game state: the army (generals, their levels, troops and gear), gold, items, flags, where you are,
 // and saving and loading. A general's numbers are worked out here from their base stats and gear.
-import { GENERALS, gearFor, genName } from './generals.js?v=8';
-import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=8';
-import { L } from './i18n.js?v=8';
+import { GENERALS, gearFor, genName } from './generals.js?v=9';
+import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=9';
+import { L } from './i18n.js?v=9';
 
 export const S = {};
 export function newGame() {
@@ -10,15 +10,39 @@ export function newGame() {
   Object.assign(S, {
     v: 1, chapter: 0, flags: {}, gold: 300, items: { salve: 6, wine: 2, smoke: 2 },
     roster: {}, front: [], strategist: null, formation: 'fangyuan', forms: ['fangyuan'], tp: 0,
-    pos: { map: 'world', x: 238, y: 99, dir: 'd' }, vehicle: 'foot', ship: null, horse: false,
+    pos: { map: 'world', x: 466, y: 195, dir: 'd' }, wv: 2, vehicle: 'foot', ship: null, horse: false,
     met: {}, lastTown: 'haiyan', steps: 0, repel: 0, time: 0, battles: 0, wins: 0, captured: 0, chests: {}, visited: {},
-    found: {}, rumours: {}, quests: {}, codex: {}, dropPity: {}, sq: {},
+    found: {}, rumours: {}, quests: {}, codex: {}, dropPity: {}, sq: {}, camp: [],
   });
 }
 newGame();
 
 // ---------- generals in the army ----------
+// At most eight generals travel with the army (the front line of five and three in reserve, the strategist among
+// them). The rest wait in the camp (營帳): any tavern, and the home city's inn, opens the roster where they can be
+// swapped in, looked at, re-equipped or trained. S.camp lists who is waiting there.
+export const PARTY_MAX = 8;
 export function member(id) { return S.roster[id] || null; }
+export const inCamp = (id) => !!(S.camp && S.camp.includes(id));
+export const party = () => Object.keys(S.roster).filter((id) => !inCamp(id));
+// who the story needs at the army's side: Sun Quan always; the four travellers in the first chapter and once
+// everyone has gathered for the last march
+export function mustTravel(id) {
+  if (id === 'sunquan') return true;
+  if (['jeff', 'erin', 'josh', 'jasper'].includes(id)) return S.chapter <= 1 || !!S.flags.gathered;
+  return false;
+}
+export function toCamp(id) {
+  if (!S.roster[id] || inCamp(id) || mustTravel(id)) return false;
+  if (!S.camp) S.camp = [];
+  S.camp.push(id); S.front = S.front.filter((x) => x !== id);
+  if (S.strategist === id) S.strategist = bestStrategist();
+  if (!S.front.length) { const p = party(); if (p.length) S.front.push(p[0]); }
+  return true;
+}
+export function fromCamp(id) { if (!inCamp(id)) return false; S.camp = S.camp.filter((x) => x !== id); return true; }
+// the generals the army would send to camp first: the lowest level, never one the story needs
+export function campCandidates() { return party().filter((id) => !mustTravel(id)).sort((a, b) => S.roster[a].lv - S.roster[b].lv); }
 export function recruit(id, lv, o = {}) {
   const g = GENERALS[id];
   if (!g || S.roster[id]) return S.roster[id];
@@ -36,7 +60,7 @@ export function recruit(id, lv, o = {}) {
   return m;
 }
 export function dismiss(id) { delete S.roster[id]; S.front = S.front.filter((x) => x !== id); if (S.strategist === id) S.strategist = bestStrategist(); }
-export function bestStrategist() { let b = null; for (const id of Object.keys(S.roster)) if (!b || GENERALS[id].int > GENERALS[b].int) b = id; return b; }
+export function bestStrategist() { let b = null; for (const id of party()) if (!b || GENERALS[id].int > GENERALS[b].int) b = id; return b; }
 // every slot present, empty ones as null (older gear lists had five)
 export function fullEquip(e) { const o = {}; for (const s of SLOTS) o[s] = (e && e[s]) || null; return o; }
 export function markFound(id) { if (!S.found) S.found = {}; if (ITEMS[id] && ITEMS[id].tr && !S.found[id]) { S.found[id] = 1; return true; } return false; }
@@ -131,7 +155,7 @@ export function load(slot) {
   try {
     const d = JSON.parse(localStorage.getItem(KEY + slot) || 'null');
     if (!d || !d.roster) return false;
-    newGame(); Object.assign(S, d);
+    newGame(); Object.assign(S, d); S.wv = d.wv || 0; if (!d.camp) S.camp = [];
     migrate();
     return true;
   } catch (e) { return false; }
@@ -140,6 +164,13 @@ export function load(slot) {
 // and every treasure already owned counts as found
 export function migrate() {
   for (const k of ['found', 'rumours', 'quests', 'codex', 'dropPity', 'sq']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
+  // saves from the 256 x 192 world: everything on the world map moves to the doubled map
+  if (!S.wv) {
+    S.wv = 2;
+    if (S.pos && S.pos.map === 'world') { S.pos.x *= 2; S.pos.y *= 2; }
+    if (S.ship) { S.ship.x *= 2; S.ship.y *= 2; }
+    for (const k of Object.keys(S.flags || {})) { const mm = /^secret_(\d+)_(\d+)$/.exec(k); if (mm) { delete S.flags[k]; S.flags[`secret_${mm[1] * 2}_${mm[2] * 2}`] = 1; } }
+  }
   for (const m of Object.values(S.roster || {})) {
     const old = m.equip || {};
     m.equip = fullEquip(old);
@@ -150,6 +181,19 @@ export function migrate() {
     for (const it of Object.values(m.equip)) if (it) markFound(it);
   }
   for (const id of Object.keys(S.items || {})) markFound(id);
+  // saves from before the camp: the eight best by level travel (front line first), the rest wait at the tavern
+  if (!Array.isArray(S.camp)) S.camp = [];
+  S.camp = S.camp.filter((id) => S.roster[id]);
+  const p = party();
+  if (p.length > PARTY_MAX) {
+    const order = [...S.front.filter((id) => S.roster[id]), ...p.filter((id) => !S.front.includes(id)).sort((a, b) => S.roster[b].lv - S.roster[a].lv)];
+    const keep = new Set(order.filter((id) => mustTravel(id)));
+    for (const id of order) { if (keep.size >= PARTY_MAX) break; keep.add(id); }
+    const sent = p.filter((id) => !keep.has(id));
+    for (const id of sent) { S.camp.push(id); S.front = S.front.filter((x) => x !== id); }
+    if (S.strategist && inCamp(S.strategist)) S.strategist = bestStrategist();
+    S.flags.campNote = sent.length;
+  }
 }
 export function slotInfo(slot) {
   try {

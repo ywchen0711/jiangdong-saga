@@ -6,8 +6,25 @@ An original Three Kingdoms army RPG that runs in the browser. Alternate history:
 
 ## 特色 Features
 
-- **巨大的世界地圖** — 256×192 格的天下：長江、黃河、漢水、淮河，秦嶺與太行，西方的高原與沙漠，北方的長城與草原，東海的島嶼。六十多座城池、村落、關隘、港口、洞窟與寺廟，二十六個地區各有固定的敵軍強度（敵人永遠不會隨你的等級變強），在路上自然就能練功。小地圖、全圖、渡口、騎馬、戰船。
-  **A huge world map** — 256×192 tiles of the Han lands: the Changjiang, Yellow, Han and Huai rivers, the Qinling and Taihang ranges, the western plateau and deserts, the Great Wall and the steppe, islands in the Eastern Sea. Over sixty cities, villages, passes, ports, caves and temples; twenty-six regions, each with its own fixed enemy strength (enemies never scale to you), so travel itself trains your army. Minimap, full map, ferries, horses and a warship.
+- **巨大的世界地圖** — 512×384 格的天下（從前的四倍大）：長江、黃河、漢水、淮河，秦嶺與太行，西方的高原與沙漠，北方的長城與草原，東海、南海與洞庭湖裡的島嶼。故事的地理不變，但城與城之間多了大片的田野、山林、海岸與海，旅行像一段真正的路程。九十八個地點，二十六個地區各有固定的敵軍強度（敵人永遠不會隨你的等級變強）。小地圖、三段縮放的全圖（地點依種類標示）、渡口、騎馬、渡船、戰船。
+  **A huge world map** — 512×384 tiles of the Han lands, four times the old map: the Changjiang, Yellow, Han and Huai rivers, the Qinling and Taihang ranges, the western plateau and deserts, the Great Wall and the steppe, islands in the Eastern and Southern seas and in Lake Dongting. The story's geography is the same, but between its cities lie wide fields, forests, coasts and sea, so travel feels like a journey. 98 places; 26 regions, each with its own fixed enemy strength (enemies never scale to you). Minimap, a full map with three zooms and marks by kind, ferries, horses, boats and a warship.
+- **三十三處秘境** — 每一處都是一張有人、有故事或秘密、有守敵與寶物的小地圖，有自己的樣子與音樂：
+  - 洞窟：善卷洞（石灰岩）、潮音洞與珊瑚洞（海蝕洞）、銅官山礦（礦坑，鐵軌與礦車）、冰風洞（冰洞）、玄武岩窟（玄武岩）、夷洲的雲豹洞。
+  - 村落：雲棲村（山村）、稻香村與桑田里（農村）、楓橋渡與孟津渡（渡口），都有客棧與道具店。
+  - 島嶼（坐船才到得了）：螺洲村（海螺號角的故事）、鯨背島與望海燈塔、洞庭湖的君山島、珠崖港、蓬萊島的隱士。
+  - 名山（之字形山道、半山的茶亭、山頂的景色）：天台山、泰山、峨眉山。
+  - 瀑布（走進水簾，後面藏著洞穴）：香爐峰瀑布、壺口瀑布、白水瀑布。
+  - 竹海、雲夢澤、子午谷；越王城遺址與殷墟（地宮）；赤眉寨與黃天寨（山寨）；長城上的烽火臺；驪山溫泉。
+  有戰船之前，海鹽、東冶、長沙、合浦、臨淄的船夫會載你到島上。
+  **33 places to explore** — each a small map with its people, a story or a secret, a guardian and something to find, with its own look and music: caves of limestone, sea rock, an old copper mine with rails and carts, ice and basalt; mountain, farming and ferry villages with inns and shops; islands reached by boat (the conch horn of Conch Isle, a lighthouse taken by pirates, Junshan in Lake Dongting, Pearl Cliff, the hermit of Penglai); three peaks climbed by switchbacks to a tea pavilion and a summit view; three waterfalls with a cave behind the water; the Bamboo Sea, the Yunmeng marsh and the Ziwu gorge; two ruins with crypts below; two bandit camps; a beacon tower on the Wall; a hot spring. Before you have a warship, boatmen in Haiyan, Dongye, Changsha, Hepu and Linzi take you to the islands.
+- **自然升級** — 敵軍強度依地區固定，沿著故事的路線越往前越強；路上的秘境、守敵與首領都有經驗。照著故事走、順路探索，到每位首領面前時大約比他低一兩級（遠低於自己等級的敵人給的經驗很少，不會不小心練過頭）。等級上限 99。
+  **Natural levelling** — enemy strength is fixed by region and rises along the story's road; the places to explore, their guardians and the leaders all give experience. Follow the story, explore what you pass, and you reach each leader a level or two below him (fights far below your level give little, so you do not over-level by accident). Level cap 99.
+- **地形** — 地形對雙方一視同仁：平原與草原利騎兵；森林騎兵與弓兵受限、火計與埋伏更強；丘陵與山地利弓兵與落石；隘口只有前排打得到；淺灘騎兵難行、渡河的一方慢而弱；沼澤全軍變慢；沙漠、雪原各有影響；高地讓該方弓兵與防禦更強。野戰用遇敵那一格的地形，戰場背景、畫面右上與情報卡都顯示地形與它對每個人的影響。首領會挑好地方：張任守劍閣隘口與高地、焰無據山、顏良文醜隔河以待。
+  **The ground** — the same for both sides: open ground and steppe favour horse; forests hamper horse and bows and feed fire and ambushes; hills and mountains favour bows and rockfalls; in a pass only the front rows can fight; a ford slows horse and whoever is wading; marsh slows everyone; desert and snow have their own effects; the side on high ground shoots and holds better. A random battle is fought on the ground of its tile; the backdrop, the top right of the screen and the info card show the ground and what it does to each general. Leaders choose good ground: Zhang Ren holds the pass and the heights of Jiange, Yan Wu waits on a mountain, Yan Liang and Wen Chou behind the river at Guandu.
+- **攻城** — 十二場城池與關隘的戰鬥（烏程寨、皖城、秣陵關兩次、建業、夏口、襄陽、壽春、鄴城、虎牢關、潼關、郿塢）是真正的攻城戰：守軍站在城牆上（弓兵與防禦+25%），城門有自己的耐久，要用步兵、工匠、火計、火藥與投石車打破，騎兵只能撞門，步兵可以爬梯；守將會開門出城迎戰，拖太久援軍會到。開戰前的軍議可以偵察城防、斷糧道、夜襲、火燒城門、策反，每一項都是一般的手段（一場仗、火藥、金子、對的人）。
+  **Sieges** — twelve battles at cities and gates (Wucheng, Wan, Moling twice, Jianye, Xiakou, Xiangyang, Shouchun, Ye, Hulao, Tong Gate, Mei) are real sieges: the defenders stand on the walls (archers and defence +25%), the gate has its own durability to break with foot, engineers, fire, gunpowder and the catapult, horse can only ram and foot can climb ladders; the defending leader may ride out, and a relief force comes if you are slow. Before the battle, a war council lets you scout the defences, cut the supply road, raid by night, burn the gate or win over a defender, each by ordinary means (a battle, gunpowder, gold, the right officer).
+- **八人隊伍與營帳** — 最多八名武將隨軍（前列五人、後備三人），其餘在營帳等候：任何酒館或大本營的客棧都能換人、看情報、換裝備；營帳的武將保有裝備、分到兩成經驗，也能花錢訓練到隊伍平均等級減二。孫權與故事需要時的四位旅人不會離隊。舊存檔超過八人時，等級最高的八人（前列優先）隨軍，其他人到營帳。
+  **A party of eight and the camp** — at most eight generals travel (five in front, three in reserve); the rest wait at the camp: any tavern or the home city's inn swaps them, shows their card and changes their gear; generals in camp keep their gear, get a fifth of the experience, and can be trained for gold up to the party's average level less two. Sun Quan, and the four travellers when the story needs them, never leave. Old saves with more than eight keep the eight best by level (front line first) and send the rest to camp.
 - **軍團戰鬥** — 武將的兵力就是生命，士兵隨著損傷一個個倒下。攻擊、策略、道具、防禦、全軍突擊、撤退。兵種相剋（騎＞步＞弓＞騎），水戰時水軍佔優。
   **Army battles** — a general's troops are their life, and their little crowd of soldiers thins out as they fall. Attack, Tactic, Item, Defend, All-out Charge, Retreat. Horse beats foot beats bow beats horse; navies rule the water.
 - **兵法** — 每一場仗都要動腦：兵種相剋（×1.3／×0.8，目標旁有▲▼）、陣形相剋（三組循環，克制方傷害+15%，戰鬥中可以「變陣」）、前後排（前排還在時刀槍打後排只剩六成，軍師與弓兵放後面；軍師必須出戰才能借出策略）、雙方士氣條（擊倒、會心、克制、打斷大招會提升；士氣崩潰的野戰敵軍會逃走，首領全倒則殘兵潰散）、策略成功率（智力、屬性、天候、地形，選單裡看得到）、帶回合數的狀態圖示（混亂、受困、昏睡、恐懼、燒傷、中毒、封策、詛咒、破甲、攻防速升降）。選單與戰鬥中的「兵法」頁解釋一切。
@@ -32,7 +49,7 @@ An original Three Kingdoms army RPG that runs in the browser. Alternate history:
   **311 treasures**: the Heaven-Leaning Sword, the Qinggang Sword and the Guding Sabre, and with them Chixiao, the Serpent Spear, the Yajiao Spear, the Sun-Shooter Bow, Yellow-Claw Lightning, Wuzhui, the Night-Shining Jade Lion, He's Jade Disc, the Art of War, the Essentials of the Great Peace... and many original ones, in five rarities. Their effects work with the art of war: damage against a unit type, attack and defence in a formation, tactic power and cost, element power and resistance, resisting confusion, sleep and curses, reflecting ploys, counters, first strikes, starting morale, extra strategy points, naval power, troops back each turn, theft and scouting, and thirteen sets that add more for two to four pieces; everything is capped so no leader's fight becomes trivial. They lie in red chests in governors' halls, shrines, caves and streets, in the wilds where only Jasper sees, among leaders' spoils, as rare drops from each land's armies (likelier the longer you fight there), as rewards for nine townsfolk's favours (bring something, find something, defeat a named bandit chief), in shops' rare stock, and with a treasure merchant who also trades. Taverns sell rumours. The Treasure Codex in the menu lists all 311 (eleven legendary pieces come only from the trials), unfound ones as silhouettes, with hints once you have heard a rumour, and rewards at 50, 100... 300 found, for all of them, and for every full set. War relics (drums, the Wooden Ox, soul-calling incense...) work once in each battle and are never used up; manuals raise a general's numbers for good.
 - **試煉（超難支線）** — 十個原創的支線任務散布在各章與大地圖上，每個都由一位有故事的人委託，選單的「任務」頁記下委託人、地點、目標、建議等級、進度與報酬（觸控也能看）。敵軍強度固定、比同章的首領更強，專為練高等級、裝備齊全、懂兵法的玩家設計；和首領一樣只用通用規則（等級、特性、寶物、陣形、軍師），偵察與情報卡會告訴你怎麼應戰：
   - 白虎寨的鐵面虎（第3章，錢唐→烏程寨，建議Lv26）：勇猛的寨主、會護主的親兵、弓手與軍師。報酬：傳說兵器「白虎吞天刀」。
-  - 柴桑九連擂（第4章，柴桑，Lv31）：四陣連戰不准休整：槍兵、弓手、鐵騎，最後是擂主。報酬：「擂主金腰帶」。
+  - 柴桑九連擂（第4章，柴桑，Lv35）：四陣連戰不准休整：槍兵、弓手、鐵騎，最後是擂主。報酬：「擂主金腰帶」。
   - 武陵救人（第5章，武陵，Lv36）：五回合內擊潰逃兵，否則孩子被帶走。報酬：名馬「踏雲駒」。
   - 怒海狂濤（第6章，東冶，Lv42）：海盜王的水軍個個善於水戰（水戰，只有軍隊）。報酬：「海王鱗甲」與「滄波戰旗」。
   - 長坂橋頭（第7章，新野，Lv47）：與張飛一戰，他的燕人大喝會嚇住全軍（冷靜的武將不怕）。贏了張飛加入，另得「燕雲虎盔」。
@@ -41,7 +58,7 @@ An original Three Kingdoms army RPG that runs in the browser. Alternate history:
   - 虎癡與惡來（第9章，官渡，Lv58）：同時對付許褚與典韋，兩人都會護主互相擋刀。典韋加入，另得「虎癡護心鏡」。
   - 九嶷深淵（第9章，零陵→九嶷山第四層，Lv60）：從祭壇走下隱藏的深淵，一路都是強敵，底部是黑蓮教最古老的長老。報酬：「天問劍」與秘傳策略「雷霆萬鈞」。
   - 冢虎之局（第10章，長安，Lv62）：十四回合內擊敗司馬懿與他的謀士（狼顧：他的策略不會被反彈）。司馬懿加入，另得「冢虎玄袍」。
-  **Trials (very hard side quests)**: ten original side quests across the chapters and the map, each given by someone with a story and kept in the menu's Quests page (giver, place, goal, recommended level, progress, reward; works by touch). Their armies are fixed in strength and stronger than the leaders of the same chapter, made for over-levelled, well-equipped players who know the art of war; like the leaders they use only the general rules (levels, traits, treasures, formations, a strategist), and scouting and the info card show how to answer them: a bandit stockade with bodyguards and archers on the palisade (ch. 3, Lv 26), a four-battle gauntlet with no rest (ch. 4, Lv 31), a five-round rescue (ch. 5, Lv 36), the Pirate King's fleet at sea (ch. 6, Lv 42), Zhang Fei on the bridge (ch. 7, Lv 47; he joins), the Eight Gates Lock with only three generals in eight rounds (ch. 7, Lv 48; the new Three Talents formation), Guan Yu's thousand li as a chain across three towns (ch. 8, Lv 54; he joins), Xu Chu and Dian Wei together (ch. 9, Lv 58; Dian Wei joins), the hidden abyss under Mount Jiuyi (ch. 9, Lv 60; the Thunderclap of Heaven tactic) and Sima Yi's fourteen-round game (ch. 10, Lv 62; he joins). The other rewards are eleven new legendary treasures and large sums of gold.
+  **Trials (very hard side quests)**: ten original side quests across the chapters and the map, each given by someone with a story and kept in the menu's Quests page (giver, place, goal, recommended level, progress, reward; works by touch). Their armies are fixed in strength and stronger than the leaders of the same chapter, made for over-levelled, well-equipped players who know the art of war; like the leaders they use only the general rules (levels, traits, treasures, formations, a strategist), and scouting and the info card show how to answer them: a bandit stockade with bodyguards and archers on the palisade (ch. 3, Lv 26), a four-battle gauntlet with no rest (ch. 4, Lv 35), a five-round rescue (ch. 5, Lv 36), the Pirate King's fleet at sea (ch. 6, Lv 42), Zhang Fei on the bridge (ch. 7, Lv 47; he joins), the Eight Gates Lock with only three generals in eight rounds (ch. 7, Lv 48; the new Three Talents formation), Guan Yu's thousand li as a chain across three towns (ch. 8, Lv 54; he joins), Xu Chu and Dian Wei together (ch. 9, Lv 58; Dian Wei joins), the hidden abyss under Mount Jiuyi (ch. 9, Lv 60; the Thunderclap of Heaven tactic) and Sima Yi's fourteen-round game (ch. 10, Lv 62; he joins). The other rewards are eleven new legendary treasures and large sums of gold.
 - **看得清楚的出入口** — 大地圖上的洞窟是一座有黑色洞口、石拱與兩支火把的岩丘，四周的樹木讓開；黑蓮宮是黑岩紫光的宮門。走近任何地點，頭上會出現名稱與種類；小地圖與全圖用不同記號標出洞窟、寺廟與關隘。洞裡第一層的出口透著天光，上下樓梯用石階圖、發光與上下箭頭標示，進入時會顯示「山越洞　B1」這樣的樓層；屋子的出口鋪著紅色門墊。所有房屋、家具與擺設都換成完整的圖（不再只畫一半）。
   **Entrances you cannot miss**: on the world map a cave is a rocky outcrop with a black mouth under a stone arch and a torch on either side, in a clearing; the Black Lotus Palace is a gate of black rock with a violet glow. Walk near any place and its name and kind appear over it; the minimap and the full map mark caves, temples and passes by type. Inside, the first floor's way out shows daylight, stairs up and down are stone steps with a glow and a bobbing arrow, and each floor announces itself as you enter ("Shanyue Caves B1"); a room's way out has a red doormat. Every building, piece of furniture and prop is drawn whole.
 - 中英雙語、鍵盤／手把／觸控（手機直式與橫式皆可）、存檔三格與地圖上隨時存檔。
@@ -71,11 +88,29 @@ Ten chapters: After the Night of Blood, The Young Master Zhou, Jiangdong Reclaim
 傑夫是造船匠和工程師（軍師人選，會造火船），艾琳是領航員和醫者（觀天象、治傷、水戰），喬許是大塊頭的盾兵（守護同伴），賈斯珀是最年輕的斥候和弓手（速度快、會偷東西、能發現地圖上的秘密）。
 Jeff is a shipwright and engineer (a strategist who builds fire rafts), Erin a navigator and healer (stars, weather, wounds, the sea), Josh a big-hearted shield fighter (guards the others), and Jasper the youngest, a quick scout and archer (fast, light-fingered, finds secrets on the map).
 
+## 自然升級的路線 Levels along the road
+
+測試機器人（bigbot）照著故事走，騎在真正的道路上，遇到的仗都打，章節開放時把當地的秘境逛一遍，不刻意練功。到每位首領時的等級（前列平均／最高）與首領的等級：
+The test bot (bigbot) follows the story on the real roads, fights whatever it meets, explores each chapter's places as they open, and never grinds on purpose. Its level on reaching each leader (front average / highest) against the leader's:
+
+| 章 Ch | 首領 Leader | 抵達 Arrival | 首領 Leader Lv |
+|---|---|---|---|
+| 1 | 嚴白虎 Yan Baihu | 6 / 8 | 12 |
+| 2 | 劉勳 Liu Xun | 15 / 16 | 23 |
+| 3 | 曲阿 Qu'a / 秣陵 Moling / 孫暠 Sun Hao | 21-24 / 22-25 | 28 / 25 / 25-26 |
+| 4 | 西塞山 Xisai / 黃祖 Huang Zu | 27-29 / 29-30 | 33 / 33 |
+| 5 | 蔡瑁 Cai Mao | 37 / 38 | 40-41 |
+| 6 | 北方艦隊 the northern fleet | 42 / 42 | 46-48 |
+| 7 | 袁術 / 官渡 / 袁紹 | 49-54 / 50-54 | 53-55 |
+| 8 | 虎牢 / 潼關 / 董卓 | 62-66 / 62-67 | 65-68 |
+| 9 | 建業 / 季淵 / 張任 / 焰無 | 71-76 / 71-76 | 73-78 |
+| 10 | 黑蓮宮 / 于吉 | 75-77 / 78-80 | 71-80 |
+
 ## 執行 Running
 
 All files are static. Serve the folder with any web server, for example `python -m http.server`, and open `index.html`. ES modules are imported with `?v=N` so a new version is fetched after an update.
 
-`tools/doll_build.py` cuts the LPC layers (it needs a clone of the Universal LPC generator), `tools/item_icons.py` packs the Ninja Adventure item pictures used for icons, and `tools/world_art.py` draws the world-map sprites. The treasures are a table in `js/treasures.js`; the trials (side quests) are in `js/sidequests.js` with their boss kits in `js/bosses.js`.
+The places to explore are built in `js/explore.js` (maps, people, guardians, ferries, the summit view); the ground and sieges are in `js/battle.js` (TERRAIN, the gate) with the leaders' ground and the war council in `js/story.js` (BOSS_GROUND, warCouncil). `tools/doll_build.py` cuts the LPC layers (it needs a clone of the Universal LPC generator), `tools/item_icons.py` packs the Ninja Adventure item pictures used for icons, and `tools/world_art.py` draws the world-map sprites. The treasures are a table in `js/treasures.js`; the trials (side quests) are in `js/sidequests.js` with their boss kits in `js/bosses.js`.
 
 ## iPhone and iPad
 
