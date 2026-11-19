@@ -1,24 +1,24 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=11';
-import { input } from './input.js?v=11';
-import { sfx, setMusic, music } from './audio.js?v=11';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=11';
-import { L, LANG, setLang } from './i18n.js?v=11';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=11';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=11';
-import { icon, ICON_COL } from './icons.js?v=11';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=11';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=11';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=11';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=11';
-import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=11';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=12';
+import { input } from './input.js?v=12';
+import { sfx, setMusic, music } from './audio.js?v=12';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=12';
+import { L, LANG, setLang } from './i18n.js?v=12';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=12';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=12';
+import { icon, ICON_COL } from './icons.js?v=12';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=12';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=12';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=12';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=12';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=12';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=11';
-import { overviewMap, placeMark } from './worldgfx.js?v=11';
-import { questLog } from './sidequests.js?v=11';
-import { TERRAIN } from './battle.js?v=11';
-import { F, tileX, tileY } from './field.js?v=11';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=12';
+import { overviewMap, placeMark } from './worldgfx.js?v=12';
+import { questLog } from './sidequests.js?v=12';
+import { TERRAIN } from './battle.js?v=12';
+import { F, tileX, tileY } from './field.js?v=12';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...party().filter((id) => !S.front.includes(id))];
@@ -170,7 +170,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=11'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=12'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -383,7 +383,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=11'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=12'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -438,7 +438,7 @@ function drawEntry(g) {
   if (g.role) text(L(g.role[0], g.role[1]), 250, 62, '#a0e0c0');
   // a painted portrait, when the general has one
   const art = UI.art && UI.art(g.id);
-  if (art) { windowBox(W - 92, 30, 80, 88); ctx.drawImage(art, W - 88, 34); }
+  if (art) { windowBox(W - 70, 30, 58, 66); ctx.fillStyle = '#000'; ctx.fillRect(W - 66, 34, 50, 58); ctx.drawImage(art, W - 65, 35); }
   const st = [[L('武力', 'STR'), g.str], [L('智力', 'INT'), g.int], [L('統率', 'LEAD'), g.lead], [L('速度', 'SPD'), g.spd]];
   st.forEach(([k, v], i) => { const y = 96 + i * 14; text(k, 170, y, '#c8c8d8'); text(String(v), 230, y, '#fff', { align: 'right' }); ctx.fillStyle = '#20181c'; ctx.fillRect(236, y + 4, 100, 4); ctx.fillStyle = v >= 90 ? '#ffd040' : v >= 75 ? '#80e080' : '#80a0e0'; ctx.fillRect(236, y + 4, v, 4); });
   traitLines(g, 170, 155, W - 186);

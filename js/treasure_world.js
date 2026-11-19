@@ -1,18 +1,18 @@
 // The treasures out in the world: chests holding them in halls, shrines, caves and streets, the treasure merchant's
 // stall, the townsfolk with a favour to ask, tavern rumours, leaders' rewards and the codex rewards for finding
 // many. The table of where each one is lives in treasures.js (SRC); this file puts it into the game.
-import { say, ask, menu, notice, descBox, panel } from './ui.js?v=11';
-import { W, text, windowBox } from './gfx.js?v=11';
-import { sfx } from './audio.js?v=11';
-import { L } from './i18n.js?v=11';
-import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=11';
-import { S, give, take, have, markFound } from './state.js?v=11';
-import { PLACES, REGIONS } from './world.js?v=11';
-import { F } from './field.js?v=11';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=11';
-import { placeName, folkLook } from './maps.js?v=11';
-import { hash } from './gfx.js?v=11';
-import { drawItemIcon } from './itemicons.js?v=11';
+import { say, ask, menu, notice, descBox, panel } from './ui.js?v=12';
+import { W, text, windowBox } from './gfx.js?v=12';
+import { sfx } from './audio.js?v=12';
+import { L } from './i18n.js?v=12';
+import { ITEMS, TREASURES, SRC, QUESTS, MERCHANTS, BANDIT_NAME, RARITY, SETS, TREASURE_KIND } from './data.js?v=12';
+import { S, give, take, have, markFound } from './state.js?v=12';
+import { PLACES, REGIONS } from './world.js?v=12';
+import { F } from './field.js?v=12';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=12';
+import { placeName, folkLook } from './maps.js?v=12';
+import { hash } from './gfx.js?v=12';
+import { drawItemIcon } from './itemicons.js?v=12';
 const GEAR = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 let tryOnPanel = null;
 export const setTryOn = (f) => { tryOnPanel = f; };

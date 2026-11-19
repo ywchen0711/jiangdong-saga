@@ -1,8 +1,8 @@
 // Map tiles cut from the Ninja Adventure tilesets (CC0), joined to their neighbours, and the map pre-renderer.
 // Ground, paths, ponds and the sea are 16-piece autotiles; trees, houses and the like are objects on top
 // (see obj() in maps.js), drawn with the characters so you can walk behind them.
-import { canvas, hash } from './gfx.js?v=11';
-import { tileset } from './assets.js?v=11';
+import { canvas, hash } from './gfx.js?v=12';
+import { tileset } from './assets.js?v=12';
 
 const cut = (img, x, y) => (g) => g.drawImage(tileset(img), x * 16, y * 16, 16, 16, 0, 0, 16, 16);
 // a 16-piece autotile: a 3x3 patch, a 1-wide column and row, and a single piece; base is the patch's top left.

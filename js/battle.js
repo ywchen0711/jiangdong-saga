@@ -11,23 +11,23 @@
 //   softer, a beaten army flees when its heart breaks (a leader's army fights to the last)
 // - tactics may fail: the chance (shown in the menu) depends on INT, element, weather and terrain
 // - statuses with turns, shown as small icons; leaders are strong only by the general rules (level, traits, gear, formation, a strategist)
-import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=11';
-import { input } from './input.js?v=11';
-import { sfx, playMusic, currentSong } from './audio.js?v=11';
-import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=11';
-import { L } from './i18n.js?v=11';
-import { IMG, FX, tileset } from './assets.js?v=11';
-import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=11';
-import { maxTP } from './data.js?v=11';
-import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=11';
-import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip, party, inCamp } from './state.js?v=11';
-import { battleSheet, fieldSheet } from './doll.js?v=11';
-import { drawPose } from './equipui.js?v=11';
-import { horseImg } from './horses.js?v=11';
-import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=11';
-import { icon, digits, ICON_COL } from './icons.js?v=11';
-import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=11';
-import { TRAITS, traitName, traitDesc } from './traits.js?v=11';
+import { ctx, W, H, canvas, text, textW, windowBox, bar, HAND, HAS_FILTER, filtered } from './gfx.js?v=12';
+import { input } from './input.js?v=12';
+import { sfx, playMusic, currentSong } from './audio.js?v=12';
+import { UI, menu, say, wait as uiWait, descBox, fit, wrap } from './ui.js?v=12';
+import { L } from './i18n.js?v=12';
+import { IMG, FX, tileset } from './assets.js?v=12';
+import { GENERALS, GEN_LIST, gearFor, genName, parseLook } from './generals.js?v=12';
+import { maxTP } from './data.js?v=12';
+import { ITEMS, TACTICS, FORMS, unitEdge, maxTroops, itemName, tacName, TAC_DESC, unitName, SWING, formName, formEdge, beatenBy, BEATS, BEAT_WHY, STATUS } from './data.js?v=12';
+import { S, member, stat, atkOf, defOf, troopsMax, usableTactics, tpMax, gainExp, give, take, have, hasSkill, formOk, recruit, canEquip, party, inCamp } from './state.js?v=12';
+import { battleSheet, fieldSheet } from './doll.js?v=12';
+import { drawPose } from './equipui.js?v=12';
+import { horseImg } from './horses.js?v=12';
+import { gearFx, fxText, RELIC_FX, SRC, TREASURES, RARITY } from './data.js?v=12';
+import { icon, digits, ICON_COL } from './icons.js?v=12';
+import { pushRaw as UIpush, removeRaw as UIpop } from './ui.js?v=12';
+import { TRAITS, traitName, traitDesc } from './traits.js?v=12';
 
 export const B = { active: false };
 const waits = [];

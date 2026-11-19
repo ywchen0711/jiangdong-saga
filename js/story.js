@@ -3,24 +3,24 @@
 // beyond the eastern sea (Jeff and Erin and their boys Josh, 10, and Jasper, 8), wins back Jiangdong, and
 // follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=11';
-import { sfx, playMusic, stopMusic } from './audio.js?v=11';
-import { UI, menu, say, ask, notice, wait, descBox } from './ui.js?v=11';
-import { L } from './i18n.js?v=11';
-import { GENERALS, GEN_LIST, genName, gearFor, PORTRAIT_ART } from './generals.js?v=11';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=11';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp, party, inCamp, fromCamp, toCamp, campCandidates, PARTY_MAX } from './state.js?v=11';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=11';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=11';
-import * as FIELD from './field.js?v=11';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv, fitParty } from './town.js?v=11';
-import { placeName, CAVE_FLOORS } from './maps.js?v=11';
-import { portrait } from './doll.js?v=11';
-import { ADVICE } from './bosses.js?v=11';
-import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=11';
-import { TREASURES, SRC } from './data.js?v=11';
-import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=11';
-import { exploreTalk, populate as exPopulate } from './explore.js?v=11';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=12';
+import { sfx, playMusic, stopMusic } from './audio.js?v=12';
+import { UI, menu, say, ask, notice, wait, descBox } from './ui.js?v=12';
+import { L } from './i18n.js?v=12';
+import { GENERALS, GEN_LIST, genName, gearFor, PORTRAIT_ART } from './generals.js?v=12';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=12';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp, party, inCamp, fromCamp, toCamp, campCandidates, PARTY_MAX } from './state.js?v=12';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=12';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=12';
+import * as FIELD from './field.js?v=12';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv, fitParty } from './town.js?v=12';
+import { placeName, CAVE_FLOORS } from './maps.js?v=12';
+import { portrait } from './doll.js?v=12';
+import { ADVICE } from './bosses.js?v=12';
+import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=12';
+import { TREASURES, SRC } from './data.js?v=12';
+import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=12';
+import { exploreTalk, populate as exPopulate } from './explore.js?v=12';
 
 export const STORY = {};
 const G = () => window.G;
@@ -42,7 +42,7 @@ const artImgs = {};
 export function artOf(who) {
   const src = PORTRAIT_ART[who]; if (!src) return null;
   let a = artImgs[who];
-  if (!a) { a = artImgs[who] = { im: new Image(), ok: false }; a.im.onload = () => { a.ok = true; }; a.im.src = src + '?v=1'; }
+  if (!a) { a = artImgs[who] = { im: new Image(), ok: false }; a.im.onload = () => { a.ok = true; }; a.im.src = src + '?v=2'; }
   return a.ok ? a.im : null;
 }
 UI.art = (who, check) => (check ? !!PORTRAIT_ART[who] : artOf(who));

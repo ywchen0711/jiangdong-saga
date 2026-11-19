@@ -1,11 +1,11 @@
 // Towns, castles, villages, ports, forts, temples, caves and the rooms inside them. Every place on the world
 // map gets its own layout, made from a template for its kind and a seed from its name, so the same place always
 // looks the same. Ground is laid out as letters; houses, trees and furniture are objects placed on top.
-import { hash, canvas } from './gfx.js?v=11';
-import { tileset } from './assets.js?v=11';
-import { TILES } from './tiles.js?v=11';
-import { PLACES } from './world.js?v=11';
-import { L } from './i18n.js?v=11';
+import { hash, canvas } from './gfx.js?v=12';
+import { tileset } from './assets.js?v=12';
+import { TILES } from './tiles.js?v=12';
+import { PLACES } from './world.js?v=12';
+import { L } from './i18n.js?v=12';
 
 // ---------- extra tiles ----------
 // a 16-piece floor autotile (3x3 patch, a column, a row and a single), as in tiles.js

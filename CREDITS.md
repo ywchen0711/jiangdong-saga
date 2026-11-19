@@ -239,7 +239,7 @@ LPC art is used under the licences above (CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0 / 
 
 ## Portraits of Jeff's family
 
-The painted portraits of Jeff, Erin, Josh and Jasper in assets/portraits (dialogue and Who's Who) are original art, CharacterGallery (by the repository owner, CC BY 4.0).
+The 8-bit portraits of Jeff, Erin, Josh and Jasper in assets/portraits (dialogue and Who's Who; 48x56, drawn in the manner of the Famicom 三國志 霸王の大陸) are original art, CharacterGallery (by the repository owner, CC BY 4.0).
 
 ## Horses
 

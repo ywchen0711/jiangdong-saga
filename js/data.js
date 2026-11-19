@@ -1,7 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=11';
-import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=11';
+import { L } from './i18n.js?v=12';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=12';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -219,7 +219,7 @@ export function fxText(fx, short = false) {
   void short;
   return p.join(L('，', ', '));
 }
-export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=11';
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=12';
 // the paper doll's slots; the accessory slot keeps its old save name 'treasure'
 export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };

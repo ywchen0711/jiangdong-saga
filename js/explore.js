@@ -5,21 +5,21 @@
 // Every one is a small map made here from a few building blocks and the place's own numbers, so it always looks
 // the same: its people, a little story or secret, a guardian to beat and something to find. Ferries carry you to
 // the islands before you have a ship of your own. (Each place's entry in world.js gives its kind and scene.)
-import { hash, ctx, W, H, text, windowBox } from './gfx.js?v=11';
-import { tileset } from './assets.js?v=11';
-import { TILES } from './tiles.js?v=11';
-import { PLACES, REGIONS, WW, WH, sceneOf } from './world.js?v=11';
-import { L } from './i18n.js?v=11';
-import { canvasMap, finish, obj, thing, npc, folkLook, buildRoom, SCENE, placeName, taken } from './maps.js?v=11';
-import { say, ask, pushRaw, removeRaw } from './ui.js?v=11';
-import { input } from './input.js?v=11';
-import { sfx, playMusic } from './audio.js?v=11';
-import { S, give, have, take, healAll } from './state.js?v=11';
-import { ITEMS } from './data.js?v=11';
-import { GEN_LIST, GENERALS, genName } from './generals.js?v=11';
-import { F, toMap } from './field.js?v=11';
-import { gainTreasure } from './treasure_world.js?v=11';
-import { overviewMap } from './worldgfx.js?v=11';
+import { hash, ctx, W, H, text, windowBox } from './gfx.js?v=12';
+import { tileset } from './assets.js?v=12';
+import { TILES } from './tiles.js?v=12';
+import { PLACES, REGIONS, WW, WH, sceneOf } from './world.js?v=12';
+import { L } from './i18n.js?v=12';
+import { canvasMap, finish, obj, thing, npc, folkLook, buildRoom, SCENE, placeName, taken } from './maps.js?v=12';
+import { say, ask, pushRaw, removeRaw } from './ui.js?v=12';
+import { input } from './input.js?v=12';
+import { sfx, playMusic } from './audio.js?v=12';
+import { S, give, have, take, healAll } from './state.js?v=12';
+import { ITEMS } from './data.js?v=12';
+import { GEN_LIST, GENERALS, genName } from './generals.js?v=12';
+import { F, toMap } from './field.js?v=12';
+import { gainTreasure } from './treasure_world.js?v=12';
+import { overviewMap } from './worldgfx.js?v=12';
 
 const G = () => window.G;
 const N = (zh, en) => say(null, L(zh, en));

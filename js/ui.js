@@ -1,9 +1,9 @@
 // Dialogue boxes, choices and list menus. Each returns a promise, so story scripts can be
 // written as plain async code; the main loop feeds them input and draws them on top.
-import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=11';
-import { input } from './input.js?v=11';
-import { sfx } from './audio.js?v=11';
-import { speaker, L } from './i18n.js?v=11';
+import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=12';
+import { input } from './input.js?v=12';
+import { sfx } from './audio.js?v=12';
+import { speaker, L } from './i18n.js?v=12';
 
 // short coloured status tags so the panels show who is poisoned, slowed, shielded... at a glance
 const STTAG = {
@@ -75,7 +75,7 @@ export function wrap(s, w) {
 export function say(name, msg, { top = false, wait = true, keep = false, face = null } = {}) {
   const who = face || name;
   name = speaker(name);
-  // a painted portrait (UI.art) stands on the window's top edge, or under it when the window is at the top;
+  // a hand-drawn 48x56 portrait (UI.art) stands on the window's top edge, or under it when the window is at the top;
   // other generals show their small paper-doll face inside the window
   const hasArt = !!(UI.art && who && UI.art(who, true));
   const hasFace = !hasArt && !!(UI.face && who && UI.face(who, true));
@@ -103,11 +103,12 @@ export function say(name, msg, { top = false, wait = true, keep = false, face = 
     draw() {
       windowBox(4, this.y, W - 8, 64);
       if (hasArt) {
-        const im = UI.art(who), ay = top ? this.y + 66 : this.y - 84;
-        windowBox(6, ay, 76, 84);
-        if (im) ctx.drawImage(im, 8, ay + 2);
+        const im = UI.art(who), ay = top ? this.y + 66 : this.y - 66;
+        windowBox(6, ay, 58, 66);
+        ctx.fillStyle = '#000'; ctx.fillRect(10, ay + 4, 50, 58);
+        if (im) ctx.drawImage(im, 11, ay + 5);
       }
-      const nx = hasArt ? 86 : 8;
+      const nx = hasArt ? 66 : 8;
       if (name) { windowBox(nx, this.y - 15, textW(name) + 14, 18); text(name, nx + 7, this.y - 12, '#f8e070'); }
       let left = this.shown;
       const fc = hasFace ? UI.face(who) : null;

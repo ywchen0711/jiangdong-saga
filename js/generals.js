@@ -2,8 +2,8 @@
 // looks and skills of their own), a family shipwrecked from an island beyond the eastern sea, the sect's own commanders,
 // and the rest made by a seeded name generator from historical surnames and given-name characters.
 // The same seed always gives the same 500.
-import { L } from './i18n.js?v=11';
-import { assignTraits } from './traits.js?v=11';
+import { L } from './i18n.js?v=12';
+import { assignTraits } from './traits.js?v=12';
 
 // ---------- looks ----------
 // a look is a short string: "b=m s=light hd=m h=topknot hc=black bd=beard t=kimono tc=red l=wide lc=navy f=boots fc=black c=solid cc=red hat=tied hatc=red g=patch belt=sash bc=gold"
@@ -22,8 +22,8 @@ export function parseLook(s) {
 }
 
 // ---------- hand-drawn portraits ----------
-// generals with a painted portrait (72x80) use it in dialogue and in the Who's Who instead of the paper-doll
-// face. Original art from the Character Gallery.
+// generals with a hand-drawn portrait (48x56, 8-bit Famicom style) use it in dialogue and in the Who's Who
+// instead of the paper-doll face, drawn 1:1 so it stays pixel-crisp. Original art, CharacterGallery.
 export const PORTRAIT_ART = { jeff: 'assets/portraits/jeff.png', erin: 'assets/portraits/erin.png', josh: 'assets/portraits/josh.png', jasper: 'assets/portraits/jasper.png' };
 
 // ---------- the famous ----------

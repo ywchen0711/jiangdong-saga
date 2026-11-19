@@ -2,11 +2,11 @@
 // to the metal of the piece; armour, helmets, capes, shields and neck pieces are cut from the very paper-doll
 // layers they put on a general, so the icon always matches the look; horses show their head in their coat.
 // Unfound treasures are drawn as a dark silhouette. A frame in the rarity's colour marks each treasure.
-import { ctx, canvas } from './gfx.js?v=11';
-import { ITEMS, RARITY } from './data.js?v=11';
-import { layersOf, stack, META } from './doll.js?v=11';
-import { horseImg } from './horses.js?v=11';
-import { parseLook } from './generals.js?v=11';
+import { ctx, canvas } from './gfx.js?v=12';
+import { ITEMS, RARITY } from './data.js?v=12';
+import { layersOf, stack, META } from './doll.js?v=12';
+import { horseImg } from './horses.js?v=12';
+import { parseLook } from './generals.js?v=12';
 
 let SHEET = null, MAP = {};
 try {

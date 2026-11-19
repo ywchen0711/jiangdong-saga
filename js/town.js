@@ -1,22 +1,22 @@
 // Town services: inns, shops (weapons, armour, supplies, books, horses), taverns where free generals can be
 // hired, and the talk with a prisoner who might be won over.
-import { W, H, text, windowBox } from './gfx.js?v=11';
-import { sfx } from './audio.js?v=11';
-import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=11';
-import { L } from './i18n.js?v=11';
-import { GENERALS, GEN_LIST, genName } from './generals.js?v=11';
-import { ITEMS, itemName, unitName } from './data.js?v=11';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat, party, inCamp, toCamp, fromCamp, mustTravel, campCandidates, PARTY_MAX, gainExp } from './state.js?v=11';
-import { expFor } from './data.js?v=11';
-import { equipOne } from './equipui.js?v=11';
-import { PLACES, REGIONS } from './world.js?v=11';
-import { itemDesc, drawStatus } from './menu.js?v=11';
-import { drawEquipPanel } from './equipui.js?v=11';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=11';
-import { TREASURES, SRC, RARITY, ONE_HAND } from './data.js?v=11';
-import { canEquip } from './state.js?v=11';
-import { rumour, SHOP_KIND, treasurePrice, owned, gainTreasure } from './treasure_world.js?v=11';
-import { hash } from './gfx.js?v=11';
+import { W, H, text, windowBox } from './gfx.js?v=12';
+import { sfx } from './audio.js?v=12';
+import { menu, say, ask, notice, panel, descBox, fit } from './ui.js?v=12';
+import { L } from './i18n.js?v=12';
+import { GENERALS, GEN_LIST, genName } from './generals.js?v=12';
+import { ITEMS, itemName, unitName } from './data.js?v=12';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, stat, party, inCamp, toCamp, fromCamp, mustTravel, campCandidates, PARTY_MAX, gainExp } from './state.js?v=12';
+import { expFor } from './data.js?v=12';
+import { equipOne } from './equipui.js?v=12';
+import { PLACES, REGIONS } from './world.js?v=12';
+import { itemDesc, drawStatus } from './menu.js?v=12';
+import { drawEquipPanel } from './equipui.js?v=12';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=12';
+import { TREASURES, SRC, RARITY, ONE_HAND } from './data.js?v=12';
+import { canEquip } from './state.js?v=12';
+import { rumour, SHOP_KIND, treasurePrice, owned, gainTreasure } from './treasure_world.js?v=12';
+import { hash } from './gfx.js?v=12';
 
 // a Merchant (shangcai) in the army sells for 60% of the price instead of half
 const sellPrice = (id) => Math.floor(ITEMS[id].price * (party().some((g) => (GENERALS[g].traits || []).includes('shangcai')) ? 0.6 : 0.5));
@@ -139,7 +139,7 @@ export async function inn(place) {
   if (c === 1) await saveHere();
 }
 async function saveHere() {
-  const { save, slotInfo } = await import('./state.js?v=11');
+  const { save, slotInfo } = await import('./state.js?v=12');
   const slots = [0, 1, 2].map((i) => slotInfo(i));
   const c = await menu(slots.map((s, i) => ({ label: s ? L(`記錄${i + 1}  第${s.chapter}章  Lv${s.lv}`, `Slot ${i + 1}  Ch.${s.chapter}  Lv${s.lv}`) : L(`記錄${i + 1}  （空）`, `Slot ${i + 1}  (empty)`) })), { x: 110, y: 40, w: 220 });
   if (c < 0) return;
