@@ -3,11 +3,11 @@
 // recoloured from the LPC palettes, so 500 generals get 500 looks from a hundred layer sheets, and whatever a
 // general equips shows on them. Pictures come in three sizes: the battle sheet (64px figures, with the swing
 // of their weapon), the half-size walking sheet for maps, and a head-and-shoulders portrait.
-import { canvas } from './gfx.js?v=10';
-import { ITEMS, SWING } from './data.js?v=10';
+import { canvas } from './gfx.js?v=11';
+import { ITEMS, SWING } from './data.js?v=11';
 
 let META = null;
-try { META = await (await fetch('assets/doll/doll.json?v=2')).json(); } catch (e) { META = null; }
+try { META = await (await fetch('assets/doll/doll.json?v=3')).json(); } catch (e) { META = null; }
 export const dollReady = () => !!META;
 const ANIM = META ? META.anims : {}; // anim -> [frames, rows, cell]
 
@@ -18,9 +18,19 @@ const METAL = (m) => 'ulpc:' + (m || 'steel');
 const WOOD = { ebony: 'lpcr:coffee', gold: 'lpcr:tan', umber: 'lpcr:umber' };
 const wood = (w) => (WOOD[w] || 'ulpc:' + (w || 'walnut'));
 const CLOTH = { gold: 'yellow', sage: 'green', ivory: 'white', crimson: 'red' };
+// Children (b=child: Josh and Jasper) have Universal LPC's child body, head, hair, shirt and trousers, which
+// exist only as a walk; their other poses are made from the walk (see stack). Weapons and shields have no
+// child version, so a child carries the grown-up walking pictures shrunk to 80% about the feet, which puts
+// them in a child's hands. Armour, helmets, capes and boots are not drawn on a child (they still count).
+const KID = 0.8;
+const KID_GEAR = /^(w_|s_)/;
 export function layersOf(look, equip = {}, opts = {}) {
   const b = look.b === 'muscular' ? 'male' : look.b, out = [];
-  const add = (id, mats, x) => { if (id && META && META.layers[id] && META.layers[id][b]) out.push([id, mats || {}, x || null]); };
+  const add = (id, mats, x) => {
+    if (!id || !META || !META.layers[id]) return;
+    if (META.layers[id][b]) out.push([id, mats || {}, x || null]);
+    else if (b === 'child' && KID_GEAR.test(id) && META.layers[id].male) out.push([id, mats || {}, { ...(x || {}), kid: KID, as: 'male' }]);
+  };
   const pre = (v, d) => { v = v || d; v = CLOTH[v] || v; return v.includes(':') ? v : 'ulpc:' + v; };
   const skin = { body: pre(look.s, 'light') }, hair = { hair: pre(look.hc, 'black') };
   const cloth = (c) => ({ cloth: pre(c, 'gray') });
@@ -29,7 +39,7 @@ export function layersOf(look, equip = {}, opts = {}) {
   const wl = (w && w.look) || {}, al = (a && a.look) || {}, hl = (h && h.look) || {}, tl = (tr && tr.look) || {}, cl = (cp && cp.look) || {}, sl = (sd && sd.look) || {};
   const gl = (l) => (l.glow ? { glow: l.glow } : null);
   add('body', skin);
-  add(look.hd || 'head_m', skin);
+  add(look.hd || 'head_m', look.e ? { ...skin, eye: pre(look.e) } : skin);
   if (look.hd === 'head_old' || look.hd === 'head_fold') add('wrinkles', skin);
   if (look.brow) add(look.brow, hair);
   // clothes. LPC has robes and kimono only for the female body; men get a crossed-collar shirt over a long
@@ -72,7 +82,7 @@ export function layersOf(look, equip = {}, opts = {}) {
   if (cape) { capeOf(cape, cl.capeCol || tl.capeCol || look.cc || look.tc); add('n_capeclip', { metal: cp && cp.rar >= 3 ? 'ulpc:gold' : 'ulpc:brass' }); }
   else if (look.c) capeOf(look.c, look.cc);
   // head: hair and beard, then whatever is on it
-  const helmet = hl.helm || null;
+  const helmet = b === 'child' ? null : hl.helm || null;
   const full = helmet && helmet.startsWith('hm_');
   const hairId = full && look.h && /long|xlong|princess|braid|pony|loose|wavy/.test(look.h) ? look.h : full ? 'h_buzz' : look.h;
   add(hairId, hair);
@@ -81,7 +91,7 @@ export function layersOf(look, equip = {}, opts = {}) {
   else if (look.hat) add(look.hat, { cloth: 'ulpc:' + (look.hatc || 'red'), metal: 'ulpc:gold', hair: 'ulpc:' + (look.hatc === 'white' ? 'white' : 'red') });
   if (hl.plume) { const pc = pre(hl.pcol || 'red'); add(hl.plume, { cloth: pc, hair: pc.replace('ulpc:', 'lpcr:'), metal: METAL(hl.hmetal) }); }
   // weapon (a pair of blades shows the second one just behind), the shield, the archers' quiver
-  if (opts.quiver || (w && (w.cat === 'bow'))) add('quiver', { cloth: 'ulpc:leather', wood: 'ulpc:oak' });
+  if (b !== 'child' && (opts.quiver || (w && (w.cat === 'bow')))) add('quiver', { cloth: 'ulpc:leather', wood: 'ulpc:oak' });
   if (wl.weapon) {
     const mats = { metal: METAL(wl.wmetal), wood: wood(wl.wwood) };
     if (wl.twin) add(wl.weapon, mats, { shift: [5, -2], dim: 0.72 });
@@ -98,7 +108,7 @@ export function swingOf(equip) { const w = equip && ITEMS[equip.weapon]; return 
 const imgs = new Map();
 function sheet(file) {
   let p = imgs.get(file);
-  if (!p) { p = new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'assets/doll/' + file + '?v=2'; }); imgs.set(file, p); }
+  if (!p) { p = new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'assets/doll/' + file + '?v=3'; }); imgs.set(file, p); }
   return p;
 }
 const hex2int = (h) => { const n = parseInt(h.slice(1), 16); return ((n & 255) << 16) | (n & 0xff00) | ((n >> 16) & 255); }; // as little-endian ABGR without alpha
@@ -136,6 +146,13 @@ async function layerCanvas(ent, mats, x) {
       const r1 = ring(a0, 230); const a1 = new Uint8Array(W * H); for (let i = 0; i < a1.length; i++) a1[i] = a0[i] | r1[i]; ring(a1, 90);
     }
     c.x.putImageData(id, 0, 0);
+    // a child's gear: every 64px picture shrunk about the feet (32, 60)
+    if (x && x.kid) {
+      const k = x.kid, c2 = canvas(W, H), s = Math.round(64 * k), ox = Math.round(32 - 32 * k), oy = Math.round(60 - 60 * k);
+      c2.x.imageSmoothingEnabled = false;
+      for (let y = 0; y + 64 <= H; y += 64) for (let xx = 0; xx + 64 <= W; xx += 64) c2.x.drawImage(c, xx, y, 64, 64, xx + ox, y + oy, s, s);
+      return c2;
+    }
     if (x && x.shift) { const c2 = canvas(W, H); c2.x.drawImage(c, x.shift[0], x.shift[1]); return c2; }
     return c;
   });
@@ -151,9 +168,11 @@ async function stack(layers, body, anims) {
   if (body === 'muscular') body = 'male';
   // which parts of which layers, deepest first
   const parts = [];
-  const cans = await Promise.all(layers.map(([id, mats, x]) => layerCanvas(META.layers[id][body], mats, x)));
-  layers.forEach(([id], li) => { const ent = META.layers[id][body]; if (!cans[li]) return; for (const pt of ent.parts) parts.push({ z: pt.z, a: pt.a, img: cans[li], li }); });
+  const entOf = (id, x) => META.layers[id][(x && x.as) || body];
+  const cans = await Promise.all(layers.map(([id, mats, x]) => layerCanvas(entOf(id, x), mats, x)));
+  layers.forEach(([id, , x], li) => { const ent = entOf(id, x); if (!cans[li]) return; for (const pt of ent.parts) parts.push({ z: pt.z, a: pt.a, img: cans[li], li }); });
   parts.sort((p, q) => p.z - q.z || p.li - q.li);
+  if (body === 'child') return kidStack(parts, anims);
   const meta = {}; let y = 0, w = 0;
   for (const a of BLOCK_ORDER) {
     if (!anims.includes(a)) continue;
@@ -170,6 +189,36 @@ async function stack(layers, body, anims) {
     }
   }
   return { img: c, meta };
+}
+// a child's poses, all made from the walk (the only thing drawn for children): standing is the first step
+// facing left, a blow or a shot is a few steps forward, a ploy is a still stance (the glow does the rest).
+// When a child's troops are routed the child does not fall: they turn to face us, then turn back towards
+// their own lines (and fade like everyone else).
+const KID_POSE = {
+  idle: [[1, 0], [1, 0]],
+  cast: [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
+  slash: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6]],
+  thrust: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8]],
+  shoot: [[1, 0], [1, 0], [1, 1], [1, 1], [1, 2], [1, 2], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
+  hurt: [[2, 0], [2, 0], [3, 0], [3, 0], [3, 0], [3, 0]],
+};
+function kidStack(parts, anims) {
+  const wk = canvas(576, 256);
+  for (const pt of parts) { const s = pt.a.walk; if (s) wk.x.drawImage(pt.img, 0, s[0], s[1] * 64, 256, 0, 0, s[1] * 64, 256); }
+  const meta = {}; let y = 0, w = 0;
+  for (const a of BLOCK_ORDER) {
+    if (!anims.includes(a)) continue;
+    const [n, rows, cell] = ANIM[a];
+    meta[a] = { y, n, rows, cell }; y += rows * cell; w = Math.max(w, n * cell);
+  }
+  const c = canvas(w, y), g = c.x;
+  for (const a of BLOCK_ORDER) {
+    const m = meta[a]; if (!m) continue;
+    if (a === 'walk') { g.drawImage(wk, 0, m.y); continue; }
+    const o = (m.cell - 64) / 2;
+    KID_POSE[a].slice(0, m.n).forEach(([r, f], i) => g.drawImage(wk, f * 64, r * 64, 64, 64, i * m.cell + o, m.y + o, 64, 64));
+  }
+  return { img: c, meta, kid: true };
 }
 const lookKey = (look, equip, opts) => JSON.stringify([look, equip ? [equip.weapon, equip.armour, equip.helm, equip.treasure, equip.cape, equip.shield === undefined ? '-' : equip.shield] : 0, opts && opts.shield, opts && opts.quiver]);
 
@@ -242,7 +291,7 @@ export function portrait(look, equip, opts = {}) {
   if (got) return got;
   if (!porCache.has(key)) {
     porCache.set(key, stack(layersOf(look, equip, opts), look.b, ['walk']).then((r) => {
-      const c = canvas(36, 36); c.x.drawImage(r.img, 14, 128 + 7, 36, 36, 0, 0, 36, 36);
+      const c = canvas(36, 36); c.x.drawImage(r.img, 14, 128 + (r.kid ? 16 : 7), 36, 36, 0, 0, 36, 36);
       porReady.set(key, c);
       if (porReady.size > 200) { const k = porReady.keys().next().value; porReady.delete(k); porCache.delete(k); }
       return c;

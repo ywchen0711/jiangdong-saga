@@ -1,24 +1,24 @@
 // The army menu: generals and their order, equipment with a live paper-doll preview, tactics, formations
 // with their diagrams, items, the generals' encyclopedia (武將錄), saving and settings. Also the full map.
-import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=10';
-import { input } from './input.js?v=10';
-import { sfx, setMusic, music } from './audio.js?v=10';
-import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=10';
-import { L, LANG, setLang } from './i18n.js?v=10';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=10';
-import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=10';
-import { icon, ICON_COL } from './icons.js?v=10';
-import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=10';
-import { battleSheet, portrait, fieldSheet } from './doll.js?v=10';
-import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=10';
-import { drawItemIcon, warmIcons } from './itemicons.js?v=10';
-import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=10';
+import { ctx, W, H, text, textW, windowBox, bar, HAND, canvas } from './gfx.js?v=11';
+import { input } from './input.js?v=11';
+import { sfx, setMusic, music } from './audio.js?v=11';
+import { UI, menu, say, ask, notice, wait, descBox, fit, panel, wrap, pushRaw, removeRaw } from './ui.js?v=11';
+import { L, LANG, setLang } from './i18n.js?v=11';
+import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=11';
+import { ITEMS, TACTICS, FORMS, SKILLS, UNITS, SLOTS, SLOT_NAME, itemName, tacName, TAC_DESC, skillName, skillDesc, unitName, formName, expFor, BEATS, beatenBy, STATUS, RARITY, maxTroops } from './data.js?v=11';
+import { icon, ICON_COL } from './icons.js?v=11';
+import { S, member, stat, atkOf, defOf, troopsMax, tpMax, usableTactics, canEquip, give, take, have, healAll, formOk, condText, save, slotInfo, learnTactics, dismiss, party, PARTY_MAX, toCamp, mustTravel } from './state.js?v=11';
+import { battleSheet, portrait, fieldSheet } from './doll.js?v=11';
+import { equipMenu as equipMenu2, codex, itemDesc, drawTurning, drawPose } from './equipui.js?v=11';
+import { drawItemIcon, warmIcons } from './itemicons.js?v=11';
+import { TRAITS, TRAIT_IDS, FAMILY, traitName, traitDesc } from './traits.js?v=11';
 export { itemDesc };
-import { PLACES, REGIONS, WW, WH } from './world.js?v=10';
-import { overviewMap, placeMark } from './worldgfx.js?v=10';
-import { questLog } from './sidequests.js?v=10';
-import { TERRAIN } from './battle.js?v=10';
-import { F, tileX, tileY } from './field.js?v=10';
+import { PLACES, REGIONS, WW, WH } from './world.js?v=11';
+import { overviewMap, placeMark } from './worldgfx.js?v=11';
+import { questLog } from './sidequests.js?v=11';
+import { TERRAIN } from './battle.js?v=11';
+import { F, tileX, tileY } from './field.js?v=11';
 
 const gold = () => panel(() => { windowBox(W - 112, 4, 108, 34); text(L(`金 ${S.gold}`, `Gold ${S.gold}`), W - 104, 9, '#ffe080'); text(L(`策略 ${S.tp}/${tpMax()}`, `SP ${S.tp}/${tpMax()}`), W - 104, 22, '#a0e0ff'); });
 const allIds = () => [...S.front, ...party().filter((id) => !S.front.includes(id))];
@@ -170,7 +170,7 @@ async function tacticsMenu() {
     if (d < 0) continue;
     const t = TACTICS[list[d]];
     if (S.tp < t.cost) { sfx('buzz'); continue; }
-    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=10'); await exitCave(); return; } sfx('buzz'); continue; }
+    if (t.escape) { if (F.mode !== 'world' && F.map && F.map.kind === 'cave') { S.tp -= t.cost; sfx('warp'); const { exitCave } = await import('./story.js?v=11'); await exitCave(); return; } sfx('buzz'); continue; }
     if (t.heal) {
       const targets = t.t === 'aall' ? S.front.map(member) : null;
       if (targets) { for (const x of targets) if (x.troops > 0) x.troops = Math.min(troopsMax(x), x.troops + Math.round(troopsMax(x) * t.heal)); }
@@ -237,7 +237,7 @@ const HELP = [
   { t: ['地形', 'The Ground'], draw: 'terrain', s: ['地形對雙方一視同仁。野戰的地形就是遇敵那一格的地形；首領會挑對自己有利的地方：守隘口、佔高地、隔河以待、據城而守。高地：該方弓兵+20%、防禦+10%、落石+20%。渡河：涉水的一方前兩回合速度−20%、防禦−10%。畫面右上角與情報卡會顯示地形對每個人的影響。', 'The ground is the same for both armies. A field battle is fought on the ground of the tile where it began; leaders pick ground that suits them: a pass, a height, the far bank of a river, their own walls. High ground: that side\'s archers +20%, defence +10%, rockfalls +20%. Wading a ford: 20% slower and 10% weaker in defence for two rounds. The top right of the screen and the info card show what the ground does to each general.'] },
   { t: ['攻城', 'Sieges'], s: ['攻打城池或關隘時，守軍站在城牆上：弓兵+25%、防禦+25%，刀兵只能從垛口刺擊（八成五）。城門有自己的耐久：步兵×1.4、水軍×1.2、騎兵衝撞×1、弓兵×0.3，工匠×1.5，火計×1.5、落石×1.3，火藥與投石車也行。騎兵上不了城牆；步兵可以爬梯直接攻擊城上的人（傷害減半，還要挨一輪箭）。城門一破，城牆就沒有用了，守軍士氣大跌。守將可能開門出城迎戰（出城的人沒有城牆保護）；拖得太久，敵軍援軍會從城後趕到。', 'When you attack a city or a gate, the defenders stand on the walls: their archers +25%, their defence +25%, and their blades can only thrust over the parapet (85%). The gate has its own durability: foot x1.4, navy x1.2, horse ramming x1, archers x0.3, engineers x1.5, fire ploys x1.5, rocks x1.3; gunpowder and the catapult work too. Horse cannot climb walls; foot can take ladders straight at the men on top (half damage, and they take a volley). Once the gate is broken the walls are useless and the defenders lose heart. Their leader may open the gate and ride out (outside, the walls do not protect him); take too long and a relief force arrives from behind the city.'] },
   { t: ['軍議', 'The War Council'], s: ['開戰前會召開軍議，每一項準備都用平常的手段完成：偵察城防（賈斯珀、斥候或會偵察的人：看穿全軍、城門−25%）、斷糧道（打一場仗：守軍兵力八成五、敵策略−25%、沒有援軍）、夜襲（打一場仗：一員敵將帶傷、敵士氣−10）、火燒城門（兩包火藥：城門−40%）、策反（金子與能言善道的人：一員敵將倒戈）。守隘口或高地的敵人可以繞道（山戰的武將帶路，高地反而歸我們）；隔河的敵人可以夜渡上游。做過的準備，之後每一次進攻都有效。', 'Before the battle there is a war council, and every preparation uses the ordinary means: scout the defences (Jasper, a Scout or someone who knows Scout: the enemy seen through, the gate 25% weaker), cut the supply road (a battle: the garrison at 85%, their strategy -25%, no relief), a night raid (a battle: one officer wounded, their morale -10), burn the gate (two kegs of gunpowder: 40% weaker), win over a defender (gold and a persuasive officer: one of them changes sides). An enemy holding a pass or a height can be outflanked by another road (with a mountaineer guiding, the height becomes ours); one behind a river can be crossed upstream by night. What you prepare counts for every later attempt.'] },
-  { t: ['隊伍與營帳', 'The Party and the Camp'], s: ['最多八名武將隨軍：前列五人、後備三人，軍師也在其中。第九名武將加入時，要選一位回營帳等候（孫權，以及故事需要時的四位旅人不能離開）。任何一間酒館，或大本營（建業）的客棧，都能打開「營帳名冊」：換人、看情報與特性、換裝備、卸下裝備。營帳裡的武將保有自己的裝備，每場勝仗也分到兩成經驗；花錢「訓練」能讓他們追上隊伍平均等級減二。', 'At most eight generals march with you: the front line of five and three in reserve, the strategist among them. When a ninth joins, choose one to wait at the camp (Sun Quan, and the four travellers when the story needs them, cannot be sent away). Any tavern, or the inn of your home city (Jianye), opens the camp roster: swap generals, read their card and traits, change or take off their gear. Generals in camp keep their gear and get a fifth of the experience of every victory; paid training brings them up to the party\'s average level less two.'] },
+  { t: ['隊伍與營帳', 'The Party and the Camp'], s: ['最多八名武將隨軍：前列五人、後備三人，軍師也在其中。第九名武將加入時，要選一位回營帳等候（孫權，以及故事需要時的傑夫一家不能離開）。任何一間酒館，或大本營（建業）的客棧，都能打開「營帳名冊」：換人、看情報與特性、換裝備、卸下裝備。營帳裡的武將保有自己的裝備，每場勝仗也分到兩成經驗；花錢「訓練」能讓他們追上隊伍平均等級減二。', 'At most eight generals march with you: the front line of five and three in reserve, the strategist among them. When a ninth joins, choose one to wait at the camp (Sun Quan, and Jeff\'s family when the story needs them, cannot be sent away). Any tavern, or the inn of your home city (Jianye), opens the camp roster: swap generals, read their card and traits, change or take off their gear. Generals in camp keep their gear and get a fifth of the experience of every victory; paid training brings them up to the party\'s average level less two.'] },
   { t: ['秘境與渡船', 'Exploring and Ferries'], s: ['天下比從前大了四倍。路上有許多可以探索的地方：石灰岩洞、海蝕洞、銅礦、冰洞、玄武岩窟；漁村、山村、農村與渡口；坐船才到得了的島嶼；有之字形山道與山頂景色的名山；藏著洞穴的瀑布（走進水簾試試）；竹海、雲夢澤、子午谷；遺跡下的地宮；山寨、燈塔、長城上的烽火臺、溫泉與蓬萊的隱士。每個地方都有人、有故事或秘密、有守著它的強敵與寶物。有了戰船之前，港口的船夫可以載你到島上。敵人的強度由地區固定，沿著故事的路走、順路探索，等級自然就跟得上首領。', 'The realm is four times larger than before, and the road passes many places to explore: limestone and sea caves, a copper mine, an ice cave and a basalt grotto; fishing, mountain and farming villages and ferry crossings; islands reached by boat; famous peaks climbed by switchbacks to a summit view; waterfalls hiding a cave (walk into the water); the Bamboo Sea, the Yunmeng marsh and the Ziwu gorge; crypts under ruins; bandit camps, a lighthouse, a beacon tower on the Wall, a hot spring and the hermit of Penglai. Each has its people, a story or a secret, a strong guardian and something to find. Before you have a warship, harbour boatmen take you to the islands. Enemy strength is fixed by land: follow the story\'s road, explore what you pass, and your levels keep pace with the leaders.'] },
   { t: ['試煉', 'Trials'], s: ['各地有人委託「試煉」：頭上有「！」的人。試煉的敵軍強度固定，比同一章的首領更強，委託時會告訴你建議等級與報酬。選單的「任務」頁記下每個委託的地點、目標與進度。\n‧ 有的限時（畫面左上角顯示剩餘回合），有的連戰不准休整，有的只准前列三人出戰。\n‧ 每個試煉都有對策：先偵察，看情報卡上敵將的特性、裝備與陣形。\n‧ 輸了不會結束遊戲，整頓兵馬隨時可以再來。', 'People with a "!" over them ask for Trials. A trial\'s army is fixed in strength and stronger than the leaders of the same chapter; you are told the recommended level and the reward when you are asked. The Quests page in the menu keeps the place, goal and progress of every request.\n- Some are against the clock (rounds left show at the top left), some are gauntlets with no rest, and one lets only the first three of your front line fight.\n- Every trial has an answer: scout first and read the enemy\'s traits, gear and formation on the info card.\n- Losing a trial does not end the game; regroup and come back any time.'] },
 ];
@@ -383,7 +383,7 @@ async function itemsMenu() {
     const id = ids[c], it = ITEMS[id];
     if (it.kind === 'supply' && !it.battleOnly) {
       if (it.repel) { take(id); S.repel = it.repel; sfx('heal'); await notice(L('點起了隱蹤香。', 'You light the hiding incense.'), 60); continue; }
-      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=10'); await warpHome(); return; }
+      if (it.warp) { if (F.mode !== 'world') { sfx('buzz'); continue; } take(id); const { warpHome } = await import('./story.js?v=11'); await warpHome(); return; }
       if (it.tp) { take(id); S.tp = Math.min(tpMax(), S.tp + it.tp); sfx('heal'); continue; }
       if (it.target === 'all') { take(id); for (const m of S.front.map(member)) if (m.troops > 0) m.troops = Math.min(troopsMax(m), m.troops + Math.round(troopsMax(m) * it.heal)); sfx('heal'); continue; }
       const ids2 = allIds();
@@ -435,6 +435,10 @@ function drawEntry(g) {
   text(unitName(g.unit), 250, 30, '#c0d8f0');
   const fac = FACTION_NAME[S.roster[g.id] ? 'sun' : g.faction] || ['?', '?'];
   text(L(fac[0], fac[1]), 250, 46, '#ffb0a0');
+  if (g.role) text(L(g.role[0], g.role[1]), 250, 62, '#a0e0c0');
+  // a painted portrait, when the general has one
+  const art = UI.art && UI.art(g.id);
+  if (art) { windowBox(W - 92, 30, 80, 88); ctx.drawImage(art, W - 88, 34); }
   const st = [[L('武力', 'STR'), g.str], [L('智力', 'INT'), g.int], [L('統率', 'LEAD'), g.lead], [L('速度', 'SPD'), g.spd]];
   st.forEach(([k, v], i) => { const y = 96 + i * 14; text(k, 170, y, '#c8c8d8'); text(String(v), 230, y, '#fff', { align: 'right' }); ctx.fillStyle = '#20181c'; ctx.fillRect(236, y + 4, 100, 4); ctx.fillStyle = v >= 90 ? '#ffd040' : v >= 75 ? '#80e080' : '#80a0e0'; ctx.fillRect(236, y + 4, v, 4); });
   traitLines(g, 170, 155, W - 186);

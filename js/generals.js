@@ -1,9 +1,9 @@
 // The 500 generals: about a hundred and thirty famous people of the age (stats in their historical spirit,
-// looks and skills of their own), four travellers from beyond the western sea, the sect's own commanders,
+// looks and skills of their own), a family shipwrecked from an island beyond the eastern sea, the sect's own commanders,
 // and the rest made by a seeded name generator from historical surnames and given-name characters.
 // The same seed always gives the same 500.
-import { L } from './i18n.js?v=10';
-import { assignTraits } from './traits.js?v=10';
+import { L } from './i18n.js?v=11';
+import { assignTraits } from './traits.js?v=11';
 
 // ---------- looks ----------
 // a look is a short string: "b=m s=light hd=m h=topknot hc=black bd=beard t=kimono tc=red l=wide lc=navy f=boots fc=black c=solid cc=red hat=tied hatc=red g=patch belt=sash bc=gold"
@@ -20,6 +20,11 @@ export function parseLook(s) {
   if (o.b === 'female' && o.hd === 'head_m') o.hd = 'head_f';
   return o;
 }
+
+// ---------- hand-drawn portraits ----------
+// generals with a painted portrait (72x80) use it in dialogue and in the Who's Who instead of the paper-doll
+// face. Original art from the Character Gallery.
+export const PORTRAIT_ART = { jeff: 'assets/portraits/jeff.png', erin: 'assets/portraits/erin.png', josh: 'assets/portraits/josh.png', jasper: 'assets/portraits/jasper.png' };
 
 // ---------- the famous ----------
 // [id, 中文, English, STR, INT, LEAD, SPD, unit, faction, look, gear (weapon armour helm horse treasure), skills, extra]
@@ -60,11 +65,12 @@ const F = [
   ['heqi', '賀齊', 'He Qi', 80, 70, 82, 72, 'inf', 'sun', 'b=m s=light h=topknot hc=black bd=m_horseshoe t=kimono tc=purple l=wide lc=black f=boots c=solid cc=purple', 'steelsword zhajia plumehelm', 'weifeng', {}],
   ['daqiao', '大喬', 'Da Qiao', 30, 80, 56, 70, 'inf', 'sun', 'b=f s=light hd=f h=bangs_bun hc=black t=kimono tc=rose l=skirt lc=maroon f=shoes', 'fan cloth', 'yishu', { tac: ['zhiliao', 'huifu'] }],
   ['xiaoqiao', '小喬', 'Xiao Qiao', 32, 82, 56, 74, 'nav', 'sun', 'b=f s=light hd=f h=princess hc=black t=kimono tc=pink l=skirt lc=red f=shoes', 'fan cloth', 'yishu guanxing', { tac: ['zhiliao', 'jifeng'] }],
-  // the four from beyond the western sea
-  ['jeff', '傑夫', 'Jeff', 48, 92, 70, 60, 'inf', 'sun', 'b=m s=light h=messy hc=chestnut bd=b_stubble t=frock tc=brown l=pants lc=charcoal f=boots fc=black g=round', 'wrench cloth', 'gongjiang guimou', { tac: ['huoji', 'luoshi'], west: true }],
-  ['erin', '艾琳', 'Erin', 42, 86, 66, 76, 'nav', 'sun', 'b=f s=light hd=f h=braid hc=ginger t=long2 tc=sky l=pants lc=tan f=boots fc=brown c=trim cc=navy belt=leather bc=brown', 'bamboostaff cloth', 'guanxing yishu', { tac: ['zhiliao', 'shuiji'], west: true }],
-  ['josh', '喬許', 'Josh', 90, 50, 78, 62, 'inf', 'sun', 'b=u s=amber h=curly hc=lpcr:charcoal bd=b_beard t=vest tc=leather l=pants lc=navy f=boots fc=black', 'ironspear leather', 'dunqiang tiebi', { shieldItem: 'voyager', west: true }],
-  ['jasper', '賈斯珀', 'Jasper', 70, 74, 62, 96, 'arc', 'sun', 'b=m s=light h=cowlick hc=blonde t=laced tc=green l=pants lc=brown f=boots fc=brown n=scarf', 'shortbow cloth', 'miaoshou jisu', { west: true, quiver: true }],
+  // the family from the island beyond the eastern sea: Jeff and Erin, and their sons Josh (10) and Jasper (8).
+  // The boys have Universal LPC's child body (b=child, see doll.js); e=brown gives the four dark eyes.
+  ['jeff', '傑夫', 'Jeff', 48, 92, 70, 60, 'inf', 'sun', 'b=m s=light e=brown h=topknot_s hc=black bd=b_stubble t=kimono tc=forest l=wide lc=charcoal f=shoes fc=black g=round belt=sash bc=brown', 'wrench cloth', 'gongjiang guimou', { tac: ['huoji', 'luoshi'], family: true, role: ['父親・造船匠', 'Father, shipwright'] }],
+  ['erin', '艾琳', 'Erin', 42, 86, 66, 76, 'nav', 'sun', 'b=f s=light hd=f e=brown h=bangs_bun hc=black t=kimono tc=teal l=skirt lc=navy f=shoes fc=brown belt=sash bc=navy', 'bamboostaff cloth', 'guanxing yishu', { tac: ['zhiliao', 'shuiji'], family: true, role: ['母親・領航員', 'Mother, navigator'] }],
+  ['josh', '喬許', 'Josh', 90, 50, 78, 62, 'inf', 'sun', 'b=child s=light hd=c e=brown h=topknot_s hc=black brow=thick t=cshirt tc=red l=cpants lc=charcoal hat=hb_thick hatc=yellow', 'ironspear leather', 'dunqiang tiebi', { shieldItem: 'voyager', family: true, child: true, role: ['長子・十歲', 'Elder son, age 10'] }],
+  ['jasper', '賈斯珀', 'Jasper', 70, 74, 62, 96, 'arc', 'sun', 'b=child s=light hd=c e=brown h=ctwin hc=black brow=thin t=cshirt tc=green l=cpants lc=brown', 'shortbow cloth', 'miaoshou jisu', { family: true, child: true, quiver: true, role: ['次子・八歲', 'Younger son, age 8'] }],
   // the usurper, bandits and the lesser lords of the south
   ['sunhao', '孫暠', 'Sun Hao', 74, 58, 70, 66, 'inf', 'sun_hao', 'b=m s=light h=topknot hc=black bd=m_french t=kimono tc=purple l=wide lc=black f=boots c=solid cc=purple', 'steelsword zhajia plumehelm', 'weifeng', {}],
   ['yanbaihu', '嚴白虎', 'Yan Baihu', 76, 40, 70, 72, 'inf', 'shanyue', 'b=u s=bronze h=long_messy hc=white bd=b_beard t=sleeveless tc=leather l=pants lc=brown f=sandals hat=hb_bandana hatc=white', 'kaishan leather', 'yongmeng lueduo', {}],

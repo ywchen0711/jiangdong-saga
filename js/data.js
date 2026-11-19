@@ -1,7 +1,7 @@
 // Game data: unit types, items (weapons, armour, helmets, horses, treasures, supplies, books, gifts),
 // tactics (策略), formations (陣形) and skills (技能). Every name is given in Chinese and English.
-import { L } from './i18n.js?v=10';
-import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=10';
+import { L } from './i18n.js?v=11';
+import { addTreasures, bindItem, SETS, parseFx } from './treasures.js?v=11';
 
 // ---------- unit types ----------
 export const UNITS = {
@@ -219,7 +219,7 @@ export function fxText(fx, short = false) {
   void short;
   return p.join(L('，', ', '));
 }
-export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=10';
+export { SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, SRC, QUESTS, MERCHANTS, BANDIT_NAME, BOSS_BY_CH } from './treasures.js?v=11';
 // the paper doll's slots; the accessory slot keeps its old save name 'treasure'
 export const SLOTS = ['weapon', 'shield', 'armour', 'helm', 'cape', 'horse', 'treasure'];
 export const SLOT_NAME = { weapon: ['武器', 'Weapon'], shield: ['盾牌', 'Shield'], armour: ['鎧甲', 'Armour'], helm: ['頭盔', 'Helm'], cape: ['披風', 'Cape'], horse: ['坐騎', 'Mount'], treasure: ['飾品', 'Accessory'] };
@@ -366,7 +366,7 @@ export const SKILLS = {
   dunqiang: ['盾牆', 'Shield Wall', '挺身而出，替同伴承受攻擊，自身防禦大增。', 'Steps in front of friends and takes the blows, with much more defence.'],
   gongjiang: ['工匠', 'Engineer', '火計與攻城計策威力大增。', 'Fire and siege ploys much stronger.'],
   guanxing: ['觀星', 'Stargazer', '回復與天候計策更強，水戰時速度上升。', 'Better healing and weather ploys; faster on water.'],
-  miaoshou: ['妙手', 'Light Fingers', '攻擊時有機會偷得金錢或道具；能發現地圖上的秘密。', 'May steal gold or items when attacking; finds secrets on the map.'],
+  miaoshou: ['眼尖', 'Sharp Eyes', '攻擊時常撿到敵軍掉落的錢或道具；能發現地圖上的秘密。', 'Often picks up coins or items the enemy drops; spots secrets on the map.'],
   yinjiang: ['陰將', 'Black Lotus Rite', '黑蓮教的邪術：每回合恢復兵力。', 'A Black Lotus rite: recovers troops every turn.'],
 };
 export const skillName = (id) => (SKILLS[id] ? L(SKILLS[id][0], SKILLS[id][1]) : id);

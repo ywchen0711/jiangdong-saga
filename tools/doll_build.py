@@ -7,7 +7,7 @@
 import json, os, sys, subprocess, io, hashlib
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.join(HERE, '..', '..', 'dl_ulpc', 'repo')
+REPO = os.environ.get('ULPC_REPO') or os.path.join(HERE, '..', '..', 'dl_ulpc', 'repo')
 FILES = set(subprocess.run(['git', 'ls-tree', '-r', '--name-only', 'HEAD', 'spritesheets'], cwd=REPO, capture_output=True, text=True).stdout.split('\n'))
 def jl(p): return json.load(open(os.path.join(REPO, p), encoding='utf-8'))
 PAL = {}
@@ -132,12 +132,12 @@ S = 'sheet_definitions/'
 # id: (definition, variant, recolourable materials)
 LAYERS = {
     'body': ('body/body.json', None, ['body']),
-    'head_m': ('head/heads/human/heads_human_male.json', None, ['body']),
-    'head_f': ('head/heads/human/heads_human_female.json', None, ['body']),
-    'head_old': ('head/heads/human/heads_human_male_elderly.json', None, ['body']),
-    'head_plump': ('head/heads/human/heads_human_male_plump.json', None, ['body']),
-    'head_gaunt': ('head/heads/human/heads_human_male_gaunt.json', None, ['body']),
-    'head_fold': ('head/heads/human/heads_human_female_elderly.json', None, ['body']),
+    'head_m': ('head/heads/human/heads_human_male.json', None, ['body', 'eye']),
+    'head_f': ('head/heads/human/heads_human_female.json', None, ['body', 'eye']),
+    'head_old': ('head/heads/human/heads_human_male_elderly.json', None, ['body', 'eye']),
+    'head_plump': ('head/heads/human/heads_human_male_plump.json', None, ['body', 'eye']),
+    'head_gaunt': ('head/heads/human/heads_human_male_gaunt.json', None, ['body', 'eye']),
+    'head_fold': ('head/heads/human/heads_human_female_elderly.json', None, ['body', 'eye']),
     'wrinkles': ('head/head_wrinkles.json', None, ['body']),
     'brow_thick': ('head/eyebrows/eyebrows_thick.json', None, ['hair']),
     'brow_thin': ('head/eyebrows/eyebrows_thin.json', None, ['hair']),

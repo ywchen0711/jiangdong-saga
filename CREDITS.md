@@ -227,7 +227,19 @@ Every general, soldier and townsperson is stacked at run time from Liberated Pix
 - `weapon/sword/saber` — Daniel Eddeland (daneeklu), Johannes Sjölund (wulax), gr3yh47, bluecarrot16 (CC-BY-SA 3.0) <https://opengameart.org/content/lpc-medieval-fantasy-character-sprites> <https://opengameart.org/content/lpc-extended-weapon-animations>
 - `weapon/sword/scimitar` — Pierre Vigier and DCSS artists (see https://github.com/crawl/tiles/blob/master/ARTISTS.md) (OGA-BY 3.0) <https://opengameart.org/content/lpc-dcss-swords>
 
+Child layers for Josh and Jasper (walk only; built by tools/doll_child.py, the other poses are made from the walk in the game):
+
+- `head/heads/human/child` — Stephen Challener (Redshrike), kheftel, bluecarrot16 (OGA-BY 3.0, CC-BY 3.0, GPL 3.0) <https://opengameart.org/content/> <https://opengameart.org/content/lpc-child-standing-template> <https://opengameart.org/content/lpc-character-bases>
+- `hair/swoop_side` — JaidynReiman (OGA-BY 3.0+, CC-BY 3.0+, CC-BY-SA 3.0, GPL 3.0) <https://opengameart.org/content/lpc-1-hairstyle-2-hair-extensions-3-previously-unofficially-released-hairstyles> <https://github.com/jrconway3/Universal-LPC-spritesheet/commit/46ddcf05a0e43e7aa6ffd47d350eef0eb529ac24>
+- `hair/relm_short` — JaidynReiman (OGA-BY 3.0+, CC-BY 3.0+, GPL 3.0) <https://opengameart.org/content/lpc-relm-hair-xlong-ponytail>
+- `torso/clothes/shirt/child` — Nila122 (OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0) <https://opengameart.org/content/lpc-clothes-for-children>
+- `legs/pants/child` — Nila122 (OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0) <https://opengameart.org/content/lpc-clothes-for-children>
+
 LPC art is used under the licences above (CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0 / CC-BY 3.0 / CC0 as listed per file). The recoloured and cut layer sheets in assets/doll are derivatives and are shared under the same terms.
+
+## Portraits of Jeff's family
+
+The painted portraits of Jeff, Erin, Josh and Jasper in assets/portraits (dialogue and Who's Who) are original art, CharacterGallery (by the repository owner, CC BY 4.0).
 
 ## Horses
 

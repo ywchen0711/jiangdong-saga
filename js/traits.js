@@ -3,7 +3,7 @@
 // generals get seeded pairs weighted by their stats, unit type and side, so the same id always gives the same
 // pair and old saves need nothing stored. battle.js runs the effects (each trait id has its own code path)
 // and shows the trait's name over the general whenever it triggers.
-import { L } from './i18n.js?v=10';
+import { L } from './i18n.js?v=11';
 
 // families, in the order the glossary shows them
 export const FAMILY = {
@@ -108,7 +108,7 @@ const T = {
   dunqiang: ['盾牆', 'Shield Wall', '常替同伴擋下攻擊，自身防禦大增。', 'Steps in front of friends, with much more DEF.', 'legend'],
   gongjiang: ['工匠', 'Engineer', '火計+25%；攻城時全軍+12%。', 'Fire ploys +25%; sieges: army +12%.', 'legend'],
   guanxing: ['觀星', 'Stargazer', '治療+20%；水戰時速度+20%。', 'Healing +20%; faster at sea.', 'legend'],
-  miaoshou: ['妙手', 'Light Fingers', '攻擊時偷錢；能發現地圖上的秘密。', 'Steals gold when attacking; finds secrets.', 'legend'],
+  miaoshou: ['眼尖', 'Sharp Eyes', '攻擊時常撿到敵軍掉落的錢；能發現地圖上的秘密。', 'Often picks up coins the enemy drops; spots secrets.', 'legend'],
   yinjiang: ['陰將', 'Black Lotus Rite', '黑蓮邪術：每回合回兵5%。', 'A Black Lotus rite: 5% troops back each round.', 'legend'],
 };
 export const TRAITS = {};

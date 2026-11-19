@@ -8,17 +8,17 @@
 // 0 (not taken), 1..n (on step n) or 99 (done). Each step names the map where its challenge waits, the person
 // who stands there, and the battles fought one after another (a gauntlet: no rest between them).
 // Foes: a general's id, or '#faction:n' for the n-th ordinary officer of that side.
-import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=10';
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=10';
-import { sfx } from './audio.js?v=10';
-import { L } from './i18n.js?v=10';
-import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=10';
-import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=10';
-import { S, recruit, give, have, healAll } from './state.js?v=10';
-import { PLACES, REGIONS } from './world.js?v=10';
-import { F } from './field.js?v=10';
-import { placeName, folkLook } from './maps.js?v=10';
-import { gainTreasure, owned } from './treasure_world.js?v=10';
+import { say, ask, menu, panel, descBox, wrap } from './ui.js?v=11';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=11';
+import { sfx } from './audio.js?v=11';
+import { L } from './i18n.js?v=11';
+import { GENERALS, GEN_LIST, gearFor, genName } from './generals.js?v=11';
+import { ITEMS, FORMS, RARITY, QUESTS, TREASURES, SRC } from './data.js?v=11';
+import { S, recruit, give, have, healAll } from './state.js?v=11';
+import { PLACES, REGIONS } from './world.js?v=11';
+import { F } from './field.js?v=11';
+import { placeName, folkLook } from './maps.js?v=11';
+import { gainTreasure, owned } from './treasure_world.js?v=11';
 
 const DONE = 99;
 // who gives each trial, where, the story, the steps and the reward

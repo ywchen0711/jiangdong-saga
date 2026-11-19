@@ -1,25 +1,26 @@
 // The story of 江東霸業傳: an alternate Three Kingdoms. In one night the Black Lotus sect murders Sun Jian and
-// Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, meets four shipwrecked travellers from
-// beyond the western sea, wins back Jiangdong, and follows the sect's threads across the realm to its hidden
+// Sun Ce; young Sun Quan flees Jianye with a handful of loyal men, rescues a shipwrecked family from an island
+// beyond the eastern sea (Jeff and Erin and their boys Josh, 10, and Jasper, 8), wins back Jiangdong, and
+// follows the sect's threads across the realm to its hidden
 // master. This file holds the events, the people placed in towns, the chapters and the armies you meet.
-import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=10';
-import { sfx, playMusic, stopMusic } from './audio.js?v=10';
-import { UI, menu, say, ask, notice, wait, descBox } from './ui.js?v=10';
-import { L } from './i18n.js?v=10';
-import { GENERALS, GEN_LIST, genName, gearFor } from './generals.js?v=10';
-import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=10';
-import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp, party, inCamp, fromCamp, toCamp, campCandidates, PARTY_MAX } from './state.js?v=10';
-import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=10';
-import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=10';
-import * as FIELD from './field.js?v=10';
-import { shop, inn, tavern, persuade as persuadeT, recruitLv, fitParty } from './town.js?v=10';
-import { placeName, CAVE_FLOORS } from './maps.js?v=10';
-import { portrait } from './doll.js?v=10';
-import { ADVICE } from './bosses.js?v=10';
-import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=10';
-import { TREASURES, SRC } from './data.js?v=10';
-import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=10';
-import { exploreTalk, populate as exPopulate } from './explore.js?v=10';
+import { ctx, W, H, text, textW, windowBox, canvas, hash } from './gfx.js?v=11';
+import { sfx, playMusic, stopMusic } from './audio.js?v=11';
+import { UI, menu, say, ask, notice, wait, descBox } from './ui.js?v=11';
+import { L } from './i18n.js?v=11';
+import { GENERALS, GEN_LIST, genName, gearFor, PORTRAIT_ART } from './generals.js?v=11';
+import { ITEMS, TACTICS, FORMS, itemName } from './data.js?v=11';
+import { S, member, recruit, give, take, have, healAll, troopsMax, tpMax, learnTactics, gainExp, party, inCamp, fromCamp, toCamp, campCandidates, PARTY_MAX } from './state.js?v=11';
+import { PLACES, REGIONS, WW, WH, K, walkable as walkableK } from './world.js?v=11';
+import { F, FH, toMap, toWorld, setBanner, tileX, tileY } from './field.js?v=11';
+import * as FIELD from './field.js?v=11';
+import { shop, inn, tavern, persuade as persuadeT, recruitLv, fitParty } from './town.js?v=11';
+import { placeName, CAVE_FLOORS } from './maps.js?v=11';
+import { portrait } from './doll.js?v=11';
+import { ADVICE } from './bosses.js?v=11';
+import { populate as trPopulate, openTreasureChest, merchant, quest, bossReward, gainTreasure } from './treasure_world.js?v=11';
+import { TREASURES, SRC } from './data.js?v=11';
+import { populate as sqPopulate, sqTalk, sqGoal } from './sidequests.js?v=11';
+import { exploreTalk, populate as exPopulate } from './explore.js?v=11';
 
 export const STORY = {};
 const G = () => window.G;
@@ -36,6 +37,15 @@ UI.face = (who, check) => {
   const m = member(who);
   return portrait(g.look, m ? m.equip : g.gear || gearFor(g, 20), { shield: g.shield, quiver: g.quiver });
 };
+// painted portraits, loaded on first use
+const artImgs = {};
+export function artOf(who) {
+  const src = PORTRAIT_ART[who]; if (!src) return null;
+  let a = artImgs[who];
+  if (!a) { a = artImgs[who] = { im: new Image(), ok: false }; a.im.onload = () => { a.ok = true; }; a.im.src = src + '?v=1'; }
+  return a.ok ? a.im : null;
+}
+UI.art = (who, check) => (check ? !!PORTRAIT_ART[who] : artOf(who));
 const choose = (who, zh, en, opts) => ask(nm(who), L(zh, en), opts.map(([a, b]) => L(a, b)));
 async function join(id, lv, quiet = false) {
   const m = recruit(id, lv, { reserve: S.front.length >= 5 });
@@ -423,9 +433,9 @@ FH.populate = (mapId, ents) => {
     const g = GENERALS[p.id];
     ents.push({ type: 'npc', id: 'p_' + p.id, look: g.look, equip: g.gear || gearFor(g, 20), opts: { shield: g.shield, quiver: g.quiver }, x: p.x, y: p.y, dir: p.dir, talk: 'p:' + p.talk, mark: p.mark ? p.mark() : false });
   }
-  // the beached ship's people
+  // the beached ship's people: the parents on either side of their boys, in the open lane south of the houses
   if (mapId === 'haiyan' && S.flags.ch1 && !S.flags.westerners) {
-    for (const [id, x, y] of [['jeff', 22, 16], ['erin', 23, 15], ['josh', 21, 15], ['jasper', 24, 16]]) { const g = GENERALS[id]; ents.push({ type: 'npc', id: 'p_' + id, look: g.look, equip: g.gear, opts: { shield: g.shield, quiver: g.quiver }, x, y, dir: 'l', talk: 'p:shipwreck' }); }
+    for (const [id, x, y] of [['jeff', 22, 17], ['josh', 23, 17], ['jasper', 24, 17], ['erin', 25, 17]]) { const g = GENERALS[id]; ents.push({ type: 'npc', id: 'p_' + id, look: g.look, equip: g.gear, opts: { shield: g.shield, quiver: g.quiver }, x, y, dir: 'l', talk: 'p:shipwreck' }); }
   }
   trPopulate(mapId, ents);
   sqPopulate(mapId, ents);
@@ -500,7 +510,7 @@ person('panyu/hall', 'shixie', 8, 4, 'd', () => S.chapter >= 5, 'joiner');
 const FOLK = {
   1: [['聽說孫家的二公子逃出來了。', 'They say the Sun family\'s second son got away.'], ['山越的強盜越來越囂張了。', 'The Shanyue bandits grow bolder every day.'], ['烏程的嚴白虎自稱「東吳德王」，笑死人。', 'Yan Baihu of Wucheng calls himself "Virtuous King of Wu". What a joke.'], ['海邊漂來了奇怪的大船殘骸。', 'Strange wreckage from a great ship washed up on the shore.'], ['最近夜裡常有穿黑衣的人在村外走動。', 'Lately men in black walk outside the village at night.']],
   2: [['周郎在舒縣招兵，年輕人都去了。', 'Zhou the Young Master is raising troops in Shu. All the young men have gone.'], ['皖城的劉勳搜刮得很兇。', 'Liu Xun of Wan bleeds his people dry.'], ['過江要從牛渚坐渡船。', 'To cross the river, take the ferry at Niuzhu.'], ['魯家的公子把糧倉都分給窮人了。', 'The young master of the Lu family gave his granary away to the poor.']],
-  3: [['建業城裡，孫暠的兵四處抓人。', 'In Jianye, Sun Hao\'s soldiers seize people everywhere.'], ['老將軍們被孫暠軟禁在曲阿。', 'The old generals are kept under guard in Qu\'a by Sun Hao.'], ['聽說孫二公子和幾個紅頭髮的海外人在一起。', 'They say young master Sun travels with some red-haired people from over the sea.']],
+  3: [['建業城裡，孫暠的兵四處抓人。', 'In Jianye, Sun Hao\'s soldiers seize people everywhere.'], ['老將軍們被孫暠軟禁在曲阿。', 'The old generals are kept under guard in Qu\'a by Sun Hao.'], ['聽說孫二公子身邊跟著一家從海東漂來的人，還有兩個小孩。', 'They say young master Sun travels with a family that washed up from beyond the eastern sea, two little boys and all.']],
   4: [['江夏的黃祖是孫家的世仇。', 'Huang Zu of Jiangxia is the Sun family\'s old enemy.'], ['甘寧那傢伙，帶鈴鐺的錦帆賊，聽說在黃祖手下很不得志。', 'Gan Ning, the bell-wearing brocade-sail pirate, is said to be unhappy under Huang Zu.'], ['豫章有個神射手，叫太史慈。', 'There is a great archer in Yuzhang called Taishi Ci.']],
   5: [['劉表大人病得很重……', 'Lord Liu Biao is gravely ill...'], ['蔡瑁把持了荊州的水軍。', 'Cai Mao holds Jing\'s navy in his fist.'], ['隆中有位臥龍先生。', 'In Longzhong lives a man they call the Sleeping Dragon.'], ['新野的劉皇叔是個好人。', 'Imperial Uncle Liu of Xinye is a good man.']],
   6: [['北方的大船隊要南下了！', 'A great fleet from the north is coming south!'], ['江上起霧的時候，連漁夫都不敢出船。', 'When the fog rises on the river, even fishermen stay ashore.']],
@@ -541,7 +551,7 @@ export async function talkTo(e) {
 }
 const HOME = [['請進請進，可惜家裡沒什麼好招待的。', 'Come in, come in. Sorry we have nothing much to offer.'], ['我兒子去當兵了，不知道現在怎樣。', 'My son went off to be a soldier. I wonder how he is.'], ['外面兵荒馬亂的，你們小心。', 'It is dangerous out there. Take care.'], ['那個箱子裡的東西，你們要用就拿去吧。', 'If anything in that chest is any use to you, take it.']];
 const PLACE_LINES = {
-  haiyan: [['海那邊有什麼？老人們說，是神仙住的地方。', 'What lies across the sea? The old folk say it\'s where immortals live.'], ['那幾個海妖，會不會吃人啊？', 'Those sea demons... do you think they eat people?']],
+  haiyan: [['海那邊有什麼？老人們說，是神仙住的地方。', 'What lies across the sea? The old folk say it\'s where immortals live.'], ['南邊漂來的那一家人，說的話沒人聽得懂。兩個小娃兒倒是一直對我笑。', 'Nobody understands a word that family from the wreck says. The two little ones keep smiling at me, though.']],
   wu: [['朱治將軍守著吳郡，誰也別想亂來。', 'General Zhu Zhi holds Wu. Nobody had better try anything.']],
   jianye: [['建業是江東的心臟。', 'Jianye is the heart of Jiangdong.']],
   xuchang: [['天子就在許昌。', 'The Son of Heaven is here in Xuchang.']],
@@ -550,41 +560,44 @@ const PLACE_LINES = {
 };
 // ---------- the story's people ----------
 const TALK = {};
-// chapter 1: the shipwreck
+// chapter 1: the shipwreck. A family from an island far beyond the eastern sea, blown off course by a typhoon.
 TALK.shipwreck = async () => {
   if (S.flags.westerners) return;
   playMusic('tension');
-  await N('四個奇裝異服的人背靠著大船殘骸，被拿著魚叉的村民和一群山賊團團圍住。', 'Four strangely dressed people stand with their backs to a wrecked hull, ringed by villagers with fish spears and a band of hill bandits.');
-  await T(['山賊', 'Bandit'], '紅毛海妖！把你們的寶貝交出來！', 'Red-haired sea demons! Hand over your treasure!');
-  await T('josh', '"Treasure"? We lost everything in the storm! ...Erin, what are they saying?', '"Treasure"? We lost everything in the storm! ...Erin, what are they saying?');
-  await T('erin', '在、在下……乃遠方之客，船難漂流至此，並無寶物……', 'I... I am but a traveller from afar, shipwrecked here, and have no treasure...');
-  await T('jasper', 'Erin, you sound like an old book.', 'Erin, you sound like an old book.');
-  await T('erin', '我是從一本三百年前的商人會話集學的，好嗎！', 'I learned from a merchant\'s phrasebook three hundred years out of date, all right!');
-  await T('jeff', '各位，請冷靜。我們只是需要——一點淡水，和一把扳手。', 'Everyone, please calm down. All we need is some fresh water. And a spanner.');
-  await T('sunquan', '……住手！他們不是妖怪，只是遇難的人。山賊，退下！', '...Stop! They are not demons, just people in trouble. Bandits, back off!');
+  await N('一家四口背靠著大船殘骸：一對夫婦把兩個男孩護在身後，被拿著魚叉的村民和一群山賊團團圍住。', 'A family of four stands with their backs to a wrecked hull, the parents keeping two small boys behind them, ringed by villagers with fish spears and a band of hill bandits.');
+  await T(['山賊', 'Bandit'], '海上漂來的妖人！把你們的寶貝交出來！', 'Sea demons washed up by the waves! Hand over your treasure!');
+  await T('josh', '（用家鄉話）寶貝？我們的東西全被颱風捲走了！……媽媽，他們在說什麼？', '(in their own tongue) Treasure? The typhoon took everything we had! ...Mum, what are they saying?');
+  await T('erin', '在、在下……乃海東之客，船難漂流至此，並無寶物……', 'I... I am but a traveller from beyond the eastern sea, shipwrecked here, and have no treasure...');
+  await T('jasper', '（用家鄉話）媽媽，你講話好像一本老書。', '(in their own tongue) Mum, you sound like an old book.');
+  await T('erin', '我是從外婆那本三百年前的會話集學的，好嗎！……喬許，把弟弟拉到後面。', 'I learned it from Grandma\'s phrasebook, three hundred years out of date, all right! ...Josh, pull your brother behind you.');
+  await T('josh', '（舉起船上撿來的圓盾）賈斯珀，躲到我後面！', '(raising a round shield from the wreck) Jasper, get behind me!');
+  await T('jeff', '各位，請冷靜。我們只是需要——一點淡水，和一把扳手。……還有，誰都不准碰我的孩子。', 'Everyone, please calm down. All we need is some fresh water. And a spanner. ...And nobody touches my children.');
+  await T('sunquan', '……住手！他們不是妖怪，是遇難的一家人。山賊，退下！', '...Stop! They are not demons, just a family in trouble. Bandits, back off!');
   await T(['山賊', 'Bandit'], '你算哪根蔥？上！', 'And who are you? Get them!');
   const r = await fight('beach', { mayLose: true });
   if (r !== 'win') healAll(1);
   playMusic('village');
-  await T('josh', 'Whoa. That was... thank you. Really. I\'m Josh.', 'Whoa. That was... thank you. Really. I\'m Josh.');
-  await T('erin', '多謝閣下拔刀相助。我叫艾琳，是船上的領航員。這位是傑夫，造船的；這是喬許；最小的是賈斯珀。', 'Thank you for drawing your sword for us, sir. I am Erin, the ship\'s navigator. This is Jeff, the shipwright; Josh; and our youngest, Jasper.');
+  await T('josh', '哇……謝謝你。真的。我叫喬許，十歲了。', 'Whoa... thank you. Really. I\'m Josh. I\'m ten.');
+  await T('erin', '多謝閣下拔刀相助。我叫艾琳，是船上的領航員，也是這兩個孩子的娘。這是我丈夫傑夫，造船的；這是喬許；最小的是賈斯珀，八歲。', 'Thank you for drawing your sword for us, sir. I am Erin, the ship\'s navigator, and these boys\' mother. This is my husband Jeff, the shipwright; this is Josh; and our youngest, Jasper. He is eight.');
   await T('jasper', '你好！我會說「你好」！還有「多少錢」！', 'Ni hao! I can say "ni hao"! And "how much"!');
-  await T('shangxiang', '……二哥，這些人好奇怪。', '...Second Brother, these people are so odd.');
+  await T('shangxiang', '……二哥，那兩個小傢伙好可愛。', '...Second Brother, those two little ones are adorable.');
   await T('sunquan', '我叫孫權。我……現在什麼都不是，只是個被追殺的人。', 'My name is Sun Quan. Right now I am... nobody. Just a man being hunted.');
-  await T('jeff', '被追殺？那我們很合得來。我們被大海追殺了整整三個月。', 'Hunted? Then we\'ll get along. The sea has been hunting us for three months.');
-  await T('erin', '我們的船「流星號」已經毀了。在找到回家的路之前……孫權閣下，可否讓我們跟著你？我能看星辰、辨天氣、治傷。', 'Our ship, the Wandering Star, is wrecked. Until we find our way home... Lord Sun Quan, may we follow you? I can read the stars, foretell the weather and treat wounds.');
-  await T('josh', '我能打。還能扛很重的東西。', 'And I can fight. And carry really heavy things.');
+  await T('jeff', '被追殺？那我們很合得來。颱風把我們的船吹離航線，大海追了我們整整三個月。', 'Hunted? Then we\'ll get along. A typhoon blew us off course, and the sea has been hunting us for three months.');
+  await T('erin', '我們的船「流星號」已經毀了。在找到回家的路之前……孫權閣下，可否讓我們一家跟著你？我能看星辰、辨天氣、治傷。', 'Our ship, the Wandering Star, is wrecked. Until we find our way home... Lord Sun Quan, may our family follow you? I can read the stars, foretell the weather and treat wounds.');
+  await T('josh', '我能拿盾擋在大家前面。爸爸教過我。', 'And I can hold a shield in front of everyone. Dad taught me.');
   await T('jasper', '我什麼都能找到。真的。我已經找到你腰上那包點心了。', 'And I can find anything. Really. I already found the snacks in your belt pouch.');
-  await T('sunquan', '……！什麼時候——好吧。我正需要能信任的人。歡迎你們。', '...! When did you— All right. I need people I can trust. Welcome.');
+  await T('sunquan', '……！什麼時候——好吧。我正需要能信任的人。歡迎你們。……不過打仗的時候，你們兩個要聽爹娘的話。', '...! When did you— All right. I need people I can trust. Welcome. ...But in battle, you two listen to your father and mother.');
+  await T('jasper', '好——！', 'Okaaay!');
   S.flags.westerners = 1;
   F.ents = F.ents.filter((x) => !['p_jeff', 'p_erin', 'p_josh', 'p_jasper'].includes(x.id));
   for (const id of ['jeff', 'erin', 'josh', 'jasper']) await join(id, 2, true);
   S.front = ['sunquan', 'zhoutai', 'josh', 'shangxiang', 'jasper'];
   sfx('level');
-  await N('傑夫、艾琳、喬許、賈斯珀加入了！', 'Jeff, Erin, Josh and Jasper join the army!');
+  await N('傑夫、艾琳、喬許、賈斯珀一家加入了！', 'Jeff, Erin, Josh and Jasper, the whole family, join the army!');
+  await T('zhoutai', '兩個小兄弟，打仗交給我的老兵。你們只管舉好旗子，跟緊爹娘。', 'Little ones, leave the fighting to my veterans. You just hold the banner high and stay close to your parents.');
   await T('erin', '對了——孫權閣下，你的軍師是誰？打仗時要有人指揮策略。', 'Oh— Lord Sun Quan, who is your strategist? Someone must direct the tactics in battle.');
   await T('sunquan', '……軍師？目前大概是我自己。', '...Strategist? For now, I suppose it is me.');
-  await T('jeff', '那讓我來吧。我的智力——呃，我是說，我算數還不錯。打開選單的「武將」就能任命軍師。', 'Then let me. My intellect— I mean, I\'m good with numbers. You can appoint a strategist from "Generals" in the menu.');
+  await T('jeff', '那讓我來吧。我的智力——呃，我是說，我算數還不錯，孩子們的算術都是我教的。打開選單的「武將」就能任命軍師。', 'Then let me. My intellect— I mean, I\'m good with numbers; I taught the boys their sums. You can appoint a strategist from "Generals" in the menu.');
   S.strategist = 'jeff'; S.tp = tpMax();
   await N('提示：按C／Tab打開選單。軍師的智力決定全軍策略值的多寡與計策的威力。', 'Tip: press C or Tab for the menu. The strategist\'s INT sets the army\'s strategy points and the power of tactics.');
   await T('sunquan', '先去西北的吳郡，找朱治將軍。', 'First we go north-west to Wu, to find General Zhu Zhi.');
@@ -644,9 +657,10 @@ TALK.zhouyu = async () => {
   S.strategist = 'zhouyu'; S.tp = tpMax();
   await N('周瑜成為了軍師！', 'Zhou Yu becomes the strategist!');
   await T('jeff', '……被搶走工作了。', '...Lost my job already.');
-  await T('zhouyu', '你就是那個造船的海外人？聽說你們的船能逆風而行。', 'You are the foreign shipwright? They say your ships can sail into the wind.');
+  await T('zhouyu', '你就是那個從海東來的造船匠？聽說你們的船能逆風而行。', 'You are the shipwright from beyond the eastern sea? They say your ships can sail into the wind.');
   await T('jeff', '只要帆夠好，角度夠對。……要我畫給你看嗎？', 'With good sails and the right angle. ...Want me to draw it for you?');
   await T('zhouyu', '有意思。等打完仗，你畫，我彈琴。', 'Interesting. When the fighting is done, you draw and I\'ll play the zither.');
+  await T('jasper', '（小聲）周叔叔彈琴的時候，可以讓我坐最前面嗎？', '(quietly) When Uncle Zhou plays, can I sit right at the front?');
 };
 TALK.xiaoqiao = async () => { if (has('xiaoqiao')) return; await T('xiaoqiao', '夫君要出征，我也要去！我會看風向，還會包紮。', 'If my husband marches, so do I! I can read the wind and bind wounds.'); await join('xiaoqiao', Math.max(10, lvNow())); };
 TALK.lumeng = async () => { if (has('lumeng')) return; await T('lumeng', '呂蒙！以前只會打仗，現在也在讀書了！請讓我加入！', 'Lü Meng! I used to only fight; now I read books too! Let me join!'); await join('lumeng', Math.max(11, lvNow())); };
@@ -707,12 +721,13 @@ TALK.joiner = async (e) => {
 // chapter 4
 TALK.taishici = async (e) => {
   if (has('taishici')) return;
-  await T('taishici', '我是太史慈。聽說孫家二公子手下有個海外來的大個子，力氣很大？', 'I am Taishi Ci. They say the second Sun boy has a big foreigner who is very strong?');
-  await T('josh', '……我？', '...Me?');
-  await T('taishici', '跟我比一場！你贏了，我就跟你們走！', 'Fight me! If you win, I go with you!');
-  await T('josh', '好吧。但我不打臉。', 'Okay. But no hitting in the face.');
+  await T('taishici', '我是太史慈。聽說孫家軍裡有個舉著大圓盾、擋在大人前面的小鬼？', 'I am Taishi Ci. They say there\'s a little lad in the Sun army who holds a big round shield in front of the grown-ups?');
+  await T('josh', '……是我。我十歲了。', '...That\'s me. I\'m ten.');
+  await T('erin', '他還是個孩子！', 'He\'s still a child!');
+  await T('taishici', '哈哈，放心，我太史慈不跟孩子動手。孫仲謀，你們全軍跟我比一場！你們贏了，我就跟你們走！', 'Ha ha, don\'t worry: Taishi Ci doesn\'t fight children. Sun Zhongmou, your whole army against me! Win, and I go with you!');
+  await T('josh', '好吧。但我要站在爸爸旁邊。', 'Okay. But I\'m standing next to my dad.');
   const r = await battle({ foes: [{ id: 'taishici', lv: 25, mul: 1.4 }], terrain: 'grass', capture: false, canRun: false, mayLose: true, intro: L('太史慈挺槍出馬！', 'Taishi Ci rides out!') });
-  if (r === 'win') { await T('taishici', '哈哈哈！痛快！我太史慈說話算話！', 'Ha ha ha! What a fight! Taishi Ci keeps his word!'); await join('taishici', Math.max(20, lvNow())); F.ents = F.ents.filter((x) => x !== e); }
+  if (r === 'win') { await T('taishici', '哈哈哈！痛快！……小鬼，你那面盾舉得真穩。我太史慈說話算話！', 'Ha ha ha! What a fight! ...Little lad, you held that shield steady. Taishi Ci keeps his word!'); await join('taishici', Math.max(20, lvNow())); F.ents = F.ents.filter((x) => x !== e); }
   else await T('taishici', '再練練吧！我在這裡等你們。', 'Train some more! I\'ll wait for you here.');
 };
 TALK.ganning = async (e) => {
@@ -761,6 +776,8 @@ TALK.zhugeliang = async () => {
   await T('zhugeliang', '你看得懂？那這張圖給你。我畫的火船，一直沒找到人能造。', 'You understand it? Then take this. I drew these fire rafts but never found anyone who could build them.');
   give('blueprint'); S.flags.blueprint = 1; learnTactics(member('jeff'));
   sfx('chest'); await N('得到了「火龍船圖」！傑夫學會了「火龍船」！', 'Received the Fire-Dragon Raft Plans! Jeff learned Fire-Dragon Rafts!');
+  await T('jasper', '爸爸，造好了可以讓我點火嗎？', 'Dad, when they\'re built, can I light them?');
+  await T('jeff', '不行。', 'No.');
   give('liannu'); await N('諸葛亮還送了一把「諸葛連弩」。', 'Zhuge Liang also gives you a Repeating Crossbow.');
   await T('zhugeliang', '黑蓮教的根，不在荊州，不在中原。它在西邊的群山裡。……將軍，終有一日你要去那裡。', 'The Black Lotus has its roots neither in Jing nor in the Central Plains, but in the mountains of the west. ...One day, General, you must go there.');
   if (!S.forms.includes('bagua')) { S.forms.push('bagua'); sfx('level'); await N('諸葛亮傳授了「八卦陣」！（需要智力95以上的軍師）', 'Zhuge Liang teaches the Eight Trigrams formation! (It needs a strategist with INT 95+)'); }
@@ -783,7 +800,7 @@ TALK.caocao = async () => {
   await T('guojia', '咳咳……丞相，袁紹身邊有個白衣人，從不露臉。小心。', 'Cough, cough... Chancellor, at Yuan Shao\'s side is a man in white who never shows his face. Be careful.');
   S.flags.metCao = 1;
 };
-TALK.guojia = async () => T('guojia', '我身體不好，只能出點主意。……主公帶著你們這些海外人，倒是很有趣。', 'My health is poor, so I only offer ideas. ...Your lord travelling with foreigners is rather interesting.');
+TALK.guojia = async () => T('guojia', '我身體不好，只能出點主意。……主公帶著一家大小行軍，倒是很有趣。那兩個孩子，比我還有精神。', 'My health is poor, so I only offer ideas. ...Your lord marching with a whole family, little ones and all, is rather interesting. Those two boys have more life in them than I do.');
 // chapter 8
 TALK.diaochan = async () => {
   if (S.flags.metDiao) return T('diaochan', '郿塢裡見。', 'We meet again at Mei.');
@@ -796,7 +813,7 @@ TALK.lubu = async (e) => {
   if (has('lubu')) return;
   await T('lubu', '……人中呂布。我殺了董卓那怪物。貂蟬說，跟著你，我就不再是誰的刀。', '...Lü Bu, first among men. I killed that monster Dong Zhuo. Diaochan says if I follow you, I will be nobody\'s blade.');
   await T('josh', '你很強。但在這裡，我們是朋友，不是刀。', 'You\'re strong. But here we\'re friends, not blades.');
-  await T('lubu', '……朋友。哼。好奇怪的詞。', '...Friends. Hmph. Strange word.');
+  await T('lubu', '……朋友。哼。從小鬼嘴裡說出來……好奇怪的詞。', '...Friends. Hmph. From a child\'s mouth... a strange word.');
   await join('lubu', Math.max(48, lvNow())); await join('diaochan', Math.max(46, lvNow()));
   F.ents = F.ents.filter((x) => x !== e);
 };
@@ -954,9 +971,10 @@ export async function onEnterPlace(id) {
   if (id === 'luoyang' && S.chapter === 8 && !S.flags.seal) {
     await fade(() => {});
     await N('洛陽的廢墟中，宮中的一口古井泛著五色的光。', 'In the ruins of Luoyang, an old well in the palace glows with five colours.');
-    await T('jasper', '下面有東西！我去撈！', 'There\'s something down there! I\'ll fish it out!');
+    await T('jasper', '下面有東西！爸爸，抓住我的腳，我去撈！', 'There\'s something down there! Dad, hold my feet and I\'ll fish it out!');
+    await T('jeff', '……抓好了。只准伸手，不准往下爬。', '...Got you. Arms only; no climbing down.');
     give('seal'); S.flags.seal = 1; sfx('chest');
-    await N('賈斯珀撈起了「傳國玉璽」！', 'Jasper fishes up the Imperial Seal!');
+    await N('傑夫抓著賈斯珀的腳踝，賈斯珀撈起了「傳國玉璽」！', 'With Jeff holding his ankles, Jasper fishes up the Imperial Seal!');
     await T('sunquan', '……受命於天，既壽永昌。這不是我們該拿的東西。等天下太平，還給天下吧。', '...Having received the mandate from Heaven, may the reign be long and prosperous. This is not ours to keep. When peace comes, we give it back to the realm.');
     return;
   }
@@ -1003,9 +1021,9 @@ export async function onEnterPlace(id) {
     await T('jiyuan', '于吉大人……在巫峽……黑蓮宮……要去，就帶上……所有的人……', 'Master Yu Ji... is in the Wu Gorge... the Black Lotus Palace... if you go, take... everyone...');
     S.flags.won_jiyuan = 1; S.flags.betrayal = 0;
     await N('張昭被救了出來。建業重新回到了孫權手中。', 'Zhang Zhao is freed. Jianye is in Sun Quan\'s hands once more.');
-    await T('erin', '主公……今晚，要不要一起看星星？我想跟你說說我的家鄉。', 'My lord... tonight, shall we look at the stars together? I want to tell you about my home.');
+    await T('erin', '主公……今晚，要不要和我們一家一起看星星？孩子們想跟你說說我們的家鄉。', 'My lord... tonight, will you look at the stars with our family? The boys want to tell you about our home.');
     await T('sunquan', '……好。我也想聽。', '...Yes. I would like to hear it.');
-    await N('那一夜，艾琳指著西方的天空，講述大海另一邊的城市、港口和燈塔。孫權第一次知道，天下比他想像的還要大。', 'That night Erin points to the western sky and tells of cities, harbours and lighthouses beyond the sea. For the first time, Sun Quan learns the world is larger than he ever imagined.');
+    await N('那一夜，艾琳指著東方的天空，講述大海另一邊的島嶼、港口和燈塔；傑夫畫出家鄉的船，喬許和賈斯珀搶著插嘴，最後枕著孫權的披風睡著了。孫權第一次知道，天下比他想像的還要大。', 'That night Erin points to the eastern sky and tells of islands, harbours and lighthouses beyond the sea; Jeff sketches the ships of home, Josh and Jasper keep cutting in, and at last the boys fall asleep on Sun Quan\'s cloak. For the first time, Sun Quan learns the world is larger than he ever imagined.');
     await T('zhouyu', '要去巫峽，得先經過益州。劍閣的張任聽命於被黑蓮控制的劉璋，漢中則是黑蓮教的老巢之一。', 'To reach the Wu Gorge we must pass through Yi. Zhang Ren at Jiange obeys Liu Zhang, whom the sect controls, and Hanzhong is one of the sect\'s dens.');
     return 'stay';
   }
@@ -1039,15 +1057,18 @@ export async function onEnterPlace(id) {
     await T('caocao', '曹某也來了。……別誤會，我只是不想讓別人搶了這份功勞。', 'I am here too. ...Don\'t misunderstand; I simply won\'t let anyone else take the credit.');
     await T('zhugeliang', '黑蓮宮有四層。每一層都有蓮使守護。最深處，就是于吉。', 'The Black Lotus Palace has four levels, each guarded by a Lotus Envoy. At the very bottom is Yu Ji.');
     await T('sunquan', '……父親，大哥。我回來了，帶著很多很多的朋友。', '...Father. Brother. I have come back, with many, many friends.');
-    await T('josh', '走吧。打完這一仗，我請大家吃包子。', 'Let\'s go. When this fight is over, buns are on me.');
+    await T('josh', '走吧。打完這一仗，我用零用錢請大家吃包子。', 'Let\'s go. When this fight is over, buns are on me. I saved my pocket money.');
     await T('jasper', '我記住了喔！', 'I\'m holding you to that!');
-    // everyone the last march needs comes along: the four travellers rejoin from the camp if they wait there
+    await T('erin', '喬許、賈斯珀，最後這一戰，你們站在後排，跟緊爸爸。', 'Josh, Jasper: in this last battle you stand at the back, close to Dad.');
+    await T('josh', '可是我有盾——', 'But I have a shield—');
+    await T('sunquan', '喬許，你的盾已經護了我們一路。這一次，讓大人站在前面。', 'Josh, your shield has guarded us all the way here. This time, let the grown-ups stand in front.');
+    // everyone the last march needs comes along: Jeff's family rejoins from the camp if they wait there
     const back = ['sunquan', 'jeff', 'erin', 'josh', 'jasper'].filter((x) => inCamp(x));
     S.flags.gathered = 1;
     for (const x of back) fromCamp(x);
     while (party().length > PARTY_MAX) { const c = campCandidates()[0]; if (!c) break; toCamp(c); }
     for (const x of ['jeff', 'erin', 'josh', 'jasper']) if (S.roster[x] && !S.front.includes(x) && S.front.length < 5) S.front.push(x);
-    if (back.length) await N(`${back.map((x) => GENERALS[x].zh).join('、')}從營帳趕來會合了。（最後一戰，四位旅人必須同行）`, `${back.map((x) => GENERALS[x].en).join(', ')} come from the camp to join you. (The four travellers must march in the last battle.)`);
+    if (back.length) await N(`${back.map((x) => GENERALS[x].zh).join('、')}從營帳趕來會合了。（最後一戰，傑夫一家必須同行）`, `${back.map((x) => GENERALS[x].en).join(', ')} come from the camp to join you. (Jeff's family must march in the last battle.)`);
     healAll(1);
     give('tpbig', 3); give('jinchuang', 5); give('zhaohun', 3);
     await N('得到了神機丹×3、金創藥×5、招魂幡×3！全軍恢復了。', 'Received Sage Pill x3, Wound Balm x5, Rallying Banner x3! The whole army is restored.');
@@ -1094,7 +1115,7 @@ async function naval() {
   await T('yujin', '……我輸了。孫權，那些信……你說不是你寫的？', '...I am beaten. Sun Quan, those letters... you say you never wrote them?');
   await T('jeff', '我比對過了。信上的墨，和嚴白虎營帳裡那封密信，是同一種墨。上面還有黑蓮的暗紋。', 'I compared them. The ink in those letters is the same as in the secret letter from Yan Baihu\'s tent. It carries the black lotus watermark too.');
   await T('yujin', '……我會把這些帶回去給丞相。', '...I will take these back to the Chancellor.');
-  await T('chaoyin', '我……潮音……怎麼會輸給……海外的……', 'I... Chao Yin... how could I lose to... foreigners...');
+  await T('chaoyin', '我……潮音……怎麼會輸給……一個造船匠……和兩個小鬼……', 'I... Chao Yin... how could I lose to... a shipwright... and two little boys...');
   await N('蒼蓮使潮音沉入了江底。', 'Chao Yin, the Blue Lotus Envoy, sinks beneath the river.');
   S.flags.won_fleet2 = 1;
   await T('jeff', '對了，主公。從北方艦隊那裡繳了一艘大樓船，我改了改帆——現在它能逆風走了。', 'Oh, my lord. We captured a big tower ship from the northern fleet and I re-rigged the sails. Now she can sail into the wind.');
@@ -1261,8 +1282,9 @@ async function ending() {
   await T('josh', '包子我已經請過了。……大家吃得很開心。', 'I already bought everyone buns. ...Everyone enjoyed them.');
   await T('jasper', '我不走。我還沒找到洛陽所有的點心店。', 'I\'m not going. I haven\'t found every snack shop in Luoyang yet.');
   await T('erin', '賈斯珀！', 'Jasper!');
-  await T('sunquan', '……那就這樣吧。艾琳、傑夫、喬許，你們回家去，把這邊的事告訴你們的家人。然後——再回來。這裡也是你們的家。', '...Then let it be so. Erin, Jeff, Josh: go home and tell your families what happened here. And then— come back. This is your home too.');
-  await T('erin', '……一定。我們一定回來。', '...We will. We will come back.');
+  await T('sunquan', '賈斯珀，回家去吧。你外婆一定天天在碼頭等著。傑夫、艾琳、喬許、賈斯珀，回家去，把這邊的事告訴家鄉的人。然後——一家人再回來。這裡也是你們的家。', 'Jasper, go home. Your grandmother must be waiting at the harbour every day. Jeff, Erin, Josh, Jasper: go home and tell your people what happened here. And then— come back, all of you. This is your home too.');
+  await T('jasper', '……那等我回來，點心店你要先幫我找好喔。', '...Then when I come back, you have to have the snack shops found for me.');
+  await T('erin', '……一定。我們一家一定回來。', '...We will. Our whole family will come back.');
   STORY.dark = 0.5;
   await N('江東霸業傳　完', 'Saga of Jiangdong — The End');
   await N(`遊戲時間 ${Math.floor(S.time / 3600)}小時${Math.floor((S.time % 3600) / 60)}分　戰鬥 ${S.battles || S.wins}場　武將 ${Object.keys(S.roster).length}名`, `Play time ${Math.floor(S.time / 3600)}h ${Math.floor((S.time % 3600) / 60)}m   Battles won ${S.wins}   Generals ${Object.keys(S.roster).length}`);

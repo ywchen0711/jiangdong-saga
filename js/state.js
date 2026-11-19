@@ -1,8 +1,8 @@
 // The game state: the army (generals, their levels, troops and gear), gold, items, flags, where you are,
 // and saving and loading. A general's numbers are worked out here from their base stats and gear.
-import { GENERALS, gearFor, genName } from './generals.js?v=10';
-import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=10';
-import { L } from './i18n.js?v=10';
+import { GENERALS, gearFor, genName } from './generals.js?v=11';
+import { ITEMS, TACTICS, FORMS, maxTroops, maxTP, expFor, MAXLV, CAN_USE, ONE_HAND, SLOTS, gearFx } from './data.js?v=11';
+import { L } from './i18n.js?v=11';
 
 export const S = {};
 export function newGame() {
@@ -25,7 +25,7 @@ export const PARTY_MAX = 8;
 export function member(id) { return S.roster[id] || null; }
 export const inCamp = (id) => !!(S.camp && S.camp.includes(id));
 export const party = () => Object.keys(S.roster).filter((id) => !inCamp(id));
-// who the story needs at the army's side: Sun Quan always; the four travellers in the first chapter and once
+// who the story needs at the army's side: Sun Quan always; Jeff's family in the first chapter and once
 // everyone has gathered for the last march
 export function mustTravel(id) {
   if (id === 'sunquan') return true;

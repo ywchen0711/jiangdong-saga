@@ -8,7 +8,7 @@
 // h= helmet layer, p= plume layer, pc= plume colour, hc= cloth of a headband, cp= cape layer, cc= cape colour,
 // sh= shield layer, hs= horse colour, n= neck layer, bl= belt layer, bc= belt colour, br bracers, cu cuffs, sc scarf,
 // ic= icon, fx= effects (comma list), set= set, st= extra stats, src= fixed source, gen= carried by a general
-import { PLACES, REGIONS } from './world.js?v=10';
+import { PLACES, REGIONS } from './world.js?v=11';
 export const RARITY = [['普通', 'Common', '#c8c8c8'], ['精良', 'Fine', '#78d878'], ['稀有', 'Rare', '#68a8ff'], ['名品', 'Famed', '#d080ff'], ['傳說', 'Legendary', '#ffb838']];
 const RMUL = [1, 1.04, 1.08, 1.12, 1.18];
 const W_ATK = [0, 9, 11, 16, 20, 25, 27, 30, 34, 37, 38];

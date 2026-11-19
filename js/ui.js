@@ -1,9 +1,9 @@
 // Dialogue boxes, choices and list menus. Each returns a promise, so story scripts can be
 // written as plain async code; the main loop feeds them input and draws them on top.
-import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=10';
-import { input } from './input.js?v=10';
-import { sfx } from './audio.js?v=10';
-import { speaker, L } from './i18n.js?v=10';
+import { ctx, W, H, text, textW, windowBox, HAND, HAND_D } from './gfx.js?v=11';
+import { input } from './input.js?v=11';
+import { sfx } from './audio.js?v=11';
+import { speaker, L } from './i18n.js?v=11';
 
 // short coloured status tags so the panels show who is poisoned, slowed, shielded... at a glance
 const STTAG = {
@@ -75,7 +75,10 @@ export function wrap(s, w) {
 export function say(name, msg, { top = false, wait = true, keep = false, face = null } = {}) {
   const who = face || name;
   name = speaker(name);
-  const hasFace = !!(UI.face && who && UI.face(who, true));
+  // a painted portrait (UI.art) stands on the window's top edge, or under it when the window is at the top;
+  // other generals show their small paper-doll face inside the window
+  const hasArt = !!(UI.art && who && UI.art(who, true));
+  const hasFace = !hasArt && !!(UI.face && who && UI.face(who, true));
   const lines = wrap(msg, W - 40 - (hasFace ? 48 : 0));
   const pages = [];
   for (let i = 0; i < lines.length; i += 3) pages.push(lines.slice(i, i + 3));
@@ -99,7 +102,13 @@ export function say(name, msg, { top = false, wait = true, keep = false, face = 
     },
     draw() {
       windowBox(4, this.y, W - 8, 64);
-      if (name) { windowBox(8, this.y - 15, textW(name) + 14, 18); text(name, 15, this.y - 12, '#f8e070'); }
+      if (hasArt) {
+        const im = UI.art(who), ay = top ? this.y + 66 : this.y - 84;
+        windowBox(6, ay, 76, 84);
+        if (im) ctx.drawImage(im, 8, ay + 2);
+      }
+      const nx = hasArt ? 86 : 8;
+      if (name) { windowBox(nx, this.y - 15, textW(name) + 14, 18); text(name, nx + 7, this.y - 12, '#f8e070'); }
       let left = this.shown;
       const fc = hasFace ? UI.face(who) : null;
       if (hasFace) { ctx.fillStyle = '#100a14'; ctx.fillRect(12, this.y + 8, 40, 48); if (fc) ctx.drawImage(fc, 0, 0, 36, 36, 12, this.y + 10, 40, 40); }

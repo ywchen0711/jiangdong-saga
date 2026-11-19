@@ -1,19 +1,19 @@
 // The paper doll on screen: the equip page (a big figure that turns through four directions, the battle pose
 // beside it, mounted when a horse is worn, each slot with its icon, stats before and after), trying things on
 // from the bag or a shop counter, and the treasure codex (寶物錄) with its 300 entries.
-import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=10';
-import { input } from './input.js?v=10';
-import { sfx } from './audio.js?v=10';
-import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=10';
-import { L } from './i18n.js?v=10';
-import { GENERALS, genName } from './generals.js?v=10';
-import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=10';
-import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=10';
-import { battleSheet } from './doll.js?v=10';
-import { horseImg } from './horses.js?v=10';
-import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=10';
-import { hintText, owned, setTryOn } from './treasure_world.js?v=10';
-import { traitName } from './traits.js?v=10';
+import { ctx, W, H, text, textW, windowBox } from './gfx.js?v=11';
+import { input } from './input.js?v=11';
+import { sfx } from './audio.js?v=11';
+import { menu, notice, fit, wrap, pushRaw, removeRaw, say } from './ui.js?v=11';
+import { L } from './i18n.js?v=11';
+import { GENERALS, genName } from './generals.js?v=11';
+import { ITEMS, TACTICS, FORMS, SLOTS, SLOT_NAME, itemName, unitName, gearFx, fxText, setCount, SETS, RARITY, TREASURES, TREASURE_KIND, RELIC_FX, ONE_HAND } from './data.js?v=11';
+import { S, member, stat, atkOf, defOf, troopsMax, canEquip, give, take, learnTactics, fitShield } from './state.js?v=11';
+import { battleSheet } from './doll.js?v=11';
+import { horseImg } from './horses.js?v=11';
+import { drawItemIcon, itemIcon, warmIcons } from './itemicons.js?v=11';
+import { hintText, owned, setTryOn } from './treasure_world.js?v=11';
+import { traitName } from './traits.js?v=11';
 
 // ---------- what an item does, in words ----------
 export function itemDesc(id) {
@@ -45,7 +45,7 @@ export function itemDesc(id) {
   if (it.kind === 'key') p.push(L('重要物品', 'Key item'));
   return p.join(L('，', ', '));
 }
-import { parseFx } from './treasures.js?v=10';
+import { parseFx } from './treasures.js?v=11';
 const gearFxOf = (code) => parseFx(code);
 
 // ---------- the doll on stage ----------
@@ -82,7 +82,7 @@ export function drawPose(id, equip, cx, feet, scale = 1) {
   if (horse) {
     const hi = horseImg(horse), fr = a === 'idle' ? 0 : 1, hfeet = 94, sx = 62, sy = 52;
     if (hi) ctx.drawImage(hi, fr * 128, 5 * 128, 128, 128, -59, 1 - hfeet, 128, 128);
-    const off = (m.cell - 64) / 2, cut = 50, top = 1 - hfeet + sy - 44;
+    const off = (m.cell - 64) / 2, cut = sh.kid ? 54 : 50, top = 1 - hfeet + sy - (sh.kid ? 50 : 44);
     ctx.drawImage(sh.img, f * m.cell, m.y, m.cell, off + cut, -59 + sx - m.cell / 2, top - off, m.cell, off + cut);
   } else ctx.drawImage(sh.img, f * m.cell, m.y, m.cell, m.cell, -m.cell / 2, -60 - (m.cell - 64) / 2, m.cell, m.cell);
   ctx.restore();
